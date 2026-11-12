@@ -61,6 +61,8 @@ export default defineConfig({
     VitePWA({
       // A new version waits: nothing reloads while the author writes (see useAppUpdate).
       registerType: 'prompt',
+      // Behind Cloudflare Access the manifest fetch must send the Access cookie, or it gets the login redirect.
+      useCredentials: true,
       includeAssets: ['favicon.svg'],
       // The manifest cannot read CSS variables: these are the light `chrome` and `canvas` tokens.
       manifest: {
@@ -80,6 +82,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: 'index.html',
+        // Cloudflare Access sign-in lands on this origin: it must reach the network, not the cache.
+        navigateFallbackDenylist: [/^\/cdn-cgi\//, /^\/signin$/],
       },
     }),
   ],

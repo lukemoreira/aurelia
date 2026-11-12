@@ -17,9 +17,13 @@ function register() {
 
 beforeEach(() => {
   vi.useFakeTimers()
+  vi.stubGlobal('fetch', () => Promise.reject(new TypeError('offline')))
   useAppUpdate().dismiss()
 })
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
 
 describe('app updates', () => {
   it('says nothing, and reloads nothing, until a new version is waiting', () => {
@@ -59,5 +63,46 @@ describe('app updates', () => {
     await vi.advanceTimersByTimeAsync(1)
     await vi.advanceTimersByTimeAsync(UPDATE_CHECK_MS)
     expect(update).toHaveBeenCalledTimes(2)
+  })
+
+  describe('sign-in probe', () => {
+    async function failedCheck(probe: () => Promise<unknown>) {
+      vi.stubGlobal('fetch', vi.fn(probe))
+      const { options } = register()
+      const update = vi.fn().mockRejectedValue(new TypeError('redirected'))
+      options().onRegisteredSW?.('/sw.js', { update } as unknown as ServiceWorkerRegistration)
+      await vi.advanceTimersByTimeAsync(UPDATE_CHECK_MS)
+    }
+    it('asks for a sign-in when the probe is redirected', async () => {
+      await failedCheck(() => Promise.resolve({ type: 'opaqueredirect' }))
+      expect(useAppUpdate().signInNeeded.value).toBe(true)
+      expect(fetch).toHaveBeenCalledWith('/sw.js', { cache: 'no-store', redirect: 'manual' })
+    })
+
+    it('asks for a sign-in when the app opens after the session ended', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.resolve({ type: 'opaqueredirect' })),
+      )
+      const { options } = register()
+      options().onRegisterError?.(new TypeError('redirected'))
+      await vi.advanceTimersByTimeAsync(0)
+      expect(useAppUpdate().signInNeeded.value).toBe(true)
+    })
+
+    it.each([401, 403])('asks for a sign-in when the probe is refused (%i)', async (status) => {
+      await failedCheck(() => Promise.resolve({ type: 'basic', status }))
+      expect(useAppUpdate().signInNeeded.value).toBe(true)
+    })
+
+    it('does not when the probe gets a normal answer', async () => {
+      await failedCheck(() => Promise.resolve({ type: 'basic', status: 200 }))
+      expect(useAppUpdate().signInNeeded.value).toBe(false)
+    })
+
+    it('does not when the probe fails too (offline), and nothing is left unhandled', async () => {
+      await failedCheck(() => Promise.reject(new TypeError('offline')))
+      expect(useAppUpdate().signInNeeded.value).toBe(false)
+    })
   })
 })
