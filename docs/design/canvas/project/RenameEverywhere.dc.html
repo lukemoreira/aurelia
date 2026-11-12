@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Rename everywhere</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="dialog" aria-labelledby="rn-title" style="width: 720px; height: 880px; box-sizing: border-box; display: flex; flex-direction: column; background: {{t.surface}}; border: 1px solid {{t.line}}; border-radius: 16px; box-shadow: {{t.shadow}}; overflow: hidden; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<div style="padding: 20px 22px 14px; border-bottom: 1px solid {{t.line}}">
+<h1 id="rn-title" style="margin: 0; font: 500 24px/1.2 Literata, Georgia, serif">Change the name in your text too?</h1>
+<p style="margin: 6px 0 0; color: {{t.ink2}}">You renamed <b style="font-weight: 600; color: {{t.ink}}">Elena Vasquez</b> to <b style="font-weight: 600; color: {{t.ink}}">Helena Vasquez</b>. Here is every place her name appears in Saltmarch.</p>
+</div>
+
+<div style="flex: 1; overflow: auto; padding: 14px 22px; display: flex; flex-direction: column; gap: 16px">
+
+<section aria-labelledby="rn-map" style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="rn-map" style="margin: 0; font: 600 11px Inter, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: {{t.ink3}}">Each form of the name</h2>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr) 90px; gap: 8px 10px; align-items: center">
+<sc-for list="{{forms}}" as="f" hint-placeholder-count="4">
+<span style="height: 34px; padding: 0 10px; display: flex; align-items: center; border-radius: 8px; background: {{t.canvas}}; font-weight: 500">{{f.from}}</span>
+<span aria-hidden="true" style="color: {{t.ink3}}; text-align: center">→</span>
+<label style="display: contents"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">New form for {{f.from}}</span><input type="text" value="{{f.to}}" style="height: 34px; min-width: 0; box-sizing: border-box; padding: 0 10px; border: 1px solid {{t.field}}; border-radius: 8px; background: {{t.surface}}; color: {{f.toColor}}; font: {{f.toFont}}"></label>
+<span style="text-align: right; font-size: 12px; color: {{t.ink3}}; font-variant-numeric: tabular-nums">{{f.count}}</span>
+</sc-for>
+</div>
+<span style="font-size: 12px; color: {{t.ink3}}">Possessives and capitals follow: “Elena’s” becomes “Helena’s”. Leave a box as it is to keep that form.</span>
+</section>
+
+<section aria-labelledby="rn-places" style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<h2 id="rn-places" style="margin: 0; font: 600 11px Inter, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: {{t.ink3}}">Places · 2 books · 31 scenes</h2>
+<span role="group" aria-label="Show" style="display: flex; padding: 3px; gap: 2px; background: {{t.raised}}; border-radius: 8px">
+<button type="button" aria-pressed="true" style="height: 26px; padding: 0 10px; border: 0; border-radius: 6px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">All 465</button>
+<button type="button" aria-pressed="false" style="height: 26px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: {{t.ink2}}; font: 500 12px Inter, sans-serif; cursor: pointer">Uncertain 3</button>
+</span>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; border: 1px solid {{t.line}}; border-radius: 12px; overflow: hidden">
+<sc-for list="{{places}}" as="p" hint-placeholder-count="6">
+<li style="padding: 8px 12px; display: flex; align-items: flex-start; gap: 10px; border-top: {{p.border}}; background: {{p.bg}}">
+<input type="checkbox" checked="{{p.on}}" aria-label="Change this place in {{p.where}}" style="width: 16px; height: 16px; margin: 3px 0 0; accent-color: {{t.goldInk}}">
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; gap: 8px; align-items: center"><span style="font: 500 11.5px Inter, sans-serif; color: {{t.ink3}}">{{p.where}}</span><span style="padding: 0 6px; border-radius: 4px; background: {{t.warnSoft}}; color: {{t.warn}}; font: 600 10.5px Inter, sans-serif; display: {{p.flagDisplay}}">{{p.flag}}</span></span>
+<span style="font: 400 14px/1.5 Literata, Georgia, serif; color: {{t.ink2}}">{{p.before}}<del style="color: {{t.danger}}">{{p.old}}</del><ins style="text-decoration: none; padding: 0 2px; border-radius: 3px; background: {{t.okSoft}}; color: {{t.ok}}; font-weight: 600">{{p.new}}</ins>{{p.after}}</span>
+</span>
+</li>
+</sc-for>
+</ul>
+<span style="font-size: 12px; color: {{t.ink3}}">Uncertain places are not ticked. Places you leave unticked are listed again after the change.</span>
+</section>
+</div>
+
+<div style="padding: 14px 22px; display: flex; align-items: center; gap: 10px; border-top: 1px solid {{t.line}}; background: {{t.chrome}}">
+<span style="flex: 1; font-size: 12.5px; color: {{t.ink2}}">462 of 465 places will change. A version is saved first, and you can undo.</span>
+<button type="button" style="height: 36px; padding: 0 14px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 13px Inter, sans-serif; cursor: pointer">Only rename the record</button>
+<button type="button" style="height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 13px Inter, sans-serif; cursor: pointer">Change 462 places</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":720,"height":880}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', field: '#968B78', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldInk: '#7A5A0B', onGold: '#1B1A1F', warn: '#9A5B07', warnSoft: '#FBF0DC', danger: '#A8322D', ok: '#2F6B3E', okSoft: '#E3F0E0', shadow: '0 4px 8px rgba(40,32,16,.08), 0 24px 64px rgba(40,32,16,.22)' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', field: '#6A6A78', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldInk: '#F5C542', onGold: '#0B0B0F', warn: '#E0A43A', warnSoft: '#251D0F', danger: '#E5736B', ok: '#7BC08A', okSoft: '#16241A', shadow: '0 4px 8px rgba(0,0,0,.4), 0 24px 64px rgba(0,0,0,.6)' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const form = function (from, to, count, keep) {
+      return { from: from, to: to, count: count, toColor: keep ? t.ink3 : t.ink, toFont: (keep ? '400' : '500') + ' 13px Inter, sans-serif' };
+    };
+    const forms = [
+      form('Elena Vasquez', 'Helena Vasquez', '38 places'),
+      form('Elena', 'Helena', '412 places'),
+      form('Lena', 'Lena', '9 places', true),
+      form('Vasquez', 'Vasquez', '6 places', true)
+    ];
+    const place = function (where, before, old, nw, after, on, flag, first) {
+      return {
+        where: where, before: before, old: old, new: nw, after: after, on: on,
+        flag: flag || '', flagDisplay: flag ? 'inline-block' : 'none',
+        bg: on ? 'transparent' : t.canvas, border: first ? '0' : '1px solid ' + t.line
+      };
+    };
+    const places = [
+      place('The Lantern Gate · 7.2 Curfew Bells', '…already begun when ', 'Elena', 'Helena', ' reached the Lantern Gate.', true, '', true),
+      place('The Lantern Gate · 7.2 Curfew Bells', '…lifted it until the light fell across ', 'Elena’s', 'Helena’s', ' cheek…', true),
+      place('The Lantern Gate · 5.1 Salt in the Ledger', '“', 'Elena Vasquez', 'Helena Vasquez', ',” the clerk read aloud…', true),
+      place('Tidebound · 3.1 The Ledger Thief', '…', 'Elena', 'Helena', ' asked, and the Greywater bells answered…', true),
+      place('The Lantern Gate · 2.4 Low Water', '…they sang “', 'Elena', 'Helena', ' of the Tides” until dawn…', false, 'Uncertain — inside a song title'),
+      place('Research · Port names', '…the ship ', 'Elena', 'Helena', ' was lost off the point…', false, 'Uncertain — maybe a ship')
+    ];
+    return { t: t, forms: forms, places: places };
+  }
+}
+</script>
+</body>
+</html>

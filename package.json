@@ -1,0 +1,59 @@
+{
+  "name": "aurelia",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Aurelia — a local-first writing app for novels, histories and game writing.",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "licenses": "node scripts/check-licenses.mjs",
+    "spdx": "node scripts/check-spdx.mjs",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run spdx && npm run licenses",
+    "format:check": "prettier --check .",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/literata": "^5.3.0",
+    "pinia": "^4.1.0",
+    "reka-ui": "^2.11.0",
+    "vue": "^3.5.45",
+    "vue-router": "^5.5.0",
+    "workbox-window": "^7.4.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.65.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^22.20.5",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "@vue/test-utils": "^2.5.1",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.12.1",
+    "globals": "^17.14.0",
+    "happy-dom": "^21.0.4",
+    "prettier": "^3.10.1",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0",
+    "vue-tsc": "^3.3.14"
+  }
+}

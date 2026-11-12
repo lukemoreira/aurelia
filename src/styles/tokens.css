@@ -1,0 +1,171 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* The ONE source of Aurelia's design tokens. Light on :root, dark on [data-theme="dark"]
+   and, when no theme is chosen, from the system setting. Keep the two dark blocks equal
+   (tests/unit/tokens-contrast.test.ts checks it). */
+
+:root {
+  --chrome: #f3eee4;
+  --canvas: #faf7f2;
+  --surface: #fffdf9;
+  --raised: #eae3d6;
+  --line: #e2dacb;
+  --line-2: #cfc4b0;
+  --field: #968b78;
+  --ink: #1b1a1f;
+  --ink-2: #4f4d56;
+  --ink-3: #67646d;
+  --gold: #c9a227;
+  --gold-soft: #f5e7b5;
+  --gold-ink: #7a5a0b;
+  --gold-line: #e3cf8a;
+  --on-gold: #1b1a1f;
+  --on-accent: #fffdf9;
+  --ember: #b4532a;
+  --tide: #2f6690;
+  --moss: #4f7232;
+  --plum: #7a4e8c;
+  --warn: #9a5b07;
+  --warn-soft: #fbf0dc;
+  --warn-line: #ebcf9e;
+  --danger: #a8322d;
+  --danger-soft: #f8e3e0;
+  --danger-line: #e9b8b2;
+  --ok: #2f6b3e;
+  --ok-soft: #e3f0e0;
+  --ok-line: #b9d3b3;
+  --info: #2f6690;
+  --info-soft: #e4edf5;
+  --info-line: #b9cfe3;
+  --shadow: 0 2px 4px rgba(40, 32, 16, 0.06), 0 12px 32px rgba(40, 32, 16, 0.12);
+  --shadow-sm: 0 1px 2px rgba(40, 32, 16, 0.06);
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-dialog: 16px;
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-prose: 'Literata', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+[data-theme='dark'] {
+  --chrome: #0b0b0f;
+  --canvas: #121218;
+  --surface: #1a1a21;
+  --raised: #26262f;
+  --line: #2a2a33;
+  --line-2: #3a3a45;
+  --field: #6a6a78;
+  --ink: #ededed;
+  --ink-2: #c2bfc8;
+  --ink-3: #9a97a2;
+  --gold: #f5c542;
+  --gold-soft: #2e2715;
+  --gold-ink: #f5c542;
+  --gold-line: #5c4b1c;
+  --on-gold: #0b0b0f;
+  --on-accent: #0b0b0f;
+  --ember: #e0855c;
+  --tide: #72aad8;
+  --moss: #97b96e;
+  --plum: #bc93cf;
+  --warn: #e0a43a;
+  --warn-soft: #251d0f;
+  --warn-line: #4a3a18;
+  --danger: #e5736b;
+  --danger-soft: #2a1514;
+  --danger-line: #5a2a26;
+  --ok: #7bc08a;
+  --ok-soft: #16241a;
+  --ok-line: #2e4a35;
+  --info: #72aad8;
+  --info-soft: #132030;
+  --info-line: #294560;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --chrome: #0b0b0f;
+    --canvas: #121218;
+    --surface: #1a1a21;
+    --raised: #26262f;
+    --line: #2a2a33;
+    --line-2: #3a3a45;
+    --field: #6a6a78;
+    --ink: #ededed;
+    --ink-2: #c2bfc8;
+    --ink-3: #9a97a2;
+    --gold: #f5c542;
+    --gold-soft: #2e2715;
+    --gold-ink: #f5c542;
+    --gold-line: #5c4b1c;
+    --on-gold: #0b0b0f;
+    --on-accent: #0b0b0f;
+    --ember: #e0855c;
+    --tide: #72aad8;
+    --moss: #97b96e;
+    --plum: #bc93cf;
+    --warn: #e0a43a;
+    --warn-soft: #251d0f;
+    --warn-line: #4a3a18;
+    --danger: #e5736b;
+    --danger-soft: #2a1514;
+    --danger-line: #5a2a26;
+    --ok: #7bc08a;
+    --ok-soft: #16241a;
+    --ok-line: #2e4a35;
+    --info: #72aad8;
+    --info-soft: #132030;
+    --info-line: #294560;
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.5);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+@theme inline {
+  --color-chrome: var(--chrome);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-field: var(--field);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-ink: var(--gold-ink);
+  --color-gold-line: var(--gold-line);
+  --color-on-gold: var(--on-gold);
+  --color-on-accent: var(--on-accent);
+  --color-ember: var(--ember);
+  --color-tide: var(--tide);
+  --color-moss: var(--moss);
+  --color-plum: var(--plum);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-line: var(--danger-line);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-ok-line: var(--ok-line);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-line: var(--info-line);
+  --shadow-card: var(--shadow);
+  --shadow-sm: var(--shadow-sm);
+  --radius-control: var(--radius-control);
+  --radius-card: var(--radius-card);
+  --radius-dialog: var(--radius-dialog);
+  --font-ui: var(--font-ui);
+  --font-prose: var(--font-prose);
+  --font-mono: var(--font-mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}

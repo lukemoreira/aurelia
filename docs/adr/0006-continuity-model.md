@@ -110,9 +110,10 @@ Each check says what it found, where, and why. Checks never change text.
 (`412-03-14T18:00` and `412-03-14T18:00`). Coarser overlaps (a date against a time, or a
 span) are "possible" and shown collapsed.
 
-**Presence.** A character is *present* in a scene when the text links them (`[[…]]`),
-unless the author unticks them. `characters:` in the frontmatter stores only the
-overrides (`add`, `remove`; ADR-0003). The checks and the presence map use this one
+**Presence.** A character is *present* in a scene when the text names them — a tagged
+mention found automatically ([ADR-0010](0010-name-mentions.md)) or an explicit
+`[[link]]` — unless the author unticks them. `characters:` in the frontmatter stores only
+the overrides (`add`, `remove`; ADR-0003). The checks and the presence map use this one
 rule. `changes` stay manual.
 
 **Dismissed findings.** Every finding has a **fingerprint**: check id + sorted subject
