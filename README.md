@@ -19,6 +19,10 @@ research live together, linked — and they live in plain files on your own disk
 - **Own your work**: Markdown files in a folder you choose. Works offline. No account.
 - Optional later: sync to your own cloud, and AI reviews you control.
 
+## Self-hosting
+
+Run Aurelia on your own server behind a login: [`docs/self-hosting.md`](docs/self-hosting.md).
+
 ## Your writing is yours
 
 Aurelia is licensed under the [GNU AGPL v3.0 or later](LICENSE). That license covers

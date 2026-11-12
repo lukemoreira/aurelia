@@ -379,3 +379,7 @@ backup — ADR-0009.)
 - 2026-11-12 — M1 App shell built: shell layout, resizable panels, command palette with
   recent and pinned items, Saltmarch sample, per-device state, narrow-screen sheets, PWA
   baseline, e2e with axe in both themes. Next: M2 local project storage.
+- 2026-11-12 — Self-hosting: Docker image (nginx, non-root, read-only), GHCR publish
+  workflow, TrueNAS custom app behind the owner's Cloudflare Tunnel + Access, and a
+  "Sign in again" prompt when the Access session ends. Books never reach the server.
+  See [`docs/self-hosting.md`](docs/self-hosting.md).

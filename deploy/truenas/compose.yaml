@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Aurelia on TrueNAS SCALE: Apps -> Discover Apps -> ⋮ -> Install via YAML.
+# Full steps: docs/self-hosting.md
+#
+# - Only Aurelia runs here. Your Cloudflare Tunnel (already on the NAS) sends visitors
+#   to http://<NAS IP>:30080. No port is opened on the router.
+# - Port 30080 is open on your home network only. It serves the app, never your books.
+#   If the port is taken, change the left number and the tunnel route.
+
+services:
+  aurelia:
+    image: ghcr.io/lukemoreira/aurelia:latest
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    pids_limit: 100
+    ports:
+      - '30080:8080'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3

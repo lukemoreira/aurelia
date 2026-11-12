@@ -38,4 +38,19 @@ describe('UpdateToast', () => {
     await wrapper.findAll('button')[0]!.trigger('click')
     expect(apply).toHaveBeenCalledWith(true)
   })
+
+  it('asks for a sign-in when the session ended, and goes to /signin on Sign in', async () => {
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => {})
+    const wrapper = mount(UpdateToast)
+    useAppUpdate().signInNeeded.value = true
+    await wrapper.vm.$nextTick()
+    expect(wrapper.get('[role="status"]').text()).toContain('Sign in again to get updates')
+    const buttons = wrapper.findAll('button')
+    expect(buttons.map((b) => b.text())).toEqual(['Sign in', 'Later'])
+    await buttons[0]!.trigger('click')
+    expect(assign).toHaveBeenCalledWith('/signin')
+    await buttons[1]!.trigger('click')
+    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    assign.mockRestore()
+  })
 })

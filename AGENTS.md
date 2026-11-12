@@ -45,6 +45,7 @@ src/
 - Before you finish a milestone: `npm run check` and `npm run e2e` pass, `PLANS.md` is
   updated (ticked criteria, decisions, what is left).
 - Branch per change; never commit to `main` directly.
+- CI runs on GitHub-hosted runners only. The repo is public: a self-hosted runner would let fork pull requests run code on the owner's machine.
 - Commit messages: Conventional Commits (`feat(editor): …`). Sign off (`git commit -s`).
 - Every source file starts with `// SPDX-License-Identifier: AGPL-3.0-or-later`.
 
