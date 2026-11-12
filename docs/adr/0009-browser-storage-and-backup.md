@@ -65,7 +65,7 @@ device wrote a newer revision, it stops and asks: *Keep both* (this browser back
 new folder) or *Use the backup here* (after saving a version of this browser's copy).
 
 **Backup is not sync.** One browser writes a backup; other devices restore a copy. Real
-two-way sync (M10) builds on the same manifest and hashes.
+two-way sync (M4b, see the amendment below) builds on the same manifest and hashes.
 
 ### 3. Restore
 
@@ -101,6 +101,45 @@ bar until a backup exists.
   two browsers backing up one workspace never overwrite each other; an expired token
   keeps changes queued and shows "Reconnect"; a WebDAV server without CORS gives a clear
   setup message, not a silent failure.
+
+## Amendment (2026-11-12): your own server, and sync moved up
+
+Owner, 2026-11-12: "I wanted to mount a volume and have local storage backup as well as
+having the ability to add a secondary storage for syncing", then "Yes, sync after
+editor". The owner runs Aurelia on their own TrueNAS behind Cloudflare Access
+([docs/self-hosting.md](../self-hosting.md)).
+
+**Your own server is a backup target (M2b).** A small storage container (WebDAV) runs
+next to the app on the author's server and writes into a mounted volume (on TrueNAS, a
+dataset, so ZFS snapshots add one more layer). The app's nginx sends `/dav/` to it, so it
+is on the **same address** as the app: no CORS setup, and Cloudflare Access protects it
+like the app. It uses the same `RemoteStore` WebDAV adapter and the same layout and
+`backup.json` as every other target. A second place (Google Drive, OneDrive, Nextcloud)
+can be added beside it.
+
+**The storage door checks the login itself.** The app's port on the server is open on the
+home network, where Cloudflare Access does not apply. So the storage container refuses
+every request without a valid Cloudflare Access token (`Cf-Access-Jwt-Assertion`, checked
+against the team's public keys and the application's AUD tag). Without this, anyone on
+the home network could read or delete the books. Which WebDAV server to use (nginx's DAV
+module has no `PROPFIND`) is chosen at the start of M2b.
+
+**Sync moves up: M4b, right after the editor**, not after v1. Two-way sync of a workspace
+between devices through a WebDAV target (your own server first; Nextcloud works the same
+way). Rules:
+
+- It builds on `backup.json`: per-file hashes and revisions, written with compare-and-write.
+- Pull when the app opens and every few minutes; push changed files after saving.
+- A file changed on two devices is **never overwritten**: both texts are kept and shown
+  as a conflict for the author to resolve.
+- A version is saved before remote changes are applied. Deletes are kept as markers
+  (tombstones), so a stale device cannot bring a deleted scene back silently. Moves follow
+  stable IDs (ADR-0003 ID paths).
+- Exit: random edit sequences on two and three devices, online and offline, never lose
+  a word (property tests).
+
+Sync through Google Drive and OneDrive, S3-compatible storage and end-to-end encryption
+stay in M10.
 
 ## Sources
 

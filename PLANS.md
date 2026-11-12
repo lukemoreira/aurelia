@@ -22,6 +22,7 @@ plan comes from is in [`docs/spec/aurelia-product-specification.html`](docs/spec
 | AI assistant | Authors connect **their own** Claude or ChatGPT account to get an agent that helps | [ADR-0008](docs/adr/0008-ai-assistant.md) |
 | Names | Character and place names are **found and tagged automatically** in the text, and a rename can change them everywhere in one step | [ADR-0010](docs/adr/0010-name-mentions.md) |
 | Storage in v0.1 | **The browser.** Real folders in Chrome and Edge; browser storage (OPFS) in Safari and Firefox, protected by cloud backup to the author's own Google Drive, OneDrive or Nextcloud, with versions. The desktop app comes later, before M8 | [ADR-0009](docs/adr/0009-browser-storage-and-backup.md) |
+| Own server and sync | Aurelia runs on the owner's TrueNAS behind Cloudflare Access. A storage container on that server (a mounted volume) is a backup target in M2b, and **two-way sync between devices comes right after the editor (M4b)**, not after v1 | [ADR-0009 amendment](docs/adr/0009-browser-storage-and-backup.md), [self-hosting](docs/self-hosting.md) |
 
 ## 2. Decisions this plan makes (owner can overrule)
 
@@ -178,6 +179,11 @@ Do not scaffold future features early.
   (`Files.ReadWrite.AppFolder`) and **WebDAV / Nextcloud** (app password; CORS set up
   once with the WebAppPassword app). OAuth 2.0 + PKCE in the browser, no Aurelia server.
   Dropbox next.
+- **Your own server** (ADR-0009 amendment): a WebDAV storage container on the self-hosted
+  server writes into a mounted volume (a TrueNAS dataset). The app's nginx sends `/dav/`
+  to it, so it is on the same address (no CORS) and behind Cloudflare Access. It refuses
+  any request without a valid Access token, because the server's port is open on the
+  home network. TrueNAS app file and guide updated.
 - Uploads changed files a minute after typing stops and when the tab is hidden; a
   version zip every hour of writing and before risky steps, with retention (hourly 2
   days, daily 30 days, weekly 6 months, monthly for ever).
@@ -190,7 +196,8 @@ Do not scaffold future features early.
 - Exit: clear all site data, then restore — every file matches its hash; two browsers
   backing up one workspace never overwrite each other; an expired token keeps changes
   queued and shows "Reconnect"; a WebDAV server without CORS gives a clear setup
-  message.
+  message; the storage container refuses a request with no Access token, a wrong AUD tag
+  or an expired token (tests).
 
 **M3 · Domain, links and search**
 - All entity types load and save. Stable IDs. YAML edited through the `yaml` Document
@@ -231,6 +238,19 @@ Do not scaffold future features early.
   Test: renaming "Elena" never touches "Elenath" or "elena@example.com".
 - Exit: golden-file round-trip tests for every dialect feature M4 edits, plus tests that
   tables and footnotes survive as raw text; a 150k-word book stays fast.
+
+**M4b · Sync through your server** ([ADR-0009 amendment](docs/adr/0009-browser-storage-and-backup.md)) — owner: "Yes, sync after editor"
+- Two-way sync of a workspace between devices through a WebDAV target (your own server
+  first; Nextcloud works the same way). Builds on `backup.json` hashes and revisions,
+  written with compare-and-write.
+- Pull on open and every few minutes; push changed files after saving.
+- A file changed on two devices is never overwritten: both texts kept, shown as a
+  conflict. A version is saved before remote changes are applied. Deletes are kept as
+  markers; moves follow stable IDs.
+- Status bar shows "Synced", "Syncing", "Offline — changes waiting" or "Conflict".
+- Exit: random edit sequences on two and three devices, online and offline, never lose a
+  word (property tests); a device back from a week offline gets every change and loses
+  none of its own.
 
 ### Release v0.2 "Plan" — shape the story
 
@@ -334,9 +354,9 @@ docs site, sample universe, signed desktop builds, first public release.
   and the continuity check "knows before learning" (needs a tagged-mention syntax).
 - **Imports from other tools**: investigate Scrivener, Ulysses, Campfire and World
   Anvil import.
-- **M10 · Sync**: WebDAV and S3-compatible adapters, hash manifests, conflict
-  workflow, optional end-to-end encryption (libsodium: Argon2id + XChaCha20-Poly1305).
-  Revisit sync manifests here.
+- **M10 · More sync**: sync through Google Drive and OneDrive, an S3-compatible
+  adapter, optional end-to-end encryption (libsodium: Argon2id + XChaCha20-Poly1305).
+  WebDAV sync itself moved up to M4b.
 - **M11 · Sharing and views**: beta-reader mode, comments, revision mode; graph view,
   maps.
 - Branching extras: variables and conditions, Ink / Twine export.
@@ -356,6 +376,8 @@ docs site, sample universe, signed desktop builds, first public release.
 | R8 | Signed desktop builds cost money and setup (Apple Developer ID, Windows code-signing certificate). | Budget before v1.0; unsigned dev builds until then. Ship as direct notarised downloads, not through the Mac App Store (ADR-0005). |
 | R9 | A sync client can turn a move into delete + create, or write conflicted copies. | Duplicate-ID conflict flow, conflicted-copy detection and a rebuildable outline (M2, M3). |
 | R10 | Sign in with ChatGPT is a preview and its contract can change. | ADR-0008 records the verified contract (2026-11-12). Re-check before M8. |
+| R12 | **Sync can lose words** (two devices, offline edits, a stale device coming back). | Never overwrite: conflicts keep both texts; a version before every remote change; delete markers; property tests over random multi-device edit sequences (M4b). |
+| R13 | The storage container is reachable on the home network, where Cloudflare Access does not apply. | It checks the Access token itself (team keys + AUD tag) and refuses everything else (M2b tests). ZFS snapshots of the dataset add a layer. |
 
 ## 6. Open decisions
 
@@ -383,3 +405,6 @@ backup — ADR-0009.)
   workflow, TrueNAS custom app behind the owner's Cloudflare Tunnel + Access, and a
   "Sign in again" prompt when the Access session ends. Books never reach the server.
   See [`docs/self-hosting.md`](docs/self-hosting.md).
+- 2026-11-12 — Owner decisions: the owner's own server (a mounted volume behind a storage
+  container) becomes an M2b backup target, and two-way sync moves up to **M4b**, right
+  after the editor (ADR-0009 amendment). Next: M2 local project storage.

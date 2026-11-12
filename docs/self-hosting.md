@@ -46,14 +46,11 @@ Do this first. Then the site is never open without the login.
 9. Edit the application again. In **Additional settings**, copy the
    **Application Audience (AUD) Tag**. You need it in section 5.
 
-## 3. Make the image public
+## 3. Check the image
 
-GitHub builds the Aurelia image each time the code on `main` changes. The first
-image is **private**. TrueNAS cannot download a private image. The code is public
-anyway.
-
-1. Open `https://github.com/lukemoreira?tab=packages` and open `aurelia`.
-2. Go to **Package settings** → **Danger Zone** → **Change visibility** → **Public**.
+GitHub builds the Aurelia image each time the code on `main` changes:
+`ghcr.io/lukemoreira/aurelia`. It is public, so TrueNAS downloads it without a login.
+Nothing to do here.
 
 ## 4. Install on TrueNAS
 
