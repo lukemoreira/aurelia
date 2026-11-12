@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Writing on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: {{t.canvas}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.45; overflow: hidden">
+
+<header style="height: 56px; flex: none; padding: 0 6px; display: flex; align-items: center; gap: 2px; background: {{t.chrome}}; border-bottom: 1px solid {{t.line}}">
+<button type="button" aria-label="Open the navigator" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: {{t.ink2}}; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></button>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2">
+<span style="font: 600 15px Inter, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Curfew Bells</span>
+<span style="font-size: 12px; color: {{t.ink3}}; display: flex; align-items: center; gap: 5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.ok}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Saved · 1,240 words</span>
+</div>
+<button type="button" aria-label="Scene details" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: {{t.ink2}}; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM15 3v18"></path></svg></button>
+<button type="button" aria-label="Search or run a command" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: {{t.ink2}}; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"></path></svg></button>
+</header>
+
+<article style="flex: 1; overflow: hidden; padding: 22px 22px 12px; font-family: Literata, Georgia, serif; font-size: 18px; line-height: 1.7">
+<p style="margin: 0 0 4px; font: 600 10.5px Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: {{t.goldInk}}">Chapter Seven · Scene 2</p>
+<h1 style="margin: 0 0 18px; font: 500 26px/1.2 Literata, Georgia, serif">Curfew Bells</h1>
+<p style="margin: 0">The bells had already begun when Elena reached the Lantern Gate. Nine strokes for curfew, the old count, as if the city still believed the sea could be bargained with.</p>
+<p style="margin: 0; text-indent: 1.4em">She kept her hood low. A boy on a ladder lit the lamps along the arch one by one.</p>
+<p style="margin: 0; text-indent: 1.4em"><a href="#" style="color: {{t.goldInk}}; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px">Tomas Brandt</a> did not reach for the ledger. He reached for the lantern instead<span aria-hidden="true" style="display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: -3px; background: {{t.goldInk}}"></span></p>
+</article>
+
+<div style="padding: 0 12px 8px; display: flex; justify-content: center">
+<button type="button" style="min-height: 36px; padding: 0 14px; display: flex; align-items: center; gap: 8px; border: 1px solid {{t.warnLine}}; border-radius: 99px; background: {{t.warnSoft}}; color: {{t.ink}}; font: 500 13px Inter, sans-serif; cursor: pointer"><span style="padding: 0 6px; border-radius: 4px; background: {{t.surface}}; color: {{t.warn}}; font: 600 11px Inter, sans-serif">Warning</span>Tomas may be in two places</button>
+</div>
+
+<div role="toolbar" aria-label="Formatting" style="height: 56px; flex: none; padding: 0 6px; display: flex; align-items: center; gap: 2px; background: {{t.surface}}; border-top: 1px solid {{t.line}}; color: {{t.ink2}}">
+<button type="button" aria-label="Bold" style="width: 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: {{t.ink2}}; font: 700 16px Inter, sans-serif; cursor: pointer">B</button>
+<button type="button" aria-label="Italic" style="width: 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: {{t.ink2}}; font: italic 500 17px Literata, Georgia, serif; cursor: pointer">I</button>
+<button type="button" aria-label="Link to a record" style="height: 44px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: {{t.ink2}}; font: 500 13px Inter, sans-serif; cursor: pointer">[[ ]]</button>
+<button type="button" aria-label="Scene break" style="width: 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: {{t.ink2}}; font: 500 17px Literata, Georgia, serif; cursor: pointer">⁂</button>
+<button type="button" aria-label="Undo" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: {{t.ink2}}; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"></path></svg></button>
+<span style="flex: 1"></span>
+<button type="button" style="height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 14px Inter, sans-serif; cursor: pointer">Done</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":844}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldInk: '#7A5A0B', onGold: '#1B1A1F', warn: '#9A5B07', warnSoft: '#FBF0DC', warnLine: '#EBCF9E', ok: '#2F6B3E' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldInk: '#F5C542', onGold: '#0B0B0F', warn: '#E0A43A', warnSoft: '#251D0F', warnLine: '#4A3A18', ok: '#7BC08A' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    return { t: AURELIA_TOKENS[theme] };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Backup and versions</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="dialog" aria-labelledby="bk-title" style="width: 720px; height: 980px; box-sizing: border-box; display: flex; flex-direction: column; background: {{t.surface}}; border: 1px solid {{t.line}}; border-radius: 16px; box-shadow: {{t.shadow}}; overflow: hidden; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<div style="padding: 20px 22px 14px; display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid {{t.line}}">
+<div style="flex: 1">
+<h1 id="bk-title" style="margin: 0; font: 500 24px/1.2 Literata, Georgia, serif">Backup and versions</h1>
+<p style="margin: 6px 0 0; color: {{t.ink2}}">Your book lives in this browser. A copy in your own cloud keeps it safe if the browser clears its storage.</p>
+</div>
+<span style="height: 26px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; background: {{t.okSoft}}; color: {{t.ok}}; font: 600 12px Inter, sans-serif; white-space: nowrap"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Backed up 2 min ago</span>
+</div>
+
+<div style="flex: 1; overflow: auto; padding: 16px 22px; display: flex; flex-direction: column; gap: 18px">
+
+<section aria-labelledby="bk-browser" style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="bk-browser" style="margin: 0; font: 600 11px Inter, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: {{t.ink3}}">In this browser</h2>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 12px 14px; border: 1px solid {{t.line}}; border-radius: 12px">
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600">Kept by the browser</span><span style="font-size: 12.5px; color: {{t.ink2}}">The browser agreed not to clear Aurelia’s storage on its own. Clearing site data by hand still removes it.</span></span>
+<span style="padding: 1px 8px; border-radius: 5px; background: {{t.okSoft}}; color: {{t.ok}}; font: 600 11.5px Inter, sans-serif">Yes</span>
+<span style="display: flex; flex-direction: column"><span style="font-weight: 600">Installed as an app</span><span style="font-size: 12.5px; color: {{t.ink2}}">An installed app is cleaned up less often. In Safari: File → Add to Dock.</span></span>
+<button type="button" style="height: 32px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer; white-space: nowrap">Show me how</button>
+</div>
+</section>
+
+<section aria-labelledby="bk-cloud" style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="bk-cloud" style="margin: 0; font: 600 11px Inter, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: {{t.ink3}}">Copy to your cloud</h2>
+<sc-for list="{{providers}}" as="p" hint-placeholder-count="4">
+<div style="padding: 12px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; border: {{p.border}}; border-radius: 12px; background: {{p.bg}}">
+<span style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; align-items: center; gap: 8px"><span style="font-weight: 600">{{p.name}}</span><span style="padding: 0 7px; border-radius: 5px; background: {{p.tagBg}}; color: {{p.tagColor}}; font: 600 11px Inter, sans-serif">{{p.tag}}</span></span>
+<span style="font-size: 12.5px; color: {{t.ink2}}">{{p.text}}</span>
+</span>
+<button type="button" style="height: 32px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{p.actionColor}}; font: 500 12.5px Inter, sans-serif; cursor: pointer; white-space: nowrap">{{p.action}}</button>
+</div>
+</sc-for>
+</section>
+
+<section aria-labelledby="bk-versions" style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+<h2 id="bk-versions" style="margin: 0; font: 600 11px Inter, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: {{t.ink3}}">Versions</h2>
+<span style="font-size: 12px; color: {{t.ink3}}">Hourly for 2 days · daily for 30 days · weekly for 6 months · then monthly · 84 MB <a href="#" style="color: {{t.goldInk}}; font-weight: 500">Change</a></span>
+</div>
+<ol style="list-style: none; margin: 0; padding: 0; border: 1px solid {{t.line}}; border-radius: 12px; overflow: hidden">
+<sc-for list="{{versions}}" as="v" hint-placeholder-count="5">
+<li style="min-height: 44px; box-sizing: border-box; padding: 6px 14px; display: flex; align-items: center; gap: 12px; border-top: {{v.border}}">
+<span style="width: 140px; font-weight: 500">{{v.when}}</span>
+<span style="flex: 1; font-size: 12.5px; color: {{t.ink2}}">{{v.what}}</span>
+<button type="button" style="height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.goldInk}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Restore…</button>
+</li>
+</sc-for>
+</ol>
+<span style="font-size: 12px; color: {{t.ink3}}">Restoring never deletes: your current book is saved as a version first.</span>
+</section>
+</div>
+
+<div style="padding: 14px 22px; display: flex; align-items: center; gap: 12px; border-top: 1px solid {{t.line}}; background: {{t.chrome}}">
+<a href="#" style="flex: 1; font-size: 12.5px; color: {{t.ink2}}">Download a backup (.zip)</a>
+<button type="button" style="height: 36px; padding: 0 16px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 600 13px Inter, sans-serif; cursor: pointer">Close</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":720,"height":980}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', ok: '#2F6B3E', okSoft: '#E3F0E0', shadow: '0 4px 8px rgba(40,32,16,.08), 0 24px 64px rgba(40,32,16,.22)' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', ok: '#7BC08A', okSoft: '#16241A', shadow: '0 4px 8px rgba(0,0,0,.4), 0 24px 64px rgba(0,0,0,.6)' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const p = function (name, tag, kind, text, action) {
+      const on = kind === 'on';
+      return {
+        name: name, tag: tag, text: text, action: action,
+        border: on ? '2px solid ' + t.goldInk : '1px solid ' + t.line, bg: on ? t.goldSoft : t.surface,
+        tagBg: on ? t.okSoft : t.raised, tagColor: on ? t.ok : t.ink2,
+        actionColor: kind === 'later' ? t.ink3 : t.ink
+      };
+    };
+    const providers = [
+      p('Google Drive', 'On', 'on', 'Backing up to Google Drive › Aurelia › My Writing. Aurelia can only see the files it made.', 'Turn off'),
+      p('OneDrive', 'Off', 'off', 'Uses only the Apps › Aurelia folder in your OneDrive.', 'Connect'),
+      p('Nextcloud or WebDAV', 'Off', 'off', 'Your own server. Needs a one-time setup there (the WebAppPassword app). We show you how.', 'Set up'),
+      p('Dropbox', 'Coming soon', 'later', 'Uses only the Apps › Aurelia folder.', 'Notify me')
+    ];
+    const v = function (when, what, first) { return { when: when, what: what, border: first ? '0' : '1px solid ' + t.line }; };
+    const versions = [
+      v('Today, 18:30', '61,904 words · 48 scenes · saved every hour while you write', true),
+      v('Today, 17:30', '61,422 words'),
+      v('Today, 09:10', '60,798 words · before accepting 2 AI suggestions'),
+      v('Yesterday', '60,512 words · daily'),
+      v('3 Nov', '58,040 words · weekly')
+    ];
+    return { t: t, providers: providers, versions: versions };
+  }
+}
+</script>
+</body>
+</html>

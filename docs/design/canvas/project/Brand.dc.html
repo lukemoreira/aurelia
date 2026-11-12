@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Identity and tokens</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1240px; box-sizing: border-box; padding: 64px; display: flex; flex-direction: column; gap: 40px; background: #FAF7F2; color: #1B1A1F; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+<div style="height: 200px; border-radius: 16px; background: #0B0B0F; display: flex; align-items: center; justify-content: center; gap: 16px">
+<svg width="56" height="56" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0" fill="none" stroke="#F5C542" stroke-width="1.3" stroke-linecap="round"></path><path d="M8 17.5a4 4 0 0 1 8 0z" fill="#F5C542"></path><path d="M2 20.5h20" fill="none" stroke="#F5C542" stroke-width="1.3" stroke-linecap="round"></path></svg>
+<span style="font: 500 44px/1 Literata, Georgia, serif; color: #EDEDED; letter-spacing: .01em">Aurelia</span>
+</div>
+<div style="height: 200px; border-radius: 16px; background: #FFFDF9; border: 1px solid #E2DACB; display: flex; align-items: center; justify-content: center; gap: 16px">
+<svg width="56" height="56" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0" fill="none" stroke="#C9A227" stroke-width="1.3" stroke-linecap="round"></path><path d="M8 17.5a4 4 0 0 1 8 0z" fill="#C9A227"></path><path d="M2 20.5h20" fill="none" stroke="#C9A227" stroke-width="1.3" stroke-linecap="round"></path></svg>
+<span style="font: 500 44px/1 Literata, Georgia, serif; color: #1B1A1F; letter-spacing: .01em">Aurelia</span>
+</div>
+<div style="height: 200px; box-sizing: border-box; padding: 24px 28px; border-radius: 16px; background: #F3EEE4; display: flex; flex-direction: column; justify-content: center; gap: 10px">
+<span style="font: 600 11px Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #7A5A0B">The mark</span>
+<p style="margin: 0; font: italic 400 20px/1.35 Literata, Georgia, serif">A sun on the horizon — the moment before a story begins.</p>
+<p style="margin: 0; color: #4F4D56">No quills, no dragons. Gold on black or parchment only. Minimum size 16 px.</p>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px">
+<section aria-labelledby="light-title">
+<h2 id="light-title" style="margin: 0 0 12px; font: 600 13px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #67646D">Light theme · parchment</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{light}}" as="c" hint-placeholder-count="12">
+<div style="border-radius: 10px; overflow: hidden; border: 1px solid #E2DACB; background: #FFFDF9">
+<div style="height: 46px; background: {{c.hex}}; display: flex; align-items: center; padding: 0 10px; color: {{c.text}}; font: 500 12px Inter, sans-serif">{{c.sample}}</div>
+<div style="padding: 6px 10px 8px; display: flex; flex-direction: column"><span style="font-weight: 600; font-size: 12px">{{c.name}}</span><span style="font: 400 11px 'JetBrains Mono', monospace; color: #67646D">{{c.hex}}</span></div>
+</div>
+</sc-for>
+</div>
+</section>
+<section aria-labelledby="dark-title">
+<h2 id="dark-title" style="margin: 0 0 12px; font: 600 13px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #67646D">Dark theme · Aurelia black</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{dark}}" as="c" hint-placeholder-count="12">
+<div style="border-radius: 10px; overflow: hidden; border: 1px solid #2A2A33; background: #14141A">
+<div style="height: 46px; background: {{c.hex}}; display: flex; align-items: center; padding: 0 10px; color: {{c.text}}; font: 500 12px Inter, sans-serif">{{c.sample}}</div>
+<div style="padding: 6px 10px 8px; display: flex; flex-direction: column"><span style="font-weight: 600; font-size: 12px; color: #EDEDED">{{c.name}}</span><span style="font: 400 11px 'JetBrains Mono', monospace; color: #9A97A2">{{c.hex}}</span></div>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px">
+<section aria-labelledby="type-title" style="display: flex; flex-direction: column; gap: 14px">
+<h2 id="type-title" style="margin: 0; font: 600 13px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #67646D">Type</h2>
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px 20px; align-items: baseline">
+<span style="color: #67646D">Display · Literata 500</span><span style="font: 500 34px/1.1 Literata, Georgia, serif">Elena Vasquez</span>
+<span style="color: #67646D">Manuscript · Literata 19/1.75</span><span style="font: 400 19px/1.75 Literata, Georgia, serif">The bells had already begun when Elena reached the Lantern Gate.</span>
+<span style="color: #67646D">Interface · Inter 13</span><span style="font: 400 13px Inter, sans-serif">Objective · Conflict · Outcome · 1,240 of 1,800 words</span>
+<span style="color: #67646D">Label · Inter 600 11 caps</span><span style="font: 600 11px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #67646D">Changes in this scene</span>
+<span style="color: #67646D">Source · JetBrains Mono</span><span style="font: 400 13px 'JetBrains Mono', monospace">[[id:chr_8f3k2m9q1x|Elena]]</span>
+</div>
+<p style="margin: 0; color: #4F4D56">All three are SIL Open Font License and self-hosted, so the app works offline. The manuscript column is 660 px wide (about 66 characters a line).</p>
+</section>
+
+<section aria-labelledby="comp-title" style="display: flex; flex-direction: column; gap: 14px">
+<h2 id="comp-title" style="margin: 0; font: 600 13px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #67646D">Components</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<button type="button" style="height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: #C9A227; color: #1B1A1F; font: 600 13px Inter, sans-serif">Primary</button>
+<button type="button" style="height: 34px; padding: 0 14px; border: 1px solid #CFC4B0; border-radius: 8px; background: #FFFDF9; color: #1B1A1F; font: 500 13px Inter, sans-serif">Secondary</button>
+<button type="button" style="height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: #7A5A0B; font: 500 13px Inter, sans-serif">Quiet</button>
+<button type="button" style="height: 34px; padding: 0 14px; border: 1px solid #CFC4B0; border-radius: 8px; background: #FFFDF9; color: #1B1A1F; font: 500 13px Inter, sans-serif; outline: 2px solid #1B1A1F; outline-offset: 2px">Keyboard focus</button>
+<label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #67646D">Field<input type="text" value="Elena" style="width: 110px; height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid #968B78; border-radius: 8px; background: #FFFDF9; color: #1B1A1F; font: 400 13px Inter, sans-serif"></label>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+<span style="font-size: 12px; color: #67646D; width: 88px">Scene status</span>
+<sc-for list="{{statuses}}" as="s" hint-placeholder-count="5">
+<span style="height: 24px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #CFC4B0; border-radius: 99px; background: #FFFDF9; font-size: 12px"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: {{s.color}}"></span>{{s.label}}</span>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+<span style="font-size: 12px; color: #67646D; width: 88px">Changes</span>
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="7">
+<span style="padding: 1px 7px; border-radius: 5px; background: #EAE3D6; color: #4F4D56; font: 500 11.5px Inter, sans-serif">{{k.label}}</span>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center">
+<span style="font-size: 12px; color: #67646D; width: 88px">Findings</span>
+<span style="padding: 2px 8px; border-radius: 5px; background: #F8E3E0; color: #A8322D; font: 600 11px Inter, sans-serif">Error</span>
+<span style="padding: 2px 8px; border-radius: 5px; background: #FBF0DC; color: #9A5B07; font: 600 11px Inter, sans-serif">Warning</span>
+<span style="padding: 2px 8px; border-radius: 5px; background: #EAE3D6; color: #4F4D56; font: 600 11px Inter, sans-serif">Note</span>
+<span style="font-size: 12px; color: #67646D; margin-left: 8px">Always a word, never colour alone.</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; font-size: 12px; color: #67646D">
+<span style="width: 88px">Save state</span>
+<span style="display: flex; align-items: center; gap: 6px; color: #2F6B3E"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Saved</span>
+<span>Saving…</span>
+<span style="color: #9A5B07">Not saved yet</span>
+<span style="color: #A8322D; font-weight: 600">Could not save — retry</span>
+</div>
+</section>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; padding-top: 24px; border-top: 1px solid #E2DACB">
+<div><div style="font: 600 13px Inter, sans-serif">Calm by default</div><div style="margin-top: 4px; color: #4F4D56">Gold marks what matters now: the selected item, the caret, the primary action. Nothing else.</div></div>
+<div><div style="font: 600 13px Inter, sans-serif">The page comes first</div><div style="margin-top: 4px; color: #4F4D56">Panels fold away. Focus mode hides everything but the words.</div></div>
+<div><div style="font: 600 13px Inter, sans-serif">4 px grid, three radii</div><div style="margin-top: 4px; color: #4F4D56">8 for controls, 12 for cards, 16 for dialogs. Controls 32 px with a mouse, 44 px on touch screens.</div></div>
+<div><div style="font: 600 13px Inter, sans-serif">AA everywhere</div><div style="margin-top: 4px; color: #4F4D56">Small gold text uses dark gold #7A5A0B. Field borders use #968B78 (3:1). Focus is a 2 px ink outline. Plain words, never code names.</div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sw = function (name, hex, text, sample) { return { name: name, hex: hex, text: text, sample: sample || '' }; };
+    const light = [
+      sw('Chrome', '#F3EEE4', '#1B1A1F', 'Aa'), sw('Canvas', '#FAF7F2', '#1B1A1F', 'Aa'), sw('Surface', '#FFFDF9', '#1B1A1F', 'Aa'), sw('Raised', '#EAE3D6', '#1B1A1F', 'Aa'),
+      sw('Ink', '#1B1A1F', '#FAF7F2', 'Aa'), sw('Ink 2', '#4F4D56', '#FAF7F2', 'Aa'), sw('Ink 3', '#67646D', '#FAF7F2', 'Aa'), sw('Line', '#E2DACB', '#1B1A1F'),
+      sw('Gold', '#C9A227', '#1B1A1F', 'Aa'), sw('Gold soft', '#F5E7B5', '#7A5A0B', 'Aa'), sw('Gold ink', '#7A5A0B', '#FAF7F2', 'Aa'), sw('Danger', '#A8322D', '#FFFDF9', 'Aa')
+    ];
+    const dark = [
+      sw('Chrome', '#0B0B0F', '#EDEDED', 'Aa'), sw('Canvas', '#121218', '#EDEDED', 'Aa'), sw('Surface', '#1A1A21', '#EDEDED', 'Aa'), sw('Raised', '#26262F', '#EDEDED', 'Aa'),
+      sw('Ink', '#EDEDED', '#0B0B0F', 'Aa'), sw('Ink 2', '#C2BFC8', '#0B0B0F', 'Aa'), sw('Ink 3', '#9A97A2', '#0B0B0F', 'Aa'), sw('Line', '#2A2A33', '#EDEDED'),
+      sw('Gold', '#F5C542', '#0B0B0F', 'Aa'), sw('Gold soft', '#2E2715', '#F5C542', 'Aa'), sw('Slate', '#2A2A33', '#EDEDED', 'Aa'), sw('Danger', '#E5736B', '#0B0B0F', 'Aa')
+    ];
+    const statuses = [['Idea', '#67646D'], ['Outline', '#2F6690'], ['Draft', '#9A5B07'], ['Revised', '#7A4E8C'], ['Final', '#2F6B3E']].map(function (s) { return { label: s[0], color: s[1] }; });
+    const kinds = ['Alive / dead', 'Condition', 'Learns', 'Relationship', 'Gains item', 'Goal', 'Belief', 'Set-up', 'Pay-off'].map(function (k) { return { label: k }; });
+    return { light: light, dark: dark, statuses: statuses, kinds: kinds };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Continuity</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; flex-direction: column; background: {{t.canvas}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<dc-import name="TopBar" theme="{{theme}}" view="continuity" book="The Lantern Gate" hint-size="100%,52px"></dc-import>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; min-height: 816px">
+
+<div style="flex: 1 1 272px; display: flex; min-width: 0">
+<dc-import name="Navigator" theme="{{theme}}" active="book-lantern" book="lantern" hint-size="100%,816px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 16px">
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px">
+<div style="flex: 1 1 260px; min-width: 0">
+<h1 style="margin: 0; font: 500 26px/1.2 Literata, Georgia, serif">Continuity</h1>
+<p style="margin: 4px 0 0; color: {{t.ink3}}; font-size: 12.5px">The Lantern Gate · 14 chapters · 48 scenes · checked just now, on this device</p>
+</div>
+<div role="group" aria-label="Scope" style="display: flex; padding: 3px; gap: 2px; background: {{t.raised}}; border-radius: 8px">
+<button type="button" aria-pressed="true" style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">This book</button>
+<button type="button" aria-pressed="false" style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: {{t.ink2}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Whole universe</button>
+</div>
+<button type="button" style="height: 34px; padding: 0 10px 0 12px; display: flex; align-items: center; gap: 6px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Chapters: all 14<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+<button type="button" style="height: 34px; padding: 0 10px 0 12px; display: flex; align-items: center; gap: 6px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Characters: major + POV<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 0; border: 1px solid {{t.line}}; border-radius: 12px; background: {{t.surface}}">
+<sc-for list="{{stats}}" as="s" hint-placeholder-count="4">
+<div style="flex: 1 1 150px; padding: 12px 16px; border-right: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 500 22px/1.15 Literata, Georgia, serif; color: {{s.color}}">{{s.value}}</span>
+<span style="font-size: 12px; color: {{t.ink3}}">{{s.label}}</span>
+</div>
+</sc-for>
+</div>
+
+<section aria-labelledby="pm-title" style="padding: 14px 16px 16px; border: 1px solid {{t.line}}; border-radius: 12px; background: {{t.surface}}; overflow-x: auto">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 10px">
+<h2 id="pm-title" style="flex: 1 1 auto; margin: 0; font: 600 13.5px Inter, sans-serif">Who is on the page, and how arcs move</h2>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 11.5px; color: {{t.ink3}}">
+<span style="display: flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: {{t.ember}}"></span>POV</span>
+<span style="display: flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: {{legendOn}}"></span>On the page</span>
+<span style="display: flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 12px; height: 8px; border-radius: 3px; border: 1.5px solid {{t.ember}}"></span>Mentioned</span>
+<span style="display: flex; align-items: center; gap: 5px"><span aria-hidden="true" style="font: 600 12px Literata, serif; color: {{t.ink2}}">†</span>Dies</span>
+<span style="display: flex; align-items: center; gap: 5px"><span aria-hidden="true" style="width: 12px; height: 8px; border-radius: 3px; border: 2px solid {{t.danger}}"></span>Error</span>
+<span style="color: {{t.ink3}}">· in each character’s colour</span>
+</span>
+<button type="button" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Table view</button>
+</div>
+
+<div style="min-width: 640px; display: grid; grid-template-columns: 176px repeat(14, minmax(0, 1fr)); gap: 5px 4px; align-items: center">
+<span></span>
+<span style="grid-column: span 8; padding-bottom: 4px; border-bottom: 1px solid {{t.line}}; font-size: 11px; color: {{t.ink3}}">Part One · Low Tide</span>
+<span style="grid-column: span 6; padding-bottom: 4px; border-bottom: 1px solid {{t.line}}; font-size: 11px; color: {{t.ink3}}">Part Two · Slack Water</span>
+<span style="font: 600 10.5px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: {{t.ink3}}">Characters</span>
+<sc-for list="{{chapters}}" as="c" hint-placeholder-count="14">
+<span style="text-align: center; font-size: 11px; font-weight: {{c.weight}}; color: {{c.color}}; font-variant-numeric: tabular-nums">{{c.n}}</span>
+</sc-for>
+
+<sc-for list="{{people}}" as="p" hint-placeholder-count="6">
+<span style="display: flex; align-items: center; gap: 8px; min-width: 0">
+<span aria-hidden="true" style="width: 22px; height: 22px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{p.color}}; color: {{t.onAccent}}; font: 600 9px Inter, sans-serif">{{p.initials}}</span>
+<span style="min-width: 0; display: flex; flex-direction: column; line-height: 1.2"><span style="font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{p.name}}</span><span style="font-size: 11px; color: {{t.ink3}}">{{p.role}}</span></span>
+</span>
+<sc-for list="{{p.segs}}" as="s" hint-placeholder-count="14">
+<span title="{{s.title}}" style="grid-column: span {{s.span}}; height: 20px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 4px; background: {{s.bg}}; border: {{s.border}}; color: {{s.color}}; font: {{s.font}}; white-space: nowrap; overflow: hidden">{{s.text}}</span>
+</sc-for>
+</sc-for>
+
+<span style="margin-top: 8px; font: 600 10.5px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: {{t.ink3}}">Arcs</span>
+<span style="grid-column: span 14; margin-top: 8px; height: 1px; background: {{t.line}}"></span>
+
+<sc-for list="{{arcs}}" as="a" hint-placeholder-count="4">
+<span style="display: flex; align-items: center; gap: 8px; min-width: 0"><span aria-hidden="true" style="width: 10px; height: 10px; flex: none; border-radius: 3px; background: {{a.color}}"></span><span style="font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{a.name}}</span></span>
+<sc-for list="{{a.segs}}" as="s" hint-placeholder-count="14">
+<span title="{{s.title}}" style="grid-column: span {{s.span}}; height: 20px; display: flex; align-items: center; justify-content: center; background: {{s.bg}}; color: {{s.color}}; font-size: {{s.size}}; line-height: 1; white-space: nowrap"><span style="padding: 1px 7px; border-radius: 99px; background: {{s.pillBg}}; color: {{s.pillColor}}; font: 500 11px Inter, sans-serif; display: {{s.pillDisplay}}">{{s.pill}}</span>{{s.glyph}}</span>
+</sc-for>
+</sc-for>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+
+<section aria-labelledby="st-title" style="flex: 3 1 360px; min-width: 0; padding: 14px 16px 10px; border: 1px solid {{t.line}}; border-radius: 12px; background: {{t.surface}}">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+<h2 id="st-title" style="margin: 0; font: 600 13.5px Inter, sans-serif">Story time against reading order</h2>
+<span style="font-size: 11.5px; color: {{t.ink3}}">Tide Reckoning calendar</span>
+</div>
+<svg viewBox="0 0 400 178" width="100%" role="img" aria-label="Story day for each chapter. Days rise steadily, except chapter 9, which is 3 days earlier than chapter 8, and chapter 13, a marked flashback." style="display: block; margin-top: 6px; font-family: Inter, sans-serif">
+<path d="M36 124H392M36 91.5H392M36 59H392M36 26.5H392" stroke="{{t.line}}" stroke-width="1" fill="none"></path>
+<path d="M36 156H392" stroke="{{t.line2}}" stroke-width="1" fill="none"></path>
+<text x="28" y="127.5" text-anchor="end" font-size="10" fill="{{t.ink3}}">0</text>
+<text x="28" y="95" text-anchor="end" font-size="10" fill="{{t.ink3}}">5</text>
+<text x="28" y="62.5" text-anchor="end" font-size="10" fill="{{t.ink3}}">10</text>
+<text x="28" y="30" text-anchor="end" font-size="10" fill="{{t.ink3}}">15</text>
+<text x="4" y="12" font-size="10" fill="{{t.ink3}}">Story day</text>
+<path d="M316.5 46L342 143.5L367.5 26.5" stroke="{{t.ink3}}" stroke-width="1.2" stroke-dasharray="3 4" fill="none"></path>
+<polyline points="36,117.5 61.5,111 87,111 112.5,98 138,91.5 163.5,78.5 189,78.5 214.5,65.5 240,85 265.5,52.5 291,46 316.5,46" stroke="{{t.ink2}}" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"></polyline>
+<g fill="{{t.surface}}" stroke="{{t.ink2}}" stroke-width="2">
+<circle cx="36" cy="117.5" r="3.2"></circle><circle cx="61.5" cy="111" r="3.2"></circle><circle cx="87" cy="111" r="3.2"></circle><circle cx="112.5" cy="98" r="3.2"></circle><circle cx="138" cy="91.5" r="3.2"></circle><circle cx="163.5" cy="78.5" r="3.2"></circle><circle cx="189" cy="78.5" r="3.2"></circle><circle cx="214.5" cy="65.5" r="3.2"></circle><circle cx="265.5" cy="52.5" r="3.2"></circle><circle cx="291" cy="46" r="3.2"></circle><circle cx="316.5" cy="46" r="3.2"></circle>
+</g>
+<circle cx="240" cy="85" r="5.5" fill="{{t.danger}}" stroke="{{t.surface}}" stroke-width="2"></circle>
+<text x="248" y="100" font-size="10.5" font-weight="600" fill="{{t.danger}}">Ch. 9 is 3 days earlier</text>
+<circle cx="342" cy="143.5" r="4" fill="{{t.surface}}" stroke="{{t.ink3}}" stroke-width="1.6"></circle>
+<text x="336" y="138" text-anchor="end" font-size="10" fill="{{t.ink3}}">flashback</text>
+<circle cx="367.5" cy="26.5" r="3.2" fill="{{t.surface}}" stroke="{{t.ink2}}" stroke-width="2"></circle>
+<g font-size="10" fill="{{t.ink3}}" text-anchor="middle">
+<text x="36" y="171">1</text><text x="61.5" y="171">2</text><text x="87" y="171">3</text><text x="112.5" y="171">4</text><text x="138" y="171">5</text><text x="163.5" y="171">6</text><text x="189" y="171">7</text><text x="214.5" y="171">8</text><text x="240" y="171">9</text><text x="265.5" y="171">10</text><text x="291" y="171">11</text><text x="316.5" y="171">12</text><text x="342" y="171">13</text><text x="367.5" y="171">14</text>
+</g>
+</svg>
+</section>
+
+<section aria-labelledby="pov-title" style="flex: 2 1 260px; min-width: 0; padding: 14px 16px; border: 1px solid {{t.line}}; border-radius: 12px; background: {{t.surface}}; display: flex; flex-direction: column; gap: 12px">
+<h2 id="pov-title" style="margin: 0; font: 600 13.5px Inter, sans-serif">POV balance</h2>
+<div aria-hidden="true" style="display: flex; height: 10px; border-radius: 99px; overflow: hidden; gap: 2px">
+<span style="flex: 71; background: {{t.ember}}"></span><span style="flex: 18; background: {{t.tide}}"></span><span style="flex: 11; background: {{t.moss}}"></span>
+</div>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px 14px; font-size: 12.5px; font-variant-numeric: tabular-nums">
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 2px; background: {{t.ember}}"></span>Elena Vasquez</span><span style="color: {{t.ink2}}">43,950 words</span><span style="color: {{t.ink3}}">71%</span>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 2px; background: {{t.tide}}"></span>Tomas Brandt</span><span style="color: {{t.ink2}}">11,140 words</span><span style="color: {{t.ink3}}">18%</span>
+<span style="display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 2px; background: {{t.moss}}"></span>Corin Ashby</span><span style="color: {{t.ink2}}">6,810 words</span><span style="color: {{t.ink3}}">11%</span>
+</div>
+<div style="padding-top: 10px; border-top: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 6px">
+<span style="font: 600 13.5px Inter, sans-serif">Setups and payoffs</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: {{t.ink2}}"><span aria-hidden="true" style="flex: 1; height: 6px; border-radius: 99px; background: {{t.raised}}; overflow: hidden"><span style="display: block; width: 71%; height: 100%; background: {{t.ok}}"></span></span>5 of 7 paid off</span>
+</div>
+</section>
+</div>
+</main>
+
+<aside aria-label="Findings" style="flex: 1 1 340px; min-width: 0; box-sizing: border-box; background: {{t.chrome}}; border-left: 1px solid {{t.line}}; display: flex; flex-direction: column">
+<div style="padding: 16px 16px 0; display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; font: 600 14px Inter, sans-serif">Findings <span style="color: {{t.ink3}}; font-weight: 500">6</span></h2>
+<a href="#" style="font-size: 12px; color: {{t.goldInk}}">2 marked intended</a>
+</div>
+<div role="tablist" aria-label="Filter findings" style="padding: 10px 16px 12px; display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid {{t.line}}">
+<button type="button" role="tab" aria-selected="true" style="height: 26px; padding: 0 10px; border: 0; border-radius: 99px; background: {{t.ink}}; color: {{t.chrome}}; font: 500 12px Inter, sans-serif; cursor: pointer">All</button>
+<button type="button" role="tab" aria-selected="false" style="height: 26px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 99px; background: transparent; color: {{t.ink2}}; font: 500 12px Inter, sans-serif; cursor: pointer">Characters 3</button>
+<button type="button" role="tab" aria-selected="false" style="height: 26px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 99px; background: transparent; color: {{t.ink2}}; font: 500 12px Inter, sans-serif; cursor: pointer">Time 2</button>
+<button type="button" role="tab" aria-selected="false" style="height: 26px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 99px; background: transparent; color: {{t.ink2}}; font: 500 12px Inter, sans-serif; cursor: pointer">Threads 2</button>
+</div>
+<ol style="list-style: none; margin: 0; padding: 8px; flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{findings}}" as="f" hint-placeholder-count="6">
+<li style="padding: 10px 10px 10px 12px; border-radius: 10px; background: {{f.bg}}; border: 1px solid {{f.border}}; display: flex; gap: 10px">
+<span style="flex: none; width: 46px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 5px; background: {{f.sevBg}}; color: {{f.sevColor}}; font: 600 10.5px Inter, sans-serif; letter-spacing: .03em">{{f.sev}}</span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="font: 600 13px Inter, sans-serif; color: {{t.ink}}">{{f.title}}</span>
+<span style="font-size: 12.5px; color: {{t.ink2}}">{{f.body}}</span>
+<sc-if value="{{f.collapsed}}" hint-placeholder-val="{{ true }}">
+<span style="display: flex; gap: 12px; margin-top: 2px"><a href="#" style="font-size: 12px; color: {{t.goldInk}}; font-weight: 500">Go to scene</a><a href="#" style="font-size: 12px; color: {{t.ink2}}">Mark intended</a></span>
+</sc-if>
+<sc-if value="{{f.expanded}}" hint-placeholder-val="{{ false }}">
+<span style="margin-top: 4px; padding: 6px 8px; border-radius: 6px; background: {{t.canvas}}; font: 400 11.5px 'JetBrains Mono', monospace; color: {{t.ink2}}">10.2 · status → dead<br>12.1 · Corin in scene, speaks</span>
+<span style="display: flex; gap: 6px; margin-top: 6px">
+<button type="button" style="height: 28px; padding: 0 10px; border: 0; border-radius: 7px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 12px Inter, sans-serif; cursor: pointer">Go to 12.1</button>
+<button type="button" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Mark intended</button>
+</span>
+</sc-if>
+</div>
+</li>
+</sc-for>
+</ol>
+<p style="margin: 0; padding: 12px 16px; border-top: 1px solid {{t.line}}; font-size: 11.5px; color: {{t.ink3}}">Checks run on this device from your scene data. They never change your text.</p>
+</aside>
+</div>
+
+<dc-import name="StatusBar" theme="{{theme}}" where="Continuity · The Lantern Gate" hint-size="100%,32px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', onAccent: '#FFFDF9', ember: '#B4532A', tide: '#2F6690', moss: '#4F7232', plum: '#7A4E8C', warn: '#9A5B07', warnSoft: '#FBF0DC', warnLine: '#EBCF9E', danger: '#A8322D', dangerSoft: '#F8E3E0', ok: '#2F6B3E' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', onAccent: '#0B0B0F', ember: '#E0855C', tide: '#72AAD8', moss: '#97B96E', plum: '#BC93CF', warn: '#E0A43A', warnSoft: '#251D0F', warnLine: '#4A3A18', danger: '#E5736B', dangerSoft: '#2A1514', ok: '#7BC08A' }
+};
+function alpha(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const cell = function (kind, color, ch) {
+      const base = { span: 1, text: '', bg: 'transparent', border: '0', color: t.ink2, font: '600 12px Literata, Georgia, serif', title: 'Chapter ' + ch };
+      if (kind === 'pov') { base.bg = color; base.title += ': POV'; }
+      else if (kind === 'on') { base.bg = alpha(color, 0.38); base.title += ': on the page'; }
+      else if (kind === 'ment') { base.border = '1.5px solid ' + alpha(color, 0.75); base.title += ': mentioned'; }
+      else if (kind === 'dies') { base.bg = alpha(color, 0.38); base.text = '†'; base.color = t.ink; base.title += ': dies'; }
+      else if (kind === 'err') { base.bg = t.dangerSoft; base.border = '2px solid ' + t.danger; base.text = '!'; base.color = t.danger; base.font = '700 12px Inter, sans-serif'; base.title += ': finding — appears after death'; }
+      else { base.bg = t.canvas; base.title += ': not present'; }
+      return base;
+    };
+    const row = function (color, kinds) {
+      return kinds.split('').map(function (k, i) {
+        const map = { P: 'pov', o: 'on', m: 'ment', d: 'dies', x: 'err', '.': 'none' };
+        return cell(map[k], color, i + 1);
+      });
+    };
+    const gapRow = function (color, before, span, after, text) {
+      const segs = row(color, before);
+      segs.push({ span: span, text: text, bg: t.warnSoft, border: '1px dashed ' + t.warnLine, color: t.warn, font: '500 11px Inter, sans-serif', title: text });
+      return segs.concat(row(color, after).map(function (s, i) { s.title = 'Chapter ' + (before.length + span + i + 1); return s; }));
+    };
+    const people = [
+      { name: 'Elena Vasquez', role: 'Major · POV', initials: 'EV', color: t.ember, segs: row(t.ember, 'PPPoPoPPoPPoPP') },
+      { name: 'Tomas Brandt', role: 'Major · POV', initials: 'TB', color: t.tide, segs: row(t.tide, '.o...Po.oo.P.o') },
+      { name: 'Mirela Constantin', role: 'Major', initials: 'MC', color: t.plum, segs: gapRow(t.plum, 'oo', 11, 'o', 'off the page for 11 chapters') },
+      { name: 'Corin Ashby', role: 'Major · POV', initials: 'CA', color: t.moss, segs: row(t.moss, '...Po..o.d.x..') },
+      { name: 'Ilse Vasquez', role: 'Mother · mentioned', initials: 'IV', color: t.ink3, segs: row(t.ink3, 'm.m.m.......o.') }
+    ];
+    const lane = function (color, spec) {
+      return spec.map(function (s) {
+        if (s === 'gap') return { span: 9, bg: 'repeating-linear-gradient(90deg, ' + t.warn + ' 0 5px, transparent 5px 10px) center / 100% 2px no-repeat', pill: 'silent for 9 chapters', pillBg: t.warnSoft, pillColor: t.warn, pillDisplay: 'inline-block', glyph: '', color: color, size: '10px', title: 'No beat in chapters 4 to 12' };
+        if (s === '.') return { span: 1, bg: 'transparent', pill: '', pillDisplay: 'none', glyph: '', color: color, size: '10px', title: '' };
+        const line = 'linear-gradient(' + color + ', ' + color + ') center / 100% 2px no-repeat';
+        return { span: 1, bg: line, pill: '', pillDisplay: 'none', glyph: s === 'b' ? '●' : '', color: color, size: '11px', title: s === 'b' ? 'Beat' : '' };
+      });
+    };
+    const arcs = [
+      { name: 'The Debt', color: t.ember, segs: lane(t.ember, ['.', '.', '.', '.', '.', '.', 'b', '-', 'b', '-', 'b', '-', '-', 'b']) },
+      { name: 'Rising Tide', color: t.tide, segs: lane(t.tide, ['b', '-', 'b', '-', '-', 'b', 'b', '-', '-', 'b', '-', 'b', '-', 'b']) },
+      { name: 'Mother’s Letters', color: t.plum, segs: lane(t.plum, ['b', '-', 'b', 'gap', 'b', '.']) }
+    ];
+    const chapters = [];
+    for (let i = 0; i < 14; i++) chapters.push({ n: String(i + 1), weight: i === 6 ? 600 : 400, color: i === 6 ? t.goldInk : t.ink3 });
+    const sev = {
+      Error: { sevBg: t.dangerSoft, sevColor: t.danger },
+      Warning: { sevBg: t.warnSoft, sevColor: t.warn },
+      Note: { sevBg: t.raised, sevColor: t.ink2 }
+    };
+    const f = function (s, title, body, expanded) {
+      return { sev: s, title: title, body: body, expanded: !!expanded, collapsed: !expanded, sevBg: sev[s].sevBg, sevColor: sev[s].sevColor, bg: expanded ? t.surface : 'transparent', border: expanded ? t.line : 'transparent' };
+    };
+    const findings = [
+      f('Error', 'Appears after death', 'Corin Ashby dies in 10.2 · The Breakwater, but speaks in 12.1 · Ashes on the Water.', true),
+      f('Warning', 'Two places at once', 'Tomas Brandt is at the Lantern Gate (7.2) and the Customs House (6.3) at dusk on 14 Thaw 412 TR.'),
+      f('Warning', 'Time order', 'Chapter 9 takes place 3 days before chapter 8 and is not marked as a flashback.'),
+      f('Warning', 'Silent arc', 'Mother’s Letters has no beat for 9 chapters (4–12).'),
+      f('Warning', 'Long absence', 'Mirela Constantin (major) is off the page for 11 chapters.'),
+      f('Note', 'Set-up without pay-off', '“The key under the lantern” (3.1) is never paid off.')
+    ];
+    const stats = [
+      { value: '31 of 48', label: 'scenes have changes recorded', color: t.ink },
+      { value: '5 of 24', label: 'characters shown · major and POV', color: t.ink },
+      { value: '3', label: 'arcs · 1 silent', color: t.ink },
+      { value: '15 days', label: 'story span · 1 flashback', color: t.ink }
+    ];
+    return { theme: theme, t: t, legendOn: alpha(t.ember, 0.38), people: people, arcs: arcs, chapters: chapters, findings: findings, stats: stats };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Problems and empty states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 1040px; height: 980px; box-sizing: border-box; padding: 32px; display: flex; flex-direction: column; gap: 14px; background: {{t.canvas}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<h2 style="margin: 0 0 2px; font: 600 11px Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: {{t.ink3}}">Banners above the editor — calm, specific, always with a way out</h2>
+
+<sc-for list="{{banners}}" as="b" hint-placeholder-count="4">
+<div role="{{b.role}}" style="padding: 12px 14px 12px 16px; display: flex; align-items: center; gap: 14px; border: 1px solid {{b.line}}; border-radius: 12px; background: {{b.bg}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{b.color}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="{{b.icon}}"></path></svg>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px"><span style="font-weight: 600; color: {{t.ink}}">{{b.title}}</span><span style="font-size: 12.5px; color: {{t.ink2}}">{{b.text}}</span></span>
+<span style="padding: 1px 8px; border-radius: 5px; background: {{t.surface}}; color: {{b.color}}; font: 600 11px Inter, sans-serif">{{b.tag}}</span>
+<button type="button" style="height: 32px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 600 12.5px Inter, sans-serif; cursor: pointer; white-space: nowrap">{{b.action}}</button>
+</div>
+</sc-for>
+
+<h2 style="margin: 14px 0 2px; font: 600 11px Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: {{t.ink3}}">Empty states — say what is missing and how to start</h2>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; flex: 1">
+<section aria-labelledby="es-cont" style="padding: 24px; border: 1px solid {{t.line}}; border-radius: 12px; background: {{t.surface}}; display: flex; flex-direction: column; gap: 10px">
+<span style="font: 600 11px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: {{t.goldInk}}">Continuity</span>
+<h3 id="es-cont" style="margin: 0; font: 500 20px Literata, Georgia, serif">Nothing to check yet</h3>
+<p style="margin: 0; color: {{t.ink2}}">Continuity reads the changes you record in your scenes — who learns what, who gets hurt, what you set up for later. It does not mean your story is clear of problems.</p>
+<div style="padding: 10px 12px; border-radius: 10px; background: {{t.canvas}}; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: {{t.ink2}}"><span>In any scene, open the panel and use</span><span style="padding: 2px 8px; border-radius: 6px; background: {{t.goldSoft}}; color: {{t.goldInk}}; font-weight: 600">What changes here → + Add</span></div>
+<p style="margin: 0; font-size: 12.5px; color: {{t.ink3}}">Who is on the page is found for you from the [[links]] in your text.</p>
+<button type="button" style="align-self: flex-start; margin-top: auto; height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 13px Inter, sans-serif; cursor: pointer">Show me how</button>
+</section>
+<section aria-labelledby="es-inbox" style="padding: 24px; border: 1px solid {{t.line}}; border-radius: 12px; background: {{t.surface}}; display: flex; flex-direction: column; gap: 10px">
+<span style="font: 600 11px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: {{t.goldInk}}">Review inbox</span>
+<h3 id="es-inbox" style="margin: 0; font: 500 20px Literata, Georgia, serif">No suggestions waiting</h3>
+<p style="margin: 0; color: {{t.ink2}}">When an assistant suggests a change — from the panel or from Claude — it waits here until you accept, edit or reject it.</p>
+<p style="margin: 0; font-size: 12.5px; color: {{t.ink3}}">No assistant connected. Aurelia works fully without one.</p>
+<button type="button" style="align-self: flex-start; margin-top: auto; height: 34px; padding: 0 14px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 600 13px Inter, sans-serif; cursor: pointer">Connect an assistant</button>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1040,"height":980}}'>
+const AURELIA_TOKENS = {
+  light: { canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', warn: '#9A5B07', warnSoft: '#FBF0DC', warnLine: '#EBCF9E', danger: '#A8322D', dangerSoft: '#F8E3E0', dangerLine: '#E9B8B2', info: '#2F6690', infoSoft: '#E4EDF5', infoLine: '#B9CFE3' },
+  dark: { canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', warn: '#E0A43A', warnSoft: '#251D0F', warnLine: '#4A3A18', danger: '#E5736B', dangerSoft: '#2A1514', dangerLine: '#5A2A26', info: '#72AAD8', infoSoft: '#132030', infoLine: '#294560' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const I = {
+      folder: 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2zM12 10v4M12 17h.01',
+      alert: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 8v4M12 16h.01',
+      split: 'M16 3h5v5M8 3H3v5M21 3l-7 7M3 3l7 7M12 22v-8',
+      lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+      cloud: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z'
+    };
+    const b = function (kind, icon, title, text, tag, action) {
+      const k = { warn: [t.warn, t.warnSoft, t.warnLine], danger: [t.danger, t.dangerSoft, t.dangerLine], info: [t.info, t.infoSoft, t.infoLine] }[kind];
+      return { icon: I[icon], title: title, text: text, tag: tag, action: action, color: k[0], bg: k[1], line: k[2], role: kind === 'danger' ? 'alert' : 'status' };
+    };
+    const banners = [
+      b('warn', 'cloud', 'This book is only in this browser', 'The browser can clear its storage. Turn on backup to keep a copy in your own Google Drive, OneDrive or Nextcloud.', 'No backup', 'Turn on backup'),
+      b('info', 'cloud', 'Google Drive needs you to sign in again', '3 changes are waiting and will be backed up as soon as you reconnect.', 'Backup paused', 'Reconnect'),
+      b('warn', 'folder', 'Aurelia can’t reach your folder ~/Documents/Writing', 'Keep writing. Your words are kept safe on this device until you reconnect.', 'Folder', 'Reconnect folder'),
+      b('danger', 'alert', 'Could not save “Curfew Bells”', 'The disk is full. Your words are kept in the recovery journal on this device.', 'Not saved', 'Try again'),
+      b('info', 'split', '“Curfew Bells” changed on another device while it was open here', 'Nothing was overwritten. Both versions are kept.', 'Two versions', 'Compare versions'),
+      b('info', 'lock', 'This folder was saved by a newer version of Aurelia', 'It is open read-only, so nothing can be damaged. Update to keep writing.', 'Read-only', 'Get the update')
+    ];
+    return { t: t, banners: banners };
+  }
+}
+</script>
+</body>
+</html>

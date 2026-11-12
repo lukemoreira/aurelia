@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Corkboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; flex-direction: column; background: {{t.canvas}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<dc-import name="TopBar" theme="{{theme}}" view="plan" book="The Lantern Gate" hint-size="100%,52px"></dc-import>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; min-height: 816px">
+
+<div style="flex: 1 1 272px; display: flex; min-width: 0">
+<dc-import name="Navigator" theme="{{theme}}" active="part-1" book="lantern" hint-size="100%,816px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column">
+
+<div style="padding: 16px 20px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid {{t.line}}">
+<div style="flex: 1 1 220px; min-width: 0">
+<h1 style="margin: 0; font: 500 26px/1.2 Literata, Georgia, serif">Part One · Low Tide</h1>
+<p style="margin: 2px 0 0; font-size: 12.5px; color: {{t.ink3}}">8 chapters · 24 scenes · 31,220 of 36,000 words</p>
+</div>
+<div role="group" aria-label="Plan view" style="display: flex; padding: 3px; gap: 2px; background: {{t.raised}}; border-radius: 8px">
+<button type="button" aria-pressed="false" style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: {{t.ink2}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Outline</button>
+<button type="button" aria-pressed="true" style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; box-shadow: 0 1px 2px rgba(0,0,0,.08); cursor: pointer">Corkboard</button>
+<button type="button" aria-pressed="false" style="height: 28px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: {{t.ink2}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Timeline</button>
+</div>
+<button type="button" style="height: 32px; padding: 0 10px 0 12px; display: flex; align-items: center; gap: 6px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Colour by: Arc<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+<button type="button" style="height: 32px; padding: 0 12px; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 8px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 12.5px Inter, sans-serif; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Scene</button>
+</div>
+
+<div style="padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: {{t.ink2}}; border-bottom: 1px solid {{t.line}}">
+<sc-for list="{{legend}}" as="l" hint-placeholder-count="3">
+<span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 18px; height: 4px; border-radius: 2px; background: {{l.color}}"></span>{{l.name}}</span>
+</sc-for>
+<span style="flex: 1"></span>
+<span style="color: {{t.ink3}}">Drag cards to reorder. The manuscript follows.</span>
+<span role="group" aria-label="Chapters shown" style="display: flex; align-items: center; gap: 4px; color: {{t.ink}}">
+<button type="button" aria-label="Previous chapters" style="width: 28px; height: 28px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink2}}; cursor: pointer">‹</button>
+<span style="padding: 0 6px; font-weight: 500">Chapters 5–8 of 14</span>
+<button type="button" aria-label="Next chapters" style="width: 28px; height: 28px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink2}}; cursor: pointer">›</button>
+</span>
+</div>
+
+<div style="flex: 1; overflow-x: auto; padding: 16px 20px 20px">
+<div style="display: grid; grid-template-columns: repeat(4, minmax(190px, 1fr)); gap: 14px; min-width: 800px">
+<sc-for list="{{cols}}" as="c" hint-placeholder-count="4">
+<section aria-label="{{c.title}}" style="display: flex; flex-direction: column; gap: 10px">
+<header style="display: flex; flex-direction: column; gap: 5px; padding: 0 2px">
+<span style="display: flex; justify-content: space-between; gap: 8px"><span style="font: 600 12.5px Inter, sans-serif; color: {{t.ink}}">{{c.title}}</span><span style="font-size: 11.5px; color: {{c.wordsColor}}; font-weight: {{c.wordsWeight}}; font-variant-numeric: tabular-nums">{{c.words}}</span></span>
+<span aria-hidden="true" style="height: 3px; border-radius: 99px; background: {{t.raised}}; overflow: hidden"><span style="display: block; width: {{c.pct}}; height: 100%; background: {{c.barColor}}"></span></span>
+</header>
+<sc-for list="{{c.cards}}" as="k" hint-placeholder-count="3">
+<article style="position: relative; box-sizing: border-box; min-height: 128px; padding: 0 12px 10px; display: flex; flex-direction: column; gap: 6px; border-radius: 10px; background: {{k.bg}}; border: {{k.border}}; box-shadow: {{k.shadow}}; transform: {{k.transform}}; opacity: {{k.opacity}}; overflow: hidden">
+<span aria-hidden="true" style="height: 4px; margin: 0 -12px 4px; background: {{k.arcColor}}"></span>
+<span style="display: flex; justify-content: space-between; align-items: center; gap: 6px"><span style="font: 500 11px 'JetBrains Mono', monospace; color: {{t.ink3}}">{{k.ref}}</span><span style="font-size: 11px; color: {{k.arcText}}; font-weight: 500">{{k.arc}}</span></span>
+<h3 style="margin: 0; font: 500 15px/1.25 Literata, Georgia, serif; color: {{t.ink}}">{{k.title}}</h3>
+<p style="margin: 0; flex: 1; font-size: 12.5px; color: {{t.ink2}}">{{k.text}}</p>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: {{t.ink3}}">
+<span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{k.povColor}}; color: {{t.onAccent}}; font: 600 8.5px Inter, sans-serif">{{k.pov}}</span>
+<span style="padding: 1px 7px; border-radius: 99px; border: 1px solid {{t.line2}}; color: {{t.ink2}}">{{k.status}}</span>
+<span style="flex: 1"></span>
+<span style="padding: 0 6px; border-radius: 5px; background: {{t.warnSoft}}; color: {{t.warn}}; font-weight: 600; display: {{k.flagDisplay}}">1 finding</span>
+<span style="font-variant-numeric: tabular-nums">{{k.words}}</span>
+</span>
+</article>
+</sc-for>
+<button type="button" style="height: 36px; border: 1px dashed {{t.line2}}; border-radius: 10px; background: transparent; color: {{t.ink3}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">+ Scene</button>
+</section>
+</sc-for>
+</div>
+</div>
+</main>
+
+<aside aria-label="Arc inspector" style="flex: 1 1 320px; min-width: 0; box-sizing: border-box; padding: 16px; background: {{t.chrome}}; border-left: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 3px; background: {{t.ember}}"></span><span style="font: 600 11px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: {{t.ink3}}">Arc · shared</span><span style="flex: 1"></span><span style="padding: 2px 8px; border-radius: 99px; background: {{t.okSoft}}; color: {{t.ok}}; font: 600 11px Inter, sans-serif">Active</span></div>
+<h2 style="margin: -6px 0 0; font: 500 22px Literata, Georgia, serif">The Debt</h2>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div><div style="font: 600 11px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: {{t.ink3}}">Theme</div><div style="margin-top: 3px; color: {{t.ink2}}">What we owe, and who decides when it is paid.</div></div>
+<div><div style="font: 600 11px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: {{t.ink3}}">Purpose</div><div style="margin-top: 3px; color: {{t.ink2}}">Binds Elena to the warden and forces her hand in Part Two.</div></div>
+<div><div style="font: 600 11px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: {{t.ink3}}">Objective</div><div style="margin-top: 3px; color: {{t.ink2}}">Called in by chapter 14. Paid or broken in Tidebound.</div></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid {{t.line}}">
+<div style="display: flex; justify-content: space-between; font: 600 11px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: {{t.ink3}}"><span>Beats</span><span>6 scenes · 2 books</span></div>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{beats}}" as="b" hint-placeholder-count="6">
+<li style="display: grid; grid-template-columns: 44px 12px minmax(0, 1fr); gap: 8px; align-items: center; padding: 5px 6px; border-radius: 7px; background: {{b.bg}}">
+<span style="font: 500 11.5px 'JetBrains Mono', monospace; color: {{t.ink3}}">{{b.ref}}</span>
+<span aria-hidden="true" style="width: 9px; height: 9px; border-radius: 50%; background: {{b.dot}}; border: 2px solid {{t.ember}}; box-sizing: border-box"></span>
+<span style="font-size: 12.5px; color: {{b.color}}">{{b.text}}</span>
+</li>
+</sc-for>
+</ol>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; padding-top: 12px; border-top: 1px solid {{t.line}}">
+<span style="width: 100%; font: 600 11px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: {{t.ink3}}">Characters</span>
+<span style="height: 26px; padding: 0 9px 0 3px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid {{t.line}}; border-radius: 99px; background: {{t.surface}}; font-size: 12px"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{t.ember}}; color: {{t.onAccent}}; font: 600 9px Inter, sans-serif">EV</span>Elena Vasquez</span>
+<span style="height: 26px; padding: 0 9px 0 3px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid {{t.line}}; border-radius: 99px; background: {{t.surface}}; font-size: 12px"><span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{t.tide}}; color: {{t.onAccent}}; font: 600 9px Inter, sans-serif">TB</span>Tomas Brandt</span>
+</div>
+</aside>
+</div>
+
+<dc-import name="StatusBar" theme="{{theme}}" where="Plan · Part One" hint-size="100%,32px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', onAccent: '#FFFDF9', ember: '#B4532A', tide: '#2F6690', moss: '#4F7232', plum: '#7A4E8C', warn: '#9A5B07', warnSoft: '#FBF0DC', ok: '#2F6B3E', okSoft: '#E3F0E0', shadow: '0 1px 2px rgba(40,32,16,.05)', lift: '0 4px 8px rgba(40,32,16,.10), 0 18px 40px rgba(40,32,16,.18)' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', onAccent: '#0B0B0F', ember: '#E0855C', tide: '#72AAD8', moss: '#97B96E', plum: '#BC93CF', warn: '#E0A43A', warnSoft: '#251D0F', ok: '#7BC08A', okSoft: '#18271B', shadow: '0 1px 2px rgba(0,0,0,.4)', lift: '0 4px 8px rgba(0,0,0,.4), 0 18px 40px rgba(0,0,0,.6)' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const arcs = { debt: ['The Debt', t.ember], tide: ['Rising Tide', t.tide], letters: ['Mother’s Letters', t.plum] };
+    const pov = { EV: t.ember, TB: t.tide, CA: t.moss };
+    const card = function (ref, arc, title, text, p, status, words, opts) {
+      const o = opts || {};
+      return {
+        ref: ref, arc: arcs[arc][0], arcColor: arcs[arc][1], arcText: arcs[arc][1], title: title, text: text,
+        pov: p, povColor: pov[p], status: status, words: words, flagDisplay: o.flag ? 'inline' : 'none',
+        bg: o.ghost ? 'transparent' : t.surface,
+        border: o.selected ? '2px solid ' + t.gold : (o.ghost ? '1.5px dashed ' + t.line2 : '1px solid ' + t.line),
+        shadow: o.dragging ? t.lift : t.shadow, transform: o.dragging ? 'rotate(-2deg) translateY(-4px)' : 'none',
+        opacity: o.ghost ? 0.55 : 1
+      };
+    };
+    const col = function (title, words, pct, cards, over) {
+      return { title: title, words: words, pct: pct, cards: cards, barColor: over ? t.warn : t.ink3, wordsColor: over ? t.warn : t.ink3, wordsWeight: over ? 600 : 400 };
+    };
+    const cols = [
+      { title: '5 · The Drowned Ledger', words: '4,100 / 4,500', pct: '91%', cards: [
+        card('5.1', 'letters', 'Salt in the Ledger', 'Elena finds her father’s name in the drowned ledger.', 'EV', 'Revised', '1,420'),
+        card('5.2', 'tide', 'The Chandler’s Daughter', 'Mirela offers work, and a warning about the Guild.', 'EV', 'Revised', '1,580'),
+        card('5.3', 'tide', 'Low Water', 'Corin shows her the old aqueduct under the quarter.', 'CA', 'Draft', '1,100')
+      ] },
+      { title: '6 · Ropewalk', words: '3,800 / 4,500', pct: '84%', cards: [
+        card('6.1', 'tide', 'Ropewalk', 'Tomas hears that a drowned woman walks the quarter.', 'TB', 'Revised', '1,640'),
+        card('6.2', 'letters', 'Tar and Twine', 'Elena trades a copy of the key for passage.', 'EV', 'Draft', '1,210'),
+        card('6.3', 'tide', 'The Customs House', 'Tomas inspects the night cargo at dusk.', 'TB', 'Draft', '950', { flag: true })
+      ] },
+      { title: '7 · The Lantern Gate', words: '4,800 / 4,500 · +300', pct: '100%', over: true, cards: [
+        card('7.1', 'tide', 'Tide Bell', 'The bell rings early; the tide is wrong.', 'EV', 'Revised', '1,900'),
+        card('7.2', 'debt', 'Curfew Bells', 'Elena gets through the gate, but owes the warden.', 'EV', 'Draft', '1,240', { selected: true, flag: true }),
+        card('7.3', 'debt', 'The Warden’s Price', 'He names the favour.', 'EV', 'Idea', '—')
+      ] },
+      { title: '8 · Salt in the Wound', words: '2,600 / 4,500', pct: '58%', cards: [
+        card('8.1', 'debt', 'Stitches', 'Corin sews her hand and asks no questions.', 'CA', 'Draft', '1,300'),
+        card('8.2', 'letters', 'Mirela’s Window', 'A light in the window that should be dark.', 'EV', 'Outline', '—', { dragging: true }),
+        card('8.2', 'letters', 'Drop here', 'Moves this scene to 8.2.', 'EV', 'Outline', '—', { ghost: true })
+      ] }
+    ].map(function (c) { return col(c.title, c.words, c.pct, c.cards, c.over); });
+    const beats = [
+      ['7.2', 'Begins: she owes him a favour', true],
+      ['7.3', 'He names the price', false],
+      ['9.1', 'Interest: the first errand', false],
+      ['11.2', 'Called in early', false],
+      ['14.3', 'She refuses', false],
+      ['TB 2.1', 'Tidebound: the debt passes to Corin', false]
+    ].map(function (b) { return { ref: b[0], text: b[1], bg: b[2] ? t.goldSoft : 'transparent', color: b[2] ? t.ink : t.ink2, dot: b[2] ? t.ember : 'transparent' }; });
+    const legend = [arcs.debt, arcs.tide, arcs.letters].map(function (a) { return { name: a[0], color: a[1] }; });
+    return { theme: theme, t: t, cols: cols, beats: beats, legend: legend };
+  }
+}
+</script>
+</body>
+</html>

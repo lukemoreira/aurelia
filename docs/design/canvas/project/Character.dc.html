@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Character progression</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; flex-direction: column; background: {{t.canvas}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<dc-import name="TopBar" theme="{{theme}}" view="world" book="The Lantern Gate" hint-size="100%,52px"></dc-import>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; min-height: 816px">
+
+<div style="flex: 1 1 272px; display: flex; min-width: 0">
+<dc-import name="Navigator" theme="{{theme}}" active="chr-elena" book="lantern" hint-size="100%,816px"></dc-import>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 22px 28px 24px; display: flex; flex-direction: column; gap: 18px">
+
+<header style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
+<div aria-label="Portrait placeholder" role="img" style="width: 88px; height: 108px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: {{t.goldSoft}}; border: 1px solid {{t.line}}; color: {{t.goldInk}}; font: 500 30px Literata, Georgia, serif">EV</div>
+<div style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<span style="font: 600 11px Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: {{t.goldInk}}">Character</span>
+<h1 style="margin: 0; font: 500 34px/1.1 Literata, Georgia, serif; letter-spacing: -.01em">Elena Vasquez</h1>
+<p style="margin: 0; color: {{t.ink2}}; font: italic 400 15px Literata, Georgia, serif">A smuggler’s daughter who came back from the sea owing everyone.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px">
+<span style="height: 24px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; background: {{t.surface}}; border: 1px solid {{t.line}}; font-size: 12px; color: {{t.ink2}}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"></path></svg>Shared · Saltmarch</span>
+<span style="height: 24px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 6px; background: {{t.surface}}; border: 1px solid {{t.line}}; font-size: 12px; color: {{t.ink2}}">Protagonist · POV</span>
+<span style="height: 24px; padding: 0 9px; display: inline-flex; align-items: center; border-radius: 6px; background: {{t.surface}}; border: 1px solid {{t.line}}; font-size: 12px; color: {{t.ink2}}">2 books · 50 scenes</span>
+</div>
+</div>
+<div style="display: flex; gap: 6px">
+<button type="button" style="height: 32px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Show in Continuity</button>
+<button type="button" aria-label="More actions" style="width: 32px; height: 32px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink2}}; font: 600 15px Inter, sans-serif; cursor: pointer">···</button>
+</div>
+</header>
+
+<div role="tablist" aria-label="Character sheet" style="display: flex; gap: 4px; border-bottom: 1px solid {{t.line}}">
+<sc-for list="{{tabs}}" as="tab" hint-placeholder-count="6">
+<button type="button" role="tab" aria-selected="{{tab.selected}}" style="height: 36px; padding: 0 12px; border: 0; border-bottom: 2px solid {{tab.border}}; background: transparent; color: {{tab.color}}; font: {{tab.font}}; cursor: pointer">{{tab.label}}</button>
+</sc-for>
+</div>
+
+<section aria-labelledby="scrub-title" style="padding: 14px 16px 12px; border: 1px solid {{t.line}}; border-radius: 12px; background: {{t.surface}}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 12px">
+<h2 id="scrub-title" style="flex: 1 1 auto; margin: 0; font: 600 13.5px Inter, sans-serif; display: flex; align-items: center; gap: 8px">Across<button type="button" aria-label="Book: The Lantern Gate, 1 of 2 books" style="height: 28px; padding: 0 8px 0 10px; display: flex; align-items: center; gap: 6px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 600 13px Inter, sans-serif; cursor: pointer">The Lantern Gate<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button><span style="font-weight: 400; color: {{t.ink3}}; font-size: 12px">1 of 2 books</span></h2>
+<span style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="6">
+<button type="button" aria-pressed="true" style="height: 24px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid {{t.line}}; border-radius: 99px; background: {{t.canvas}}; color: {{t.ink2}}; font: 500 11.5px Inter, sans-serif; cursor: pointer"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: {{k.color}}"></span>{{k.label}}</button>
+</sc-for>
+</span>
+</div>
+<div style="position: relative; padding: 0 6px">
+<div style="display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); align-items: end; height: 46px; gap: 3px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="14">
+<span title="{{b.title}}" style="height: {{b.h}}; border-radius: 3px 3px 0 0; background: {{b.bg}}"></span>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; margin-top: 6px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="14">
+<span style="height: 16px; display: flex; align-items: center; justify-content: center; font: 600 10.5px Inter, sans-serif; color: {{t.ink2}}">{{b.changes}}</span>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; margin-top: 2px">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="14">
+<span style="text-align: center; font-size: 11px; color: {{b.labelColor}}; font-weight: {{b.labelWeight}}">{{b.n}}</span>
+</sc-for>
+</div>
+<div aria-hidden="true" style="position: absolute; top: -4px; height: 92px; left: calc(6px + (100% - 12px) * 10.5 / 14); width: 2px; background: {{t.goldInk}}"></div>
+<label style="display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12px; color: {{t.ink2}}">
+<span style="white-space: nowrap">Story position</span>
+<input type="range" min="1" max="48" value="35" aria-valuetext="Chapter 11, scene 2: The Customs Stair" style="flex: 1; accent-color: {{t.goldInk}}; height: 28px">
+<span style="white-space: nowrap; font-weight: 600; color: {{t.ink}}">11.2</span>
+</label>
+</div>
+<p style="margin: 8px 0 0; font-size: 11.5px; color: {{t.ink3}}">Bars: words with Elena on the page — solid in POV chapters. Numbers: changes recorded. Move the slider (or use the arrow keys) to see her state at any scene.</p>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+
+<section aria-labelledby="log-title" style="flex: 3 1 340px; min-width: 0">
+<h2 id="log-title" style="margin: 0 0 10px; font: 600 13.5px Inter, sans-serif">What changes, scene by scene</h2>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{log}}" as="e" hint-placeholder-count="7">
+<li style="display: grid; grid-template-columns: 52px 14px minmax(0, 1fr); gap: 0 10px">
+<span style="padding-top: 9px; text-align: right; font: 500 12px 'JetBrains Mono', monospace; color: {{e.refColor}}">{{e.ref}}</span>
+<span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center"><span style="width: 2px; height: 12px; background: {{e.topLine}}"></span><span style="width: 10px; height: 10px; flex: none; border-radius: 50%; background: {{e.dotFill}}; border: 2px solid {{e.color}}; box-sizing: border-box"></span><span style="width: 2px; flex: 1; background: {{t.line}}"></span></span>
+<div style="padding: 6px 0 12px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px"><span style="padding: 1px 7px; border-radius: 5px; background: {{t.raised}}; color: {{t.ink2}}; font: 500 11.5px Inter, sans-serif">{{e.kind}}</span><span style="font-size: 12px; color: {{t.ink3}}">{{e.scene}}</span><span style="padding: 0 6px; border-radius: 99px; border: 1px solid {{t.line2}}; font-size: 11px; color: {{t.ink2}}; display: {{e.laterDisplay}}">later in the story</span></div>
+<div style="margin-top: 3px; font-size: 13px; color: {{t.ink}}">{{e.text}}</div>
+</div>
+</li>
+</sc-for>
+</ol>
+</section>
+
+<section aria-labelledby="state-title" style="flex: 2 1 280px; min-width: 0; padding: 14px 16px; border: 1px solid {{t.goldLine}}; border-radius: 12px; background: {{t.surface}}; box-shadow: {{t.shadowSm}}">
+<span style="font: 600 11px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: {{t.goldInk}}">State at 11.2</span>
+<h2 id="state-title" style="margin: 2px 0 12px; font: 500 18px Literata, Georgia, serif">The Customs Stair</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 9px 12px; font-size: 12.5px">
+<dt style="color: {{t.ink3}}">Status</dt><dd style="margin: 0">Alive</dd>
+<dt style="color: {{t.ink3}}">Condition</dt><dd style="margin: 0">Injured — left hand <span style="color: {{t.ink3}}">since 9.3</span></dd>
+<dt style="color: {{t.ink3}}">Where</dt><dd style="margin: 0">Customs House, Lantern Quarter</dd>
+<dt style="color: {{t.ink3}}">Goal</dt><dd style="margin: 0">Pay the warden back before the spring tide</dd>
+<dt style="color: {{t.ink3}}">Holds</dt><dd style="margin: 0">The Lantern Key · Mother’s first letter</dd>
+<dt style="color: {{t.ink3}}">Has learned</dt><dd style="margin: 0; display: flex; flex-direction: column; gap: 3px"><span>The Guild sank her father’s boat <span style="color: {{t.ink3}}">5.1</span></span><span>Corin keeps a second ledger <span style="color: {{t.ink3}}">8.1</span></span><span style="color: {{t.ink3}}">Not yet: her mother is alive (14.1)</span></dd>
+<dt style="color: {{t.ink3}}">Relations</dt><dd style="margin: 0; display: flex; flex-direction: column; gap: 3px"><span>Tomas Brandt — <span style="color: {{t.ink3}}">creditor →</span> uneasy ally</span><span>Mirela Constantin — mentor, estranged</span></dd>
+</dl>
+</section>
+</div>
+</main>
+
+<aside aria-label="Links" style="flex: 1 1 300px; min-width: 0; box-sizing: border-box; padding: 16px; background: {{t.chrome}}; border-left: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; font: 600 14px Inter, sans-serif">Linked from <span style="color: {{t.ink3}}; font-weight: 500">47</span></h2>
+</div>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; justify-content: space-between; font: 600 10.5px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: {{t.ink3}}"><span>{{g.label}}</span><span>{{g.count}}</span></div>
+<sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+<a href="#" style="padding: 6px 8px; border-radius: 7px; display: flex; flex-direction: column; gap: 1px; text-decoration: none; background: {{t.surface}}; border: 1px solid {{t.line}}">
+<span style="display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: {{t.ink}}; font-weight: 500"><span>{{it.title}}</span><span style="color: {{t.ink3}}; font-weight: 400">{{it.meta}}</span></span>
+<span style="font-size: 12px; color: {{t.ink3}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.text}}</span>
+</a>
+</sc-for>
+</div>
+</sc-for>
+</aside>
+</div>
+
+<dc-import name="StatusBar" theme="{{theme}}" where="Character · Elena Vasquez" hint-size="100%,32px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', goldLine: '#E3CF8A', onAccent: '#FFFDF9', ember: '#B4532A', tide: '#2F6690', moss: '#4F7232', plum: '#7A4E8C', warn: '#9A5B07', danger: '#A8322D', ok: '#2F6B3E', shadowSm: '0 1px 2px rgba(40,32,16,.06), 0 6px 16px rgba(40,32,16,.06)', bar: '#D9CFBD' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', goldLine: '#5C4B1C', onAccent: '#0B0B0F', ember: '#E0855C', tide: '#72AAD8', moss: '#97B96E', plum: '#BC93CF', warn: '#E0A43A', danger: '#E5736B', ok: '#7BC08A', shadowSm: '0 1px 2px rgba(0,0,0,.4)', bar: '#3A3A45' }
+};
+function alpha(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const kc = { status: t.danger, condition: t.warn, knows: t.plum, relation: t.tide, holds: t.moss, goal: t.goldInk, trait: t.ember };
+    const tabs = ['Overview', 'Progression', 'Relationships', 'Appearances', 'Voice', 'Notes'].map(function (l) {
+      const on = l === 'Progression';
+      return { label: l, selected: on ? 'true' : 'false', border: on ? t.gold : 'transparent', color: on ? t.ink : t.ink3, font: (on ? '600' : '500') + ' 13px Inter, sans-serif' };
+    });
+    const kinds = [['Alive / dead', kc.status], ['Condition', kc.condition], ['Learns', kc.knows], ['Relationships', kc.relation], ['Items', kc.holds], ['Goals and beliefs', kc.goal]].map(function (k) { return { label: k[0], color: k[1] }; });
+    const label = { status: 'Alive / dead', condition: 'Condition', knows: 'Learns', relation: 'Relationship', holds: 'Gains item', goal: 'Goal', trait: 'Belief' };
+    const words = [62, 70, 48, 30, 55, 20, 66, 72, 40, 58, 80, 34, 60, 76];
+    const pov = [1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1];
+    const counts = { 1: 1, 3: 1, 7: 1, 9: 1, 11: 2, 14: 1 };
+    const bars = words.map(function (w, i) {
+      const c = counts[i + 1] || 0;
+      return {
+        n: String(i + 1), h: w + '%', title: 'Chapter ' + (i + 1) + (pov[i] ? ' · POV' : '') + (c ? ' · ' + c + ' change' + (c > 1 ? 's' : '') : ''),
+        bg: pov[i] ? t.ember : alpha(t.ember, 0.3),
+        changes: c ? '+' + c : '',
+        labelColor: i === 10 ? t.goldInk : t.ink3, labelWeight: i === 10 ? 600 : 400
+      };
+    });
+    const entry = function (ref, kind, scene, text, future, current) {
+      const color = kc[kind];
+      return {
+        ref: ref, kind: label[kind], scene: scene, text: text, color: color,
+        laterDisplay: future ? 'inline-block' : 'none', refColor: current ? t.goldInk : t.ink3,
+        dotFill: current ? color : t.canvas, topLine: ref === '1.1' ? 'transparent' : t.line
+      };
+    };
+    const log = [
+      entry('1.1', 'goal', 'Washed Up', 'Find out who sank her father’s boat'),
+      entry('3.1', 'holds', 'The Ropewalk Key', 'Takes the Lantern Key from the drowned ledger'),
+      entry('7.2', 'relation', 'Curfew Bells', 'Tomas Brandt: stranger → creditor'),
+      entry('9.3', 'condition', 'Broken Glass', 'Injured — left hand'),
+      entry('11.2', 'trait', 'The Customs Stair', 'Stops trusting the Guild', false, true),
+      entry('11.2', 'relation', 'The Customs Stair', 'Tomas Brandt: creditor → uneasy ally', false, true),
+      entry('14.1', 'knows', 'Letters', 'Her mother is alive', true)
+    ];
+    const groups = [
+      { label: 'Scenes', count: '38', items: [
+        { title: '11.2 The Customs Stair', meta: 'POV', text: '“…Elena took the stairs two at a time…”' },
+        { title: '7.2 Curfew Bells', meta: 'POV', text: '“…the light fell across her cheek.”' }
+      ] },
+      { label: 'Characters', count: '4', items: [
+        { title: 'Tomas Brandt', meta: 'rival → ally', text: 'Relation since 7.2' },
+        { title: 'Ilse Vasquez', meta: 'mother', text: 'Family · missing until 14.1' }
+      ] },
+      { label: 'Items and places', count: '5', items: [
+        { title: 'The Lantern Key', meta: 'holds', text: 'Since 3.1 · origin: the drowned ledger' }
+      ] }
+    ];
+    return { theme: theme, t: t, tabs: tabs, kinds: kinds, bars: bars, log: log, groups: groups };
+  }
+}
+</script>
+</body>
+</html>

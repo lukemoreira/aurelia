@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Review inbox</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<section aria-labelledby="ri-title" style="position: relative; width: 560px; height: 820px; box-sizing: border-box; display: flex; flex-direction: column; background: {{t.chrome}}; border: 1px solid {{t.line}}; border-radius: 16px; box-shadow: {{t.shadow}}; overflow: hidden; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<div style="padding: 18px 20px 12px; display: flex; align-items: flex-start; gap: 12px">
+<div style="flex: 1">
+<h1 id="ri-title" style="margin: 0; font: 500 22px/1.25 Literata, Georgia, serif">Review inbox <span style="font: 500 15px Inter, sans-serif; color: {{t.ink3}}">3</span></h1>
+<p style="margin: 4px 0 0; font-size: 12.5px; color: {{t.ink2}}">Suggestions from any assistant wait here until you decide. Nothing changes on its own.</p>
+</div>
+<button type="button" aria-label="Close" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: {{t.ink2}}; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</div>
+
+<div role="tablist" aria-label="Filter suggestions" style="padding: 0 20px 12px; display: flex; gap: 6px; border-bottom: 1px solid {{t.line}}">
+<button type="button" role="tab" aria-selected="true" style="height: 28px; padding: 0 12px; border: 0; border-radius: 99px; background: {{t.ink}}; color: {{t.chrome}}; font: 500 12px Inter, sans-serif; cursor: pointer">All 3</button>
+<button type="button" role="tab" aria-selected="false" style="height: 28px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 99px; background: transparent; color: {{t.ink2}}; font: 500 12px Inter, sans-serif; cursor: pointer">From Claude 2</button>
+<button type="button" role="tab" aria-selected="false" style="height: 28px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 99px; background: transparent; color: {{t.ink2}}; font: 500 12px Inter, sans-serif; cursor: pointer">From the panel 1</button>
+</div>
+
+<ol style="list-style: none; margin: 0; padding: 12px 16px 96px; flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="3">
+<li style="border: 1px solid {{it.border}}; border-radius: 12px; background: {{t.surface}}; overflow: hidden">
+<div style="padding: 10px 12px 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 12px; color: {{t.ink3}}">
+<span style="padding: 1px 7px; border-radius: 5px; background: {{t.raised}}; color: {{t.ink2}}; font: 500 11.5px Inter, sans-serif">{{it.kind}}</span>
+<span style="font: 600 12.5px Inter, sans-serif; color: {{t.ink}}">{{it.target}}</span>
+<span style="flex: 1"></span>
+<span>{{it.source}}</span>
+</div>
+<p style="margin: 0 12px 6px; font-size: 12.5px; color: {{t.ink2}}">{{it.why}}</p>
+<div style="margin: 0 12px; padding: 6px 10px; border-radius: 8px; background: {{t.canvas}}; display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; opacity: 1">
+<span style="color: {{it.beforeColor}}; text-decoration: line-through">{{it.before}}</span>
+<span style="color: {{it.afterColor}}; font-weight: 500">{{it.after}}</span>
+</div>
+<sc-if value="{{it.stale}}" hint-placeholder-val="{{ false }}">
+<div style="margin: 8px 12px 0; padding: 6px 10px; border-radius: 8px; background: {{t.warnSoft}}; color: {{t.ink}}; font-size: 12.5px; display: flex; gap: 8px; align-items: center"><span style="padding: 0 6px; border-radius: 4px; background: {{t.surface}}; color: {{t.warn}}; font: 600 11px Inter, sans-serif">Out of date</span>You changed this paragraph after it was suggested.</div>
+<div style="padding: 10px 12px; display: flex; gap: 6px">
+<button type="button" style="height: 28px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Ask again</button>
+<button type="button" style="height: 28px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.ink2}}; font: 500 12px Inter, sans-serif; cursor: pointer">Dismiss</button>
+</div>
+</sc-if>
+<sc-if value="{{it.fresh}}" hint-placeholder-val="{{ true }}">
+<div style="padding: 10px 12px; display: flex; align-items: center; gap: 6px">
+<button type="button" style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 12px Inter, sans-serif; cursor: pointer">Accept</button>
+<button type="button" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Edit</button>
+<button type="button" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Reject</button>
+<span style="flex: 1"></span>
+<a href="#" style="font-size: 12px; color: {{t.goldInk}}; font-weight: 500">Show in text</a>
+</div>
+</sc-if>
+</li>
+</sc-for>
+</ol>
+
+<div role="status" style="position: absolute; left: 16px; right: 16px; bottom: 16px; padding: 10px 12px 10px 16px; display: flex; align-items: center; gap: 12px; border-radius: 12px; background: {{t.toastBg}}; color: {{t.toastInk}}; box-shadow: {{t.shadow}}; font-size: 13px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M20 6 9 17l-5-5"></path></svg>
+<span style="flex: 1">Accepted for 7.1 Tide Bell. A snapshot was saved first.</span>
+<button type="button" style="height: 30px; padding: 0 12px; border: 1px solid {{t.toastLine}}; border-radius: 7px; background: transparent; color: {{t.toastInk}}; font: 600 12.5px Inter, sans-serif; cursor: pointer">Undo</button>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":560,"height":820}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', warn: '#9A5B07', warnSoft: '#FBF0DC', warnLine: '#EBCF9E', danger: '#A8322D', ok: '#2F6B3E', toastBg: '#1B1A1F', toastInk: '#FAF7F2', toastLine: '#4F4D56', shadow: '0 4px 8px rgba(40,32,16,.08), 0 24px 64px rgba(40,32,16,.22)' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', warn: '#E0A43A', warnSoft: '#251D0F', warnLine: '#4A3A18', danger: '#E5736B', ok: '#7BC08A', toastBg: '#EDEDED', toastInk: '#0B0B0F', toastLine: '#9A97A2', shadow: '0 4px 8px rgba(0,0,0,.4), 0 24px 64px rgba(0,0,0,.6)' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const item = function (kind, target, source, why, before, after, stale) {
+      return {
+        kind: kind, target: target, source: source, why: why, before: before, after: after,
+        stale: !!stale, fresh: !stale, border: stale ? t.warnLine : t.line,
+        beforeColor: stale ? t.ink3 : t.danger, afterColor: stale ? t.ink3 : t.ok
+      };
+    };
+    const items = [
+      item('Scene time', '6.3 The Customs House', 'Claude · 2 min ago', 'So Tomas can reach the Lantern Gate by dusk in 7.2.', 'Dusk', 'Late afternoon'),
+      item('Text', '6.3 · paragraph 1', 'Claude · 2 min ago', 'Matches the new time of day.', '“as the lamps were being lit along the quay”', '“while the sun was still on the water”'),
+      item('Text', '5.2 · paragraph 4', 'Assistant panel · 1 hour ago', 'Mirela should not know about the ledger yet.', '“…you found the ledger, then”', '“…you found something, then”', true)
+    ];
+    return { t: t, items: items };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Add a change</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<form aria-labelledby="ac-title" style="width: 480px; height: 700px; box-sizing: border-box; margin: 0; display: flex; flex-direction: column; background: {{t.surface}}; border: 1px solid {{t.line}}; border-radius: 16px; box-shadow: {{t.shadow}}; overflow: hidden; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<div style="padding: 16px 18px 12px; border-bottom: 1px solid {{t.line}}">
+<h1 id="ac-title" style="margin: 0; font: 600 15px Inter, sans-serif">What changes in this scene?</h1>
+<p style="margin: 2px 0 0; font-size: 12.5px; color: {{t.ink3}}">7.2 Curfew Bells · this is how Aurelia keeps your story consistent</p>
+</div>
+
+<div style="flex: 1; overflow: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 16px">
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0 0 8px; font: 600 12px Inter, sans-serif; color: {{t.ink}}">1. Who?</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{people}}" as="p" hint-placeholder-count="4">
+<button type="button" aria-pressed="{{p.pressed}}" style="height: 32px; padding: 0 10px 0 4px; display: inline-flex; align-items: center; gap: 7px; border: {{p.border}}; border-radius: 99px; background: {{p.bg}}; color: {{t.ink}}; font: {{p.font}}; cursor: pointer"><span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{p.color}}; color: {{p.textColor}}; font: 600 9.5px Inter, sans-serif">{{p.initials}}</span>{{p.name}}</button>
+</sc-for>
+<button type="button" style="height: 32px; padding: 0 10px; border: 1px dashed {{t.field}}; border-radius: 99px; background: transparent; color: {{t.ink2}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Someone else, an arc or a thread…</button>
+</div>
+</fieldset>
+
+<fieldset style="margin: 0; padding: 0; border: 0">
+<legend style="padding: 0 0 8px; font: 600 12px Inter, sans-serif; color: {{t.ink}}">2. What happens to Tomas?</legend>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="8">
+<label style="min-height: 40px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; gap: 8px; border: {{k.border}}; border-radius: 8px; background: {{k.bg}}; font-size: 12.5px; font-weight: {{k.weight}}; cursor: pointer">
+<input type="radio" name="kind" checked="{{k.checked}}" style="margin: 0; accent-color: {{t.goldInk}}">
+<span style="display: flex; flex-direction: column; line-height: 1.25"><span>{{k.label}}</span><span style="font-size: 11.5px; font-weight: 400; color: {{t.ink3}}">{{k.hint}}</span></span>
+</label>
+</sc-for>
+</div>
+</fieldset>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0 0 8px; font: 600 12px Inter, sans-serif; color: {{t.ink}}">3. Details</legend>
+<label style="display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 10px; font-size: 12.5px; color: {{t.ink2}}">With
+<button type="button" style="height: 34px; padding: 0 10px 0 4px; display: flex; align-items: center; gap: 8px; border: 1px solid {{t.field}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 400 13px Inter, sans-serif; text-align: left; cursor: pointer"><span aria-hidden="true" style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{t.ember}}; color: {{t.onAccent}}; font: 600 9.5px Inter, sans-serif">EV</span><span style="flex: 1">Elena Vasquez</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</label>
+<label style="display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 10px; font-size: 12.5px; color: {{t.ink2}}">Was
+<span style="height: 34px; padding: 0 10px; display: flex; align-items: center; border-radius: 8px; background: {{t.canvas}}; color: {{t.ink2}}">stranger <span style="margin-left: 6px; font-size: 11.5px; color: {{t.ink3}}">— as of this scene</span></span>
+</label>
+<label style="display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: 10px; font-size: 12.5px; color: {{t.ink2}}">Now
+<input type="text" value="creditor" style="height: 34px; box-sizing: border-box; padding: 0 10px; border: 2px solid {{t.goldInk}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 400 13px Inter, sans-serif">
+</label>
+<div style="padding: 10px 12px; border-radius: 10px; background: {{t.goldSoft}}; color: {{t.ink}}; font: italic 400 14px/1.45 Literata, Georgia, serif">From 7.2 on, Tomas sees Elena as a <b style="font-style: normal; font-weight: 600">creditor</b> (was: stranger).</div>
+<div style="display: flex; flex-direction: column; gap: 4px; font-size: 12.5px">
+<span style="color: {{t.ink2}}">Quote from the scene <span style="color: {{t.ink3}}">(optional)</span></span>
+<blockquote style="margin: 0; padding: 6px 10px; border-left: 3px solid {{t.line2}}; color: {{t.ink2}}; font: italic 400 13px Literata, Georgia, serif">He reached for the lantern instead, and lifted it until the light fell across her cheek.</blockquote>
+<span style="font-size: 11.5px; color: {{t.ink3}}">Tip: select text in the scene, then choose “Mark as change” to start here with the quote filled in.</span>
+</div>
+</fieldset>
+</div>
+
+<div style="padding: 12px 18px; display: flex; align-items: center; gap: 8px; border-top: 1px solid {{t.line}}; background: {{t.chrome}}">
+<span style="flex: 1; font-size: 11.5px; color: {{t.ink3}}">Shows on Tomas’s and Elena’s progression.</span>
+<button type="button" style="height: 34px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 13px Inter, sans-serif; cursor: pointer">Cancel</button>
+<button type="submit" style="height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 13px Inter, sans-serif; cursor: pointer">Add change</button>
+</div>
+</form>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":480,"height":700}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', field: '#968B78', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', onAccent: '#FFFDF9', ember: '#B4532A', tide: '#2F6690', shadow: '0 4px 8px rgba(40,32,16,.08), 0 24px 64px rgba(40,32,16,.22)' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', field: '#6A6A78', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', onAccent: '#0B0B0F', ember: '#E0855C', tide: '#72AAD8', shadow: '0 4px 8px rgba(0,0,0,.4), 0 24px 64px rgba(0,0,0,.6)' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const person = function (initials, name, color, on, light) {
+      return {
+        initials: initials, name: name, color: color, textColor: light ? t.ink2 : t.onAccent, pressed: on ? 'true' : 'false',
+        border: on ? '2px solid ' + t.goldInk : '1px solid ' + t.line2, bg: on ? t.goldSoft : t.surface,
+        font: (on ? '600' : '500') + ' 12.5px Inter, sans-serif'
+      };
+    };
+    const people = [
+      person('EV', 'Elena', t.ember, false),
+      person('TB', 'Tomas', t.tide, true),
+      person('LB', 'Lamp boy', t.raised, false, true)
+    ];
+    const kind = function (label, hint, on) {
+      return { label: label, hint: hint, checked: on, border: on ? '2px solid ' + t.goldInk : '1px solid ' + t.line2, bg: on ? t.goldSoft : t.surface, weight: on ? 600 : 500 };
+    };
+    const kinds = [
+      kind('A relationship changes', 'rival, ally, creditor…', true),
+      kind('Learns something', 'a secret, a truth'),
+      kind('Gets hurt or heals', 'injury, illness'),
+      kind('Gains or loses an item', 'the key, a letter'),
+      kind('Dies, leaves or returns', 'off the page or back'),
+      kind('A goal or belief changes', 'wants, trusts, fears'),
+      kind('Sets something up', 'a promise to the reader'),
+      kind('Pays something off', 'a promise kept')
+    ];
+    return { t: t, people: people, kinds: kinds };
+  }
+}
+</script>
+</body>
+</html>

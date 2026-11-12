@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Connect an assistant</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div role="dialog" aria-labelledby="ca-title" style="width: 760px; height: 760px; box-sizing: border-box; display: flex; flex-direction: column; background: {{t.surface}}; border: 1px solid {{t.line}}; border-radius: 16px; box-shadow: {{t.shadow}}; overflow: hidden; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<div style="padding: 22px 24px 16px; display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid {{t.line}}">
+<div style="flex: 1">
+<h1 id="ca-title" style="margin: 0; font: 500 24px/1.2 Literata, Georgia, serif">Connect an assistant</h1>
+<p style="margin: 6px 0 0; color: {{t.ink2}}">Use your own account. Aurelia has no AI of its own, no server in the middle, and never sees your password.</p>
+</div>
+<button type="button" aria-label="Close" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: {{t.ink2}}; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</div>
+
+<div style="flex: 1; overflow: auto; padding: 16px 24px; display: flex; flex-direction: column; gap: 12px">
+
+<section aria-labelledby="ca-gpt" style="padding: 16px 18px; border: 1px solid {{t.line}}; border-radius: 12px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center">
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; align-items: center; gap: 8px"><h2 id="ca-gpt" style="margin: 0; font: 600 15px Inter, sans-serif">ChatGPT</h2><span style="padding: 1px 8px; border-radius: 99px; background: {{t.raised}}; color: {{t.ink2}}; font: 600 11px Inter, sans-serif">Desktop app</span><span style="font-size: 12px; color: {{t.ink3}}">Not connected</span></span>
+<span style="color: {{t.ink2}}">Use your ChatGPT Plus or Pro plan in Aurelia. Your browser opens so you can sign in with OpenAI.</span>
+<span style="font-size: 12px; color: {{t.ink3}}">Aurelia asks only for permission to send requests on your plan. You can see and limit its usage in ChatGPT settings.</span>
+</div>
+<button type="button" style="height: 40px; padding: 0 16px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 600 13.5px Inter, sans-serif; cursor: pointer">Continue with ChatGPT</button>
+</section>
+
+<section aria-labelledby="ca-claude" style="padding: 16px 18px; border: 2px solid {{t.gold}}; border-radius: 12px; display: flex; flex-direction: column; gap: 10px">
+<span style="display: flex; align-items: center; gap: 8px"><h2 id="ca-claude" style="margin: 0; font: 600 15px Inter, sans-serif">Use Aurelia from Claude</h2><span style="padding: 1px 8px; border-radius: 99px; background: {{t.goldSoft}}; color: {{t.goldInk}}; font: 600 11px Inter, sans-serif">Extension installed</span></span>
+<span style="color: {{t.ink2}}">Work with Aurelia from inside the Claude desktop app, on your Claude Pro or Max plan.</span>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px">
+<li style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 22px; height: 22px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{t.okSoft}}; color: {{t.ok}}; font: 700 11px Inter, sans-serif">✓</span><span style="flex: 1">Install the Aurelia extension in Claude Desktop</span><a href="#" style="font-size: 12px; color: {{t.goldInk}}; font-weight: 500">Download again</a></li>
+<li style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 22px; height: 22px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{t.okSoft}}; color: {{t.ok}}; font: 700 11px Inter, sans-serif">✓</span><span style="flex: 1">Point it at your folder: <span style="font: 400 12px 'JetBrains Mono', monospace; color: {{t.ink2}}">~/Documents/Writing</span></span></li>
+<li style="display: flex; align-items: center; gap: 10px"><span aria-hidden="true" style="width: 22px; height: 22px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: {{t.raised}}; color: {{t.ink2}}; font: 600 11px Inter, sans-serif">3</span><span style="flex: 1">Ask Claude about your story. Its suggestions arrive in your <b style="font-weight: 600">Review inbox</b> here.</span></li>
+</ol>
+<div style="padding: 8px 10px; border-radius: 8px; background: {{t.canvas}}; font-size: 12px; color: {{t.ink2}}"><b style="font-weight: 600; color: {{t.ink}}">Why not sign in with Claude here?</b> Claude accounts can only be used in Claude’s own apps. So Aurelia connects to Claude instead — same account, same plan.</div>
+<span style="display: flex; gap: 12px; font-size: 12px; color: {{t.ink3}}"><span style="flex: 1">Last used 2 minutes ago · 2 proposals waiting</span><a href="#" style="color: {{t.ink2}}">Remove from Claude</a></span>
+</section>
+
+<section aria-labelledby="ca-key" style="padding: 16px 18px; border: 1px solid {{t.line}}; border-radius: 12px; display: flex; flex-direction: column; gap: 10px">
+<span style="display: flex; align-items: center; gap: 8px"><h2 id="ca-key" style="margin: 0; font: 600 15px Inter, sans-serif">API key or local model</h2><span style="padding: 1px 8px; border-radius: 99px; background: {{t.raised}}; color: {{t.ink2}}; font: 600 11px Inter, sans-serif">Any browser</span></span>
+<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: {{t.ink3}}">Provider
+<select style="height: 34px; padding: 0 8px; border: 1px solid {{t.field}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 400 13px Inter, sans-serif"><option>Anthropic</option><option>OpenAI</option><option>Ollama (on this computer)</option><option>LM Studio (on this computer)</option><option>Other OpenAI-compatible</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: {{t.ink3}}">API key
+<input type="password" value="sk-ant-xxxxxxxxxxxx" style="height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{t.field}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 400 13px 'JetBrains Mono', monospace">
+</label>
+</div>
+<span style="font-size: 12px; color: {{t.ink3}}">Stored on this device only — never in your project files. You pay your provider per use; Aurelia shows the cost of each chat.</span>
+<span style="display: flex; align-items: center; gap: 10px">
+<button type="button" style="height: 32px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Save key</button>
+<a href="#" style="font-size: 12px; color: {{t.ink2}}">Remove key</a>
+</span>
+</section>
+</div>
+
+<div style="padding: 14px 24px; display: flex; align-items: center; gap: 12px; border-top: 1px solid {{t.line}}; background: {{t.chrome}}">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.ink3}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+<span style="flex: 1; font-size: 12px; color: {{t.ink2}}">Before the first message, Aurelia shows exactly what it will share. The assistant can read and suggest — never edit on its own.</span>
+<button type="button" style="height: 36px; padding: 0 16px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 600 13px Inter, sans-serif; cursor: pointer">Close</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":760,"height":760}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', field: '#968B78', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', ok: '#2F6B3E', okSoft: '#E3F0E0', shadow: '0 4px 8px rgba(40,32,16,.08), 0 24px 64px rgba(40,32,16,.22)' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', field: '#6A6A78', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', ok: '#7BC08A', okSoft: '#16241A', shadow: '0 4px 8px rgba(0,0,0,.4), 0 24px 64px rgba(0,0,0,.6)' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    return { t: AURELIA_TOKENS[theme] };
+  }
+}
+</script>
+</body>
+</html>

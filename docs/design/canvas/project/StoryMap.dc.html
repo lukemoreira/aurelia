@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Story map</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; flex-direction: column; background: {{t.canvas}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<dc-import name="TopBar" theme="{{theme}}" view="map" book="Salt &amp; Ash" branching="true" hint-size="100%,52px"></dc-import>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; min-height: 816px">
+
+<div style="flex: 0 0 52px; box-sizing: border-box; padding: 10px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; background: {{t.chrome}}; border-right: 1px solid {{t.line}}">
+<button type="button" aria-label="Show navigator" title="Show navigator" style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: {{t.ink2}}; cursor: pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 3v18"></path></svg></button>
+</div>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+
+<div style="padding: 14px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid {{t.line}}">
+<div style="flex: 1 1 240px; min-width: 0">
+<h1 style="margin: 0; font: 500 26px/1.2 Literata, Georgia, serif">Story map</h1>
+<p style="margin: 2px 0 0; font-size: 12.5px; color: {{t.ink3}}">Salt &amp; Ash · 38 scenes · 61 choices · 4 endings · showing chapters 1–2</p>
+</div>
+<div role="group" aria-label="Zoom" style="display: flex; align-items: center; border: 1px solid {{t.line2}}; border-radius: 8px; overflow: hidden">
+<button type="button" aria-label="Zoom out" style="width: 32px; height: 30px; border: 0; background: {{t.surface}}; color: {{t.ink2}}; font: 500 15px Inter, sans-serif; cursor: pointer">−</button>
+<span style="width: 52px; text-align: center; font-size: 12px; color: {{t.ink2}}; font-variant-numeric: tabular-nums">100%</span>
+<button type="button" aria-label="Zoom in" style="width: 32px; height: 30px; border: 0; background: {{t.surface}}; color: {{t.ink2}}; font: 500 15px Inter, sans-serif; cursor: pointer">+</button>
+</div>
+<button type="button" style="height: 32px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Tidy layout</button>
+<button type="button" style="height: 32px; padding: 0 14px; display: flex; align-items: center; gap: 7px; border: 0; border-radius: 8px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 12.5px Inter, sans-serif; cursor: pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"></path></svg>Play from start</button>
+</div>
+
+<div style="flex: 1; overflow: auto; padding: 16px 20px; background-image: radial-gradient({{t.dots}} 1px, transparent 1px); background-size: 20px 20px">
+<div style="position: relative; width: 930px; height: 520px">
+
+<svg width="8" height="40" viewBox="0 0 8 40" preserveAspectRatio="none" style="position: absolute; left: 461px; top: 88px; width: 8px; height: 40px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 40"></path></svg>
+<svg width="360" height="8" viewBox="0 0 360 8" preserveAspectRatio="none" style="position: absolute; left: 285px; top: 124px; width: 360px; height: 8px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 0 4 L 360 4"></path></svg>
+<svg width="8" height="39" viewBox="0 0 8 39" preserveAspectRatio="none" style="position: absolute; left: 281px; top: 128px; width: 8px; height: 39px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-1" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.edge}}" stroke="none" style="stroke: none; fill: {{t.edge}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 35" marker-end="url(#dc-arrow-head-filled-1)"></path></svg>
+<svg width="8" height="39" viewBox="0 0 8 39" preserveAspectRatio="none" style="position: absolute; left: 641px; top: 128px; width: 8px; height: 39px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-2" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.edge}}" stroke="none" style="stroke: none; fill: {{t.edge}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 35" marker-end="url(#dc-arrow-head-filled-2)"></path></svg>
+<svg width="8" height="32" viewBox="0 0 8 32" preserveAspectRatio="none" style="position: absolute; left: 281px; top: 224px; width: 8px; height: 32px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 32"></path></svg>
+<svg width="335" height="8" viewBox="0 0 335 8" preserveAspectRatio="none" style="position: absolute; left: 105px; top: 252px; width: 335px; height: 8px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 0 4 L 335 4"></path></svg>
+<svg width="8" height="47" viewBox="0 0 8 47" preserveAspectRatio="none" style="position: absolute; left: 101px; top: 256px; width: 8px; height: 47px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-3" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.edge}}" stroke="none" style="stroke: none; fill: {{t.edge}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 43" marker-end="url(#dc-arrow-head-filled-3)"></path></svg>
+<svg width="8" height="47" viewBox="0 0 8 47" preserveAspectRatio="none" style="position: absolute; left: 436px; top: 256px; width: 8px; height: 47px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-4" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.edge}}" stroke="none" style="stroke: none; fill: {{t.edge}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 43" marker-end="url(#dc-arrow-head-filled-4)"></path></svg>
+<svg width="8" height="32" viewBox="0 0 8 32" preserveAspectRatio="none" style="position: absolute; left: 641px; top: 224px; width: 8px; height: 32px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 32"></path></svg>
+<svg width="335" height="8" viewBox="0 0 335 8" preserveAspectRatio="none" style="position: absolute; left: 490px; top: 252px; width: 335px; height: 8px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 0 4 L 335 4"></path></svg>
+<svg width="8" height="47" viewBox="0 0 8 47" preserveAspectRatio="none" style="position: absolute; left: 486px; top: 256px; width: 8px; height: 47px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-5" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.edge}}" stroke="none" style="stroke: none; fill: {{t.edge}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 43" marker-end="url(#dc-arrow-head-filled-5)"></path></svg>
+<svg width="8" height="47" viewBox="0 0 8 47" preserveAspectRatio="none" style="position: absolute; left: 821px; top: 256px; width: 8px; height: 47px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-6" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.edge}}" stroke="none" style="stroke: none; fill: {{t.edge}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 43" marker-end="url(#dc-arrow-head-filled-6)"></path></svg>
+<svg width="8" height="79" viewBox="0 0 8 79" preserveAspectRatio="none" style="position: absolute; left: 101px; top: 360px; width: 8px; height: 79px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-7" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.edge}}" stroke="none" style="stroke: none; fill: {{t.edge}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 75" marker-end="url(#dc-arrow-head-filled-7)"></path></svg>
+<svg width="180" height="8" viewBox="0 0 180 8" preserveAspectRatio="none" style="position: absolute; left: 105px; top: 396px; width: 180px; height: 8px; overflow: visible; fill: none; stroke: {{t.danger}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><path d="M 0 4 L 180 4"></path></svg>
+<svg width="8" height="39" viewBox="0 0 8 39" preserveAspectRatio="none" style="position: absolute; left: 281px; top: 400px; width: 8px; height: 39px; overflow: visible; fill: none; stroke: {{t.danger}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><defs><marker id="dc-arrow-head-filled-8" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.danger}}" stroke="none" style="stroke: none; fill: {{t.danger}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 35" marker-end="url(#dc-arrow-head-filled-8)"></path></svg>
+<svg width="8" height="79" viewBox="0 0 8 79" preserveAspectRatio="none" style="position: absolute; left: 461px; top: 360px; width: 8px; height: 79px; overflow: visible; fill: none; stroke: {{t.edge}}; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><defs><marker id="dc-arrow-head-filled-9" orient="auto" markerWidth="5" markerHeight="5" refX="2" refY="2" overflow="visible"><path d="M0 0 L4 2 L0 4 Z" fill="{{t.edge}}" stroke="none" style="stroke: none; fill: {{t.edge}}; fill: context-stroke"></path></marker></defs><path d="M 4 0 L 4 75" marker-end="url(#dc-arrow-head-filled-9)"></path></svg>
+
+<div style="position: absolute; left: 390px; top: 32px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; gap: 8px; background: {{t.surface}}; border: 2px solid {{t.gold}}; border-radius: 10px; font-size: 13px; color: {{t.ink}}"><span><b style="font: 500 14px Literata, Georgia, serif">Washed Ashore</b><br><span style="font-size: 11px; color: {{t.goldInk}}; font-weight: 600; letter-spacing: .06em">START · 1.1</span></span></div>
+<div style="position: absolute; left: 210px; top: 168px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; background: {{t.surface}}; border: 1px solid {{t.line2}}; border-radius: 10px; font-size: 13px; color: {{t.ink}}"><span><b style="font: 500 14px Literata, Georgia, serif">Follow the Lights</b><br><span style="font-size: 11px; color: {{t.ink3}}">1.2 · 2 ways out</span></span></div>
+<div style="position: absolute; left: 570px; top: 168px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; background: {{t.surface}}; border: 1px solid {{t.line2}}; border-radius: 10px; font-size: 13px; color: {{t.ink}}"><span><b style="font: 500 14px Literata, Georgia, serif">Hide in the Wreck</b><br><span style="font-size: 11px; color: {{t.ink3}}">1.3 · 2 ways out</span></span></div>
+<div style="position: absolute; left: 30px; top: 304px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; background: {{t.surface}}; border: 1px solid {{t.line2}}; border-radius: 10px; font-size: 13px; color: {{t.ink}}"><span><b style="font: 500 14px Literata, Georgia, serif">The Salt Chapel</b><br><span style="font-size: 11px; color: {{t.danger}}; font-weight: 600">2.1 · 1 broken choice</span></span></div>
+<div style="position: absolute; left: 390px; top: 304px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; background: {{t.selBg}}; border: 2px solid {{t.ink2}}; border-radius: 10px; font-size: 13px; color: {{t.ink}}"><span><b style="font: 500 14px Literata, Georgia, serif">Smugglers’ Stair</b><br><span style="font-size: 11px; color: {{t.ink3}}">2.2 · 2 ways in</span></span></div>
+<div style="position: absolute; left: 750px; top: 304px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; background: {{t.surface}}; border: 2px solid {{t.warn}}; border-radius: 10px; font-size: 13px; color: {{t.ink}}"><span><b style="font: 500 14px Literata, Georgia, serif">The Drowned Bell</b><br><span style="font-size: 11px; color: {{t.warn}}; font-weight: 600">2.3 · dead end</span></span></div>
+<div style="position: absolute; left: 30px; top: 440px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; gap: 8px; background: {{t.okSoft}}; border: 1px solid {{t.okLine}}; border-radius: 10px; font-size: 13px; color: {{t.ink}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{t.ok}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M4 22V4M4 4h13l-2 4 2 4H4"></path></svg><span><b style="font: 500 14px Literata, Georgia, serif">The Lantern Lit</b><br><span style="font-size: 11px; color: {{t.ok}}; font-weight: 600">Ending · 3.1</span></span></div>
+<div style="position: absolute; left: 210px; top: 440px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; background: transparent; border: 1.5px dashed {{t.danger}}; border-radius: 10px; font-size: 13px; color: {{t.danger}}"><span><b style="font: 600 12.5px Inter, sans-serif">Missing scene</b><br><span style="font: 400 11px 'JetBrains Mono', monospace">scn_7h2k…</span></span></div>
+<div style="position: absolute; left: 390px; top: 440px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; gap: 8px; background: {{t.okSoft}}; border: 1px solid {{t.okLine}}; border-radius: 10px; font-size: 13px; color: {{t.ink}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{t.ok}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M4 22V4M4 4h13l-2 4 2 4H4"></path></svg><span><b style="font: 500 14px Literata, Georgia, serif">Taken by the Tide</b><br><span style="font-size: 11px; color: {{t.ok}}; font-weight: 600">Ending · 3.2</span></span></div>
+<div style="position: absolute; left: 750px; top: 440px; width: 150px; height: 56px; box-sizing: border-box; padding: 6px 10px; display: flex; align-items: center; background: transparent; border: 1.5px dashed {{t.line2}}; border-radius: 10px; font-size: 13px; color: {{t.ink2}}"><span><b style="font: 500 14px Literata, Georgia, serif">The Hermit’s Cove</b><br><span style="font-size: 11px; color: {{t.warn}}; font-weight: 600">2.4 · no way in</span></span></div>
+
+<div style="position: absolute; left: 297px; top: 140px; width: 86px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.ink2}}">Follow lights</div>
+<div style="position: absolute; left: 657px; top: 140px; width: 34px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.ink2}}">Hide</div>
+<div style="position: absolute; left: 117px; top: 272px; width: 40px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.ink2}}">Climb</div>
+<div style="position: absolute; left: 400px; top: 272px; width: 30px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.ink2}}">Run</div>
+<div style="position: absolute; left: 502px; top: 272px; width: 38px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.ink2}}">Swim</div>
+<div style="position: absolute; left: 837px; top: 272px; width: 32px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.ink2}}">Dive</div>
+<div style="position: absolute; left: 117px; top: 412px; width: 34px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.ink2}}">Pray</div>
+<div style="position: absolute; left: 297px; top: 412px; width: 62px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.danger}}">Ring bell</div>
+<div style="position: absolute; left: 477px; top: 392px; width: 34px; text-align: center; font-size: 12px; line-height: 16px; color: {{t.ink2}}">Wait</div>
+</div>
+</div>
+</main>
+
+<aside aria-label="Story map details" style="flex: 1 1 320px; min-width: 0; box-sizing: border-box; padding: 16px; background: {{t.chrome}}; border-left: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font: 600 14px Inter, sans-serif">Problems <span style="color: {{t.ink3}}; font-weight: 500">3</span></h2><span style="font-size: 12px; color: {{t.ink3}}">checked on every save</span></div>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{problems}}" as="p" hint-placeholder-count="3">
+<li style="padding: 10px 12px; border-radius: 10px; background: {{t.surface}}; border: 1px solid {{t.line}}; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; align-items: center; gap: 8px"><span style="padding: 1px 7px; border-radius: 5px; background: {{p.bg}}; color: {{p.color}}; font: 600 10.5px Inter, sans-serif; letter-spacing: .03em">{{p.sev}}</span><span style="font: 600 13px Inter, sans-serif">{{p.title}}</span></span>
+<span style="font-size: 12.5px; color: {{t.ink2}}">{{p.body}}</span>
+<span style="display: flex; gap: 6px; margin-top: 4px"><button type="button" style="height: 26px; padding: 0 9px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">{{p.action}}</button><button type="button" style="height: 26px; padding: 0 9px; border: 0; border-radius: 7px; background: transparent; color: {{t.goldInk}}; font: 500 12px Inter, sans-serif; cursor: pointer">Show</button></span>
+</li>
+</sc-for>
+</ol>
+<p style="margin: 0; padding-top: 12px; border-top: 1px solid {{t.line}}; font-size: 12.5px; color: {{t.ink2}}">4 endings reachable · continuity on every path: <span style="color: {{t.ok}}; font-weight: 600">no errors</span></p>
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid {{t.line}}">
+<span style="font: 600 11px Inter, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: {{t.ink3}}">Selected scene</span>
+<span style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px"><span style="font: 500 16px Literata, Georgia, serif">Smugglers’ Stair</span><a href="#" style="font-size: 12px; color: {{t.goldInk}}; font-weight: 500">Open</a></span>
+<span style="font-size: 12.5px; color: {{t.ink2}}">2 ways in: “Run” and “Swim”. On some paths Elena has lost the key.</span>
+<span style="margin-top: 4px; font: 600 12px Inter, sans-serif; color: {{t.ink}}">Choices from here</span>
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1.2fr); gap: 6px; align-items: center">
+<label style="display: contents"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Choice 1 text</span><input type="text" value="Wait" style="height: 30px; min-width: 0; box-sizing: border-box; padding: 0 8px; border: 1px solid {{t.field}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 400 12.5px Inter, sans-serif"></label>
+<span aria-hidden="true" style="color: {{t.ink3}}; text-align: center">→</span>
+<button type="button" aria-label="Choice 1 goes to: Taken by the Tide. Change scene" style="height: 30px; min-width: 0; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 4px; border: 1px solid {{t.field}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 400 12.5px Inter, sans-serif; cursor: pointer; white-space: nowrap; overflow: hidden">Taken by the Tide<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M6 9l6 6 6-6"></path></svg></button>
+<label style="display: contents"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Choice 2 text</span><input type="text" value="Climb to the roofs" style="height: 30px; min-width: 0; box-sizing: border-box; padding: 0 8px; border: 2px solid {{t.goldInk}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 400 12.5px Inter, sans-serif"></label>
+<span aria-hidden="true" style="color: {{t.ink3}}; text-align: center">→</span>
+<button type="button" aria-label="Choice 2 goes to: new scene. Change scene" style="height: 30px; min-width: 0; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 4px; border: 1px dashed {{t.field}}; border-radius: 7px; background: transparent; color: {{t.ink2}}; font: 400 12.5px Inter, sans-serif; cursor: pointer; white-space: nowrap; overflow: hidden">New scene<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M6 9l6 6 6-6"></path></svg></button>
+</div>
+<span style="font-size: 11.5px; color: {{t.ink3}}">A new scene is created in this chapter when you save the choice.</span>
+<div style="display: flex; gap: 8px">
+<button type="button" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">+ Add choice</button>
+<button type="button" style="height: 28px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: {{t.ink2}}; font: 500 12px Inter, sans-serif; cursor: pointer">Mark as ending</button>
+</div>
+</div>
+</aside>
+</div>
+
+<dc-import name="StatusBar" theme="{{theme}}" scene="1,020" chapter="9,810" book="38,400" where="Story map · Salt &amp; Ash" hint-size="100%,32px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"dark"},"$preview":{"width":1440,"height":900}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', warn: '#9A5B07', warnSoft: '#FBF0DC', danger: '#A8322D', dangerSoft: '#F8E3E0', ok: '#2F6B3E', okSoft: '#E9F2E6', okLine: '#B9D3B3', edge: '#8A857B', dots: '#E2DACB', selBg: '#F1ECE2', field: '#968B78' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', warn: '#E0A43A', warnSoft: '#251D0F', danger: '#E5736B', dangerSoft: '#2A1514', ok: '#7BC08A', okSoft: '#15211A', okLine: '#2E4A35', edge: '#7D7A86', dots: '#24242C', selBg: '#23232B', field: '#6A6A78' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'light' ? 'light' : 'dark';
+    const t = AURELIA_TOKENS[theme];
+    const problems = [
+      { sev: 'Error', bg: t.dangerSoft, color: t.danger, title: 'Broken choice', body: '“Ring bell” in The Salt Chapel points to a scene that was deleted.', action: 'Pick a scene' },
+      { sev: 'Warning', bg: t.warnSoft, color: t.warn, title: 'Dead end', body: 'The Drowned Bell has no choices and is not marked as an ending.', action: 'Mark as ending' },
+      { sev: 'Warning', bg: t.warnSoft, color: t.warn, title: 'Unreachable', body: 'No path from the start reaches The Hermit’s Cove.', action: 'Add a way in' }
+    ];
+    return { theme: theme, t: t, problems: problems };
+  }
+}
+</script>
+</body>
+</html>

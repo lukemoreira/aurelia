@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Assistant</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; flex-direction: column; background: {{t.canvas}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; line-height: 1.45">
+
+<dc-import name="TopBar" theme="{{theme}}" view="write" book="The Lantern Gate" inbox="3" hint-size="100%,52px"></dc-import>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; min-height: 816px">
+
+<div style="flex: 1 1 272px; display: flex; min-width: 0">
+<dc-import name="Navigator" theme="{{theme}}" active="ch-6" book="lantern" hint-size="100%,816px"></dc-import>
+</div>
+
+<main style="flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column; background: {{t.canvas}}">
+<div style="height: 44px; box-sizing: border-box; padding: 0 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid {{t.line}}; font-size: 12.5px; color: {{t.ink3}}">
+<span>The Lantern Gate</span><span aria-hidden="true">/</span><span>6 · Ropewalk</span><span aria-hidden="true">/</span><span style="color: {{t.ink}}; font-weight: 500">The Customs House</span>
+<span style="flex: 1"></span>
+<span style="padding: 2px 9px; border-radius: 99px; background: {{t.goldSoft}}; color: {{t.goldInk}}; font: 600 11.5px Inter, sans-serif">3 suggestions to review</span>
+</div>
+
+<article style="align-self: center; width: 100%; max-width: 620px; box-sizing: border-box; padding: 40px 24px; font-family: Literata, Georgia, serif; font-size: 19px; line-height: 1.75">
+<p style="margin: 0 0 6px; font: 600 11px Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: {{t.goldInk}}">Chapter Six · Scene 3</p>
+<h1 style="margin: 0; font: 500 32px/1.2 Literata, Georgia, serif">The Customs House</h1>
+<p style="margin: 8px 0 28px; font: 400 13px Inter, sans-serif; color: {{t.ink3}}">Tomas Brandt · Customs House · <del style="color: {{t.danger}}">Dusk</del> <ins style="text-decoration: none; padding: 0 4px; border-radius: 4px; background: {{t.okSoft}}; color: {{t.ok}}; font-weight: 600">Late afternoon</ins>, 14 Thaw 412 TR</p>
+
+<div style="position: relative">
+<p style="margin: 0">Tomas Brandt came down to the Customs House <del style="color: {{t.danger}}; text-decoration-thickness: 1.5px">as the lamps were being lit along the quay</del> <ins style="text-decoration: underline; text-decoration-color: {{t.ok}}; text-decoration-thickness: 2px; text-underline-offset: 4px; background: {{t.okSoft}}; border-radius: 3px; padding: 0 2px">while the sun was still on the water</ins>, with the night’s manifest folded twice in his coat.</p>
+<div role="group" aria-label="Proposed change from the assistant" style="position: absolute; right: -8px; top: -46px; display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 10px; background: {{t.surface}}; border: 1px solid {{t.line}}; border-radius: 10px; box-shadow: {{t.shadow}}; font: 500 12px Inter, sans-serif; color: {{t.ink2}}">
+<span>Suggested by the assistant</span>
+<button type="button" style="height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 12px Inter, sans-serif; cursor: pointer">Accept</button>
+<button type="button" style="height: 26px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Edit</button>
+<button type="button" style="height: 26px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Reject</button>
+</div>
+</div>
+<p style="margin: 0; text-indent: 1.6em">The clerk had the cargo laid out already — salt, rope, and three crates stamped with a harbour mark he did not know.</p>
+<p style="margin: 0; text-indent: 1.6em">He counted the crates twice. He would remember, later, that he had counted them twice.</p>
+</article>
+</main>
+
+<aside aria-label="Assistant" style="flex: 1 1 400px; min-width: 0; box-sizing: border-box; background: {{t.chrome}}; border-left: 1px solid {{t.line}}; display: flex; flex-direction: column">
+
+<div style="height: 44px; box-sizing: border-box; padding: 0 12px 0 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid {{t.line}}">
+<span style="font: 600 13.5px Inter, sans-serif">Assistant</span>
+<span style="height: 24px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; background: {{t.surface}}; border: 1px solid {{t.line}}; font-size: 12px; color: {{t.ink2}}">Using ChatGPT plan</span>
+<span style="flex: 1"></span>
+<button type="button" aria-label="Assistant settings" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 7px; background: transparent; color: {{t.ink2}}; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg></button>
+</div>
+
+<div style="padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; border-bottom: 1px solid {{t.line}}; font-size: 12px; color: {{t.ink3}}">
+<button type="button" style="height: 26px; padding: 0 8px 0 10px; display: flex; align-items: center; gap: 5px; border: 1px solid {{t.line2}}; border-radius: 7px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Scope: Chapters 6–7<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+<span>Sent to OpenAI: 6 scenes · 2 character sheets · 1 finding</span>
+<a href="ShareSheet.dc.html" style="color: {{t.goldInk}}; font-weight: 500">See exactly what</a>
+</div>
+
+<div style="flex: 1; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+
+<div style="align-self: flex-end; max-width: 86%; padding: 9px 12px; border-radius: 12px 12px 4px 12px; background: {{t.raised}}; color: {{t.ink}}; font-size: 13px">Tomas is in two places at dusk on 14 Thaw. Can you fix it without changing chapter 7?</div>
+
+<details style="font-size: 12px; color: {{t.ink3}}">
+<summary style="cursor: pointer; display: flex; align-items: center; gap: 6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>Read 2 scenes, Tomas’s sheet and 1 finding</summary>
+<ul style="list-style: none; margin: 6px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 3px; font: 400 12px Inter, sans-serif">
+<sc-for list="{{reads}}" as="r" hint-placeholder-count="4">
+<li style="display: flex; gap: 6px"><span aria-hidden="true" style="color: {{t.ok}}">✓</span>{{r}}</li>
+</sc-for>
+</ul>
+</details>
+
+<p style="margin: 0; font-size: 13px; color: {{t.ink}}">Chapter 7 needs Tomas at the gate at dusk, so I suggest moving 6.3 to late afternoon. One sentence mentions the lamps, so that changes too.</p>
+
+<sc-for list="{{proposals}}" as="p" hint-placeholder-count="2">
+<div style="border: 1px solid {{t.line}}; border-radius: 12px; background: {{t.surface}}; overflow: hidden">
+<div style="padding: 8px 12px 6px; display: flex; align-items: center; gap: 8px">
+<span style="padding: 1px 7px; border-radius: 5px; background: {{t.raised}}; color: {{t.ink2}}; font: 500 11.5px Inter, sans-serif">{{p.kind}}</span>
+<span style="font: 600 12.5px Inter, sans-serif">{{p.title}}</span>
+</div>
+<div style="margin: 0 12px; padding: 6px 10px; border-radius: 8px; background: {{t.canvas}}; display: flex; flex-direction: column; gap: 2px; font-size: 12.5px">
+<span style="color: {{t.danger}}; text-decoration: line-through">{{p.before}}</span>
+<span style="color: {{t.ok}}; font-weight: 500">{{p.after}}</span>
+</div>
+<div style="padding: 8px 12px; display: flex; align-items: center; gap: 6px">
+<button type="button" style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 12px Inter, sans-serif; cursor: pointer">Accept</button>
+<button type="button" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Edit</button>
+<button type="button" style="height: 28px; padding: 0 10px; border: 1px solid {{t.line2}}; border-radius: 7px; background: transparent; color: {{t.ink}}; font: 500 12px Inter, sans-serif; cursor: pointer">Reject</button>
+<span style="flex: 1"></span>
+<a href="#" style="font-size: 12px; color: {{t.goldInk}}; font-weight: 500">{{p.link}}</a>
+</div>
+</div>
+</sc-for>
+
+<p style="margin: 0; font-size: 11.5px; color: {{t.ink3}}">Nothing changes until you accept. Accepting saves a snapshot first, so you can undo it. <a href="#" style="color: {{t.ink2}}">Manage usage</a></p>
+</div>
+
+<div style="padding: 12px 16px 14px; border-top: 1px solid {{t.line}}">
+<label style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid {{t.field}}; border-radius: 12px; background: {{t.surface}}">
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Message the assistant</span>
+<textarea rows="2" placeholder="Ask about your story…" style="border: 0; outline: 0; resize: none; background: transparent; color: {{t.ink}}; font: 400 13px Inter, sans-serif"></textarea>
+<span style="display: flex; align-items: center; gap: 8px">
+<span style="font-size: 11.5px; color: {{t.ink3}}">Read and suggest only · no edits without you</span>
+<span style="flex: 1"></span>
+<button type="button" aria-label="Send" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: {{t.gold}}; color: {{t.onGold}}; cursor: pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></button>
+</span>
+</label>
+</div>
+</aside>
+</div>
+
+<dc-import name="StatusBar" theme="{{theme}}" scene="980" chapter="3,800" where="Ch. 6 · Scene 3 of 3" hint-size="100%,32px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', field: '#968B78', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', danger: '#A8322D', ok: '#2F6B3E', okSoft: '#E3F0E0', shadow: '0 2px 4px rgba(40,32,16,.06), 0 12px 32px rgba(40,32,16,.12)' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', field: '#6A6A78', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', danger: '#E5736B', ok: '#7BC08A', okSoft: '#16241A', shadow: '0 2px 4px rgba(0,0,0,.4), 0 16px 40px rgba(0,0,0,.5)' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    return {
+      theme: theme,
+      t: AURELIA_TOKENS[theme],
+      reads: ['Read scene 6.3 The Customs House', 'Read scene 7.2 Curfew Bells', 'Checked where Tomas is at 6.3', 'Read 1 continuity finding about Tomas'],
+      proposals: [
+        { kind: 'Scene time', title: '6.3 The Customs House', before: 'Dusk', after: 'Late afternoon', link: 'Show in scene' },
+        { kind: 'Text', title: '6.3 · paragraph 1', before: '“as the lamps were being lit along the quay”', after: '“while the sun was still on the water”', link: 'Show in text' },
+        { kind: 'Continuity', title: '6.3 · Tomas Brandt', before: 'Where: Customs House', after: 'Where: Customs House, late afternoon', link: 'Show in inspector' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

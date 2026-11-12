@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Navigator</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<nav aria-label="Workspace" style="width: 100%; min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; background: {{t.chrome}}; border-right: 1px solid {{t.line}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px">
+
+<div style="padding: 10px 10px 8px; display: flex; flex-direction: column; gap: 8px">
+<button type="button" aria-label="Switch universe: Saltmarch" style="height: 40px; padding: 0 8px; display: flex; align-items: center; gap: 10px; border: 0; border-radius: 9px; background: transparent; color: {{t.ink}}; cursor: pointer; text-align: left">
+<span aria-hidden="true" style="width: 26px; height: 26px; flex: none; border-radius: 7px; display: flex; align-items: center; justify-content: center; background: {{t.goldSoft}}; color: {{t.goldInk}}; font: 500 14px Literata, Georgia, serif">S</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font: 600 13px Inter, sans-serif">Saltmarch</span><span style="font-size: 11.5px; color: {{t.ink3}}">Universe · 3 books</span></span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.ink3}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"></path></svg>
+</button>
+<label style="height: 30px; padding: 0 8px; display: flex; align-items: center; gap: 7px; border: 1px solid {{t.field}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink3}}">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter the navigator</span>
+<input type="text" placeholder="Filter" style="flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: {{t.ink}}; font: 400 12.5px Inter, sans-serif">
+</label>
+</div>
+
+<div style="flex: 1; overflow: hidden; padding: 0 6px 10px">
+
+<div style="height: 28px; padding: 6px 8px 0 10px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; font: 600 10.5px Inter, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: {{t.ink3}}"><span>Books</span><button type="button" aria-label="New book" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: {{t.ink3}}; font: 500 15px Inter, sans-serif; cursor: pointer">+</button></div>
+<sc-for list="{{books}}" as="row" hint-placeholder-count="12">
+<a href="#" aria-current="{{row.current}}" style="height: 28px; box-sizing: border-box; padding: 0 8px 0 {{row.pad}}; display: flex; align-items: center; gap: 6px; border-radius: 7px; text-decoration: none; background: {{row.bg}}; color: {{row.color}}; font-weight: {{row.weight}}; font-size: 13px">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.ink3}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="{{row.chev}}"></path></svg>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{row.iconColor}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="{{row.icon}}"></path></svg>
+<span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{row.label}}</span>
+<span aria-hidden="true" title="{{row.statusText}}" style="width: 8px; height: 8px; box-sizing: border-box; flex: none; border-radius: 50%; background: {{row.dot}}; border: 1.5px solid {{row.dotBorder}}"></span><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">{{row.statusText}}</span>
+<span style="min-width: 28px; text-align: right; font-size: 11.5px; font-weight: 400; color: {{t.ink3}}; font-variant-numeric: tabular-nums">{{row.meta}}</span>
+</a>
+</sc-for>
+
+<div style="height: 36px; padding: 14px 8px 0 10px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; font: 600 10.5px Inter, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: {{t.ink3}}"><span>Library · shared</span><button type="button" aria-label="New record" style="width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: {{t.ink3}}; font: 500 15px Inter, sans-serif; cursor: pointer">+</button></div>
+<sc-for list="{{library}}" as="row" hint-placeholder-count="7">
+<a href="#" aria-current="{{row.current}}" style="height: 28px; box-sizing: border-box; padding: 0 8px 0 {{row.pad}}; display: flex; align-items: center; gap: 6px; border-radius: 7px; text-decoration: none; background: {{row.bg}}; color: {{row.color}}; font-weight: {{row.weight}}; font-size: 13px">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.ink3}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="{{row.chev}}"></path></svg>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{row.iconColor}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="{{row.icon}}"></path></svg>
+<span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{row.label}}</span>
+<span style="min-width: 28px; text-align: right; font-size: 11.5px; font-weight: 400; color: {{t.ink3}}; font-variant-numeric: tabular-nums">{{row.meta}}</span>
+</a>
+</sc-for>
+
+<div style="height: 36px; padding: 14px 8px 0 10px; box-sizing: border-box; display: flex; align-items: center; font: 600 10.5px Inter, sans-serif; letter-spacing: .09em; text-transform: uppercase; color: {{t.ink3}}">Standalone books</div>
+<a href="#" style="height: 28px; box-sizing: border-box; padding: 0 8px 0 10px; display: flex; align-items: center; gap: 6px; border-radius: 7px; text-decoration: none; color: {{t.ink2}}; font-size: 13px">
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{t.ink3}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M9 6l6 6-6 6"></path></svg>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{t.ink3}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
+<span style="flex: 1">The Long Winter of 1709</span>
+<span style="font-size: 11.5px; color: {{t.ink3}}">history</span>
+</a>
+</div>
+
+<div style="padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-top: 1px solid {{t.line}}; font-size: 12px; color: {{t.ink3}}">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"></path></svg>
+<span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap"><span style="color: {{t.ink2}}; font-weight: 500">My Writing</span> · ~/Documents/Writing</span>
+</div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"active":{"editor":"text","default":"scn-curfew"},"book":{"editor":"enum","options":["lantern","saltash"],"default":"lantern"},"$preview":{"width":272,"height":816}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', field: '#968B78', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', warn: '#9A5B07', ok: '#2F6B3E', tide: '#2F6690', plum: '#7A4E8C' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', field: '#6A6A78', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', warn: '#E0A43A', ok: '#7BC08A', tide: '#72AAD8', plum: '#BC93CF' }
+};
+const I = {
+  down: 'M6 9l6 6 6-6', right: 'M9 6l6 6-6 6',
+  book: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20',
+  branch: 'M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 9a9 9 0 0 1-9 9',
+  part: 'M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+  chapter: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6',
+  scene: 'M4 6h16M4 12h16M4 18h10',
+  user: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  place: 'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0zM12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  item: 'M6 3h12l4 6-10 12L2 9zM2 9h20',
+  event: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+  arc: 'M3 18c3-9 15-9 18 0M3 18h.01M21 18h.01',
+  lore: 'M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z',
+  research: 'M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3M7 15h10'
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const active = this.props.active ?? 'scn-curfew';
+    const salt = this.props.book === 'saltash';
+    const dots = { idea: t.ink3, outline: t.tide, draft: t.warn, revised: t.plum, final: t.ok, none: 'transparent' };
+    const names = { idea: 'Idea', outline: 'Outline', draft: 'Draft', revised: 'Revised', final: 'Final' };
+    const row = function (id, label, depth, icon, chev, meta, status) {
+      const on = id === active;
+      const s = status || 'none';
+      return {
+        label: label, meta: meta || '', pad: (6 + depth * 14) + 'px',
+        icon: I[icon], chev: chev ? I[chev] : '',
+        dot: s === 'idea' ? 'transparent' : dots[s], dotBorder: dots[s],
+        statusText: names[s] ? 'Status: ' + names[s] : '',
+        current: on ? 'page' : 'false',
+        bg: on ? t.goldSoft : 'transparent', color: on ? t.goldInk : (depth === 0 ? t.ink : t.ink2),
+        iconColor: on ? t.goldInk : t.ink3, weight: on || depth === 0 ? 600 : 400
+      };
+    };
+    let books;
+    if (salt) {
+      books = [
+        row('book-lantern', 'The Lantern Gate', 0, 'book', 'right', '61.9k'),
+        row('book-tidebound', 'Tidebound', 0, 'book', 'right', '12.4k'),
+        row('book-saltash', 'Salt & Ash', 0, 'branch', 'down', '38 sc.'),
+        row('ch-wreck', '1 · The Wreck', 1, 'chapter', 'down', '6.2k'),
+        row('scn-ashore', 'Washed Ashore', 2, 'scene', '', '1.4k', 'final'),
+        row('scn-lights', 'Follow the Lights', 2, 'scene', '', '1.1k', 'revised'),
+        row('scn-wreck', 'Hide in the Wreck', 2, 'scene', '', '980', 'draft'),
+        row('ch-shore', '2 · The Shore', 1, 'chapter', 'right', '9.8k'),
+        row('ch-chapel', '3 · The Salt Chapel', 1, 'chapter', 'right', '7.1k'),
+        row('ch-stair', '4 · Smugglers’ Stair', 1, 'chapter', 'right', '3.0k')
+      ];
+    } else {
+      books = [
+        row('book-lantern', 'The Lantern Gate', 0, 'book', 'down', '61.9k'),
+        row('part-1', 'Part One · Low Tide', 1, 'part', 'down', ''),
+        row('ch-5', '5 · The Drowned Ledger', 2, 'chapter', 'right', '4.1k'),
+        row('ch-6', '6 · Ropewalk', 2, 'chapter', 'right', '3.8k'),
+        row('ch-7', '7 · The Lantern Gate', 2, 'chapter', 'down', '4.8k'),
+        row('scn-tidebell', 'Tide Bell', 3, 'scene', '', '1.9k', 'revised'),
+        row('scn-curfew', 'Curfew Bells', 3, 'scene', '', '1.2k', 'draft'),
+        row('scn-price', 'The Warden’s Price', 3, 'scene', '', '—', 'idea'),
+        row('ch-8', '8 · Salt in the Wound', 2, 'chapter', 'right', '2.6k'),
+        row('part-2', 'Part Two · Slack Water', 1, 'part', 'right', ''),
+        row('book-tidebound', 'Tidebound', 0, 'book', 'right', '12.4k'),
+        row('book-saltash', 'Salt & Ash', 0, 'branch', 'right', '38 sc.')
+      ];
+    }
+    const chars = active.indexOf('chr-') === 0;
+    let library = [row('lib-chr', 'Characters', 0, 'user', chars ? 'down' : 'right', '24')];
+    if (chars) {
+      library = library.concat([
+        row('chr-elena', 'Elena Vasquez', 1, 'user', '', ''),
+        row('chr-tomas', 'Tomas Brandt', 1, 'user', '', ''),
+        row('chr-mirela', 'Mirela Constantin', 1, 'user', '', ''),
+        row('chr-corin', 'Corin Ashby', 1, 'user', '', '')
+      ]);
+    }
+    library = library.concat([
+      row('lib-plc', 'Worlds & places', 0, 'place', 'right', '31'),
+      row('lib-itm', 'Items', 0, 'item', 'right', '9'),
+      row('lib-evt', 'Events & timeline', 0, 'event', 'right', '18'),
+      row('lib-arc', 'Arcs', 0, 'arc', 'right', '3'),
+      row('lib-lor', 'Lore', 0, 'lore', 'right', '12'),
+      row('lib-res', 'Research', 0, 'research', 'right', '7')
+    ]);
+    return { t: t, books: books, library: library };
+  }
+}
+</script>
+</body>
+</html>

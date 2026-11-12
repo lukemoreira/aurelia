@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Aurelia product vision, requirements, architecture, and delivery roadmap.">
+<title>Aurelia — Product & Technical Specification</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg:#FAF7F2; --surface:#fffefa; --ink:#19191d; --muted:#62616a;
+  --line:#e6e0d7; --gold:#c49a22; --gold-soft:#f5e9bd;
+  --gold-ink:#73550a; --code:#f1eee8; --shadow:0 8px 30px rgba(34,29,18,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--gold-ink);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:#4d3906}
+header{padding:64px 24px 52px;background:#0b0b0f;color:#f5f1e8;border-bottom:4px solid var(--gold)}
+.hero,.layout{max-width:1160px;margin:0 auto}
+.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:.75rem;color:#d6b84f;font-weight:700}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(2.8rem,7vw,5rem);line-height:1.02;margin:14px 0}
+header p{max-width:720px;color:#d2d0ca;font-size:1.12rem;margin:18px 0 0}
+.hero-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+.pill{border:1px solid #5d512d;border-radius:99px;padding:5px 12px;color:#e8dba9;font-size:.82rem}
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:42px;padding:38px 24px 80px}
+nav{position:sticky;top:22px;align-self:start;max-height:calc(100vh - 44px);overflow:auto;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+nav strong{display:block;margin-bottom:12px;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em}
+nav a{display:block;padding:5px 0;font-size:.9rem;text-decoration:none;color:var(--muted)}
+nav a:hover{color:var(--gold-ink)}
+main{min-width:0}
+section{padding:0 0 28px;margin:0 0 34px;border-bottom:1px solid var(--line);scroll-margin-top:24px}
+h2{font-family:Georgia,"Times New Roman",serif;font-size:2rem;line-height:1.2;margin:0 0 18px}
+h3{font-size:1.16rem;margin:25px 0 8px}
+h4{font-size:1rem;margin:18px 0 6px}
+p{margin:9px 0 13px}
+ul,ol{padding-left:1.35rem}
+li{margin:5px 0}
+.lead{font-size:1.08rem;color:#45434a}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--gold);padding:16px 18px;border-radius:8px;margin:18px 0}
+.callout strong{color:var(--gold-ink)}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:var(--code);padding:.12em .35em;border-radius:4px;font-size:.9em}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#17171c;color:#f0eee8;padding:18px;border-radius:10px;line-height:1.55;font-size:.88rem}
+table{border-collapse:collapse;width:100%;margin:14px 0;background:var(--surface);font-size:.94rem}
+th,td{text-align:left;padding:10px 12px;border:1px solid var(--line);vertical-align:top}
+th{background:#f0eadf}
+.small{font-size:.88rem;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);padding:14px;border-radius:10px}
+.tile h3{margin:0 0 5px}
+footer{max-width:1160px;margin:0 auto;padding:0 24px 42px;color:var(--muted);font-size:.85rem}
+@media(max-width:850px){.layout{grid-template-columns:1fr;gap:24px}nav{position:static;max-height:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}nav strong{grid-column:1/-1}.grid{grid-template-columns:1fr}}
+@media print{
+ body{background:#fff;font-size:11pt}
+ header{padding:30px 0;background:#0b0b0f!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .layout{display:block;padding:24px 0}
+ nav{display:none}
+ section{break-inside:avoid}
+ a{color:inherit;text-decoration:none}
+ pre{white-space:pre-wrap;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .callout,.tile,th{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hero">
+    <div class="eyebrow">Product vision · Requirements · Architecture</div>
+    <h1>Aurelia</h1>
+    <div style="font:italic 1.3rem Georgia,serif;color:#e3c65e">Write worlds. Shape stories.</div>
+    <p>A local-first fiction writing and worldbuilding studio. A connected home for manuscripts, characters, places, lore, research, and the structure behind a story.</p>
+    <div class="hero-meta">
+      <span class="pill">Product specification</span><span class="pill">Web app / PWA</span><span class="pill">Local-first</span><span class="pill">AI optional</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<nav aria-label="Table of contents">
+  <strong>Contents</strong>
+  <a href="#vision">1. Product vision</a>
+  <a href="#principles">2. Principles</a>
+  <a href="#structure">3. Workspace structure</a>
+  <a href="#experience">4. Writing experience</a>
+  <a href="#worldbuilding">5. Worldbuilding</a>
+  <a href="#knowledge">6. Knowledge & links</a>
+  <a href="#storage">7. Storage & sync</a>
+  <a href="#ai">8. AI capabilities</a>
+  <a href="#tools">9. Writing tools</a>
+  <a href="#import">10. Import & export</a>
+  <a href="#design">11. Visual design</a>
+  <a href="#architecture">12. Technical architecture</a>
+  <a href="#roadmap">13. Delivery roadmap</a>
+  <a href="#acceptance">14. Quality & acceptance</a>
+  <a href="#decisions">15. Key decisions</a>
+</nav>
+
+<main>
+<section id="vision">
+<h2>1. Product vision</h2>
+<p class="lead"><strong>Aurelia is a project-centric creative workspace for fiction authors.</strong> It brings manuscript organization, interconnected notes, structured worldbuilding, and practical writing tools into one calm environment.</p>
+<p>It takes useful ideas from writing and knowledge-management tools—manuscript organization, linked notes, structured records, and rich editing—without becoming a generic note-taking app or an AI text generator.</p>
+<div class="callout"><strong>Core differentiator:</strong> an author can develop an entire fictional universe and write multiple books within it, with characters, locations, events, research, and lore shared and linked rather than duplicated.</div>
+</section>
+
+<section id="principles">
+<h2>2. Product principles</h2>
+<div class="grid">
+<div class="tile"><h3>Author owns their work</h3><p>Projects are local files first, readable and portable. Cloud services are optional.</p></div>
+<div class="tile"><h3>Structure without restriction</h3><p>Offer useful hierarchy and templates without forcing every author into one plotting method.</p></div>
+<div class="tile"><h3>Everything is connected</h3><p>Characters, places, scenes, events, and notes link together and remain linked when renamed or moved.</p></div>
+<div class="tile"><h3>Writing comes first</h3><p>The editor remains the centre of the experience. Panels and tools support rather than crowd the manuscript.</p></div>
+<div class="tile"><h3>Intelligence without dependency</h3><p>AI is optional. Core writing, organization, search, and worldbuilding work offline without AI.</p></div>
+<div class="tile"><h3>Calm, dependable software</h3><p>Protect work through predictable saving, undo, snapshots, conflict handling, and clear status.</p></div>
+</div>
+</section>
+
+<section id="structure">
+<h2>3. Workspace and project structure</h2>
+<p>The foundational model should be <strong>project-centric, not document-centric</strong>. A workspace can contain several fictional universes and standalone books. A universe can contain multiple books that share worldbuilding and research.</p>
+<pre>Aurelia Workspace
+├── Universe: Example Universe
+│   ├── Book 1
+│   │   └── Arcs → Chapters → Scenes
+│   ├── Book 2
+│   ├── Book 3
+│   ├── Shared Characters
+│   ├── Shared Worlds & Locations
+│   ├── Shared Lore & Research
+│   └── Shared Timeline & Events
+├── Universe: Another Universe
+└── Standalone Books</pre>
+<h3>Core entities</h3>
+<ul>
+<li><strong>Workspace:</strong> top-level container for a user's creative projects.</li>
+<li><strong>Universe:</strong> shared setting, canon, history, characters, and reference material.</li>
+<li><strong>Book:</strong> manuscript and its book-specific planning structure.</li>
+<li><strong>Arc:</strong> narrative thread, theme, or character/story progression.</li>
+<li><strong>Chapter and Scene:</strong> ordered manuscript units with objectives and metadata.</li>
+<li><strong>Character, World, Place, Item, Event, Note, Research:</strong> structured records that can be shared and linked.</li>
+</ul>
+<p>Standalone books may be represented as books without a universe association, or through an implicit private universe. Choose one model consistently before implementation.</p>
+<div class="callout"><strong>Architecture constraint:</strong> universe ownership and book-specific ownership must be explicit from the beginning. This affects storage, permissions, linking, indexing, and sync.</div>
+</section>
+
+<section id="experience">
+<h2>4. Writing experience</h2>
+<h3>Primary layout</h3>
+<ul>
+<li>Top bar: workspace/project switcher, navigation, search, command palette, sync and account/settings access.</li>
+<li>Left navigation: workspace, universes, books, manuscript outline, and reference libraries.</li>
+<li>Centre: manuscript editor, receiving the majority of screen space.</li>
+<li>Right contextual panel: scene/chapter/arc objectives, metadata, linked entities, and backlinks.</li>
+<li>Bottom status bar: live word counts, location in manuscript, save state, and sync state.</li>
+</ul>
+<h3>Editor requirements</h3>
+<ul>
+<li>Structured rich-text editor with reliable transaction-based undo/redo—not a plain textarea.</li>
+<li>Markdown-style typing with immediate rich rendering (WYSIWYM).</li>
+<li>Visual toolbar for users who do not know Markdown.</li>
+<li>Toggle between rendered editing and Markdown source without losing content.</li>
+<li>Headings, paragraphs, bold, italic, underline, strikethrough, lists, checklists, blockquotes, tables, callouts, scene breaks, footnotes (optional), internal links, and entity embeds.</li>
+<li>Defined Markdown dialect and tested import/export round-tripping. Do not promise support for every Markdown extension without tests.</li>
+<li>Stable block identifiers where needed for comments, annotations, and reliable references.</li>
+<li>Distraction-free mode; configurable editor font, size, line height, and paragraph spacing.</li>
+<li>Dockable, collapsible panels with saved layout preferences.</li>
+</ul>
+<h3>Contextual writing panels</h3>
+<table><thead><tr><th>Context</th><th>Useful fields and tools</th></tr></thead><tbody>
+<tr><td>Arc</td><td>Theme, narrative purpose, objective, status, related characters, books/scenes affected.</td></tr>
+<tr><td>Chapter</td><td>Chapter objective, summary, target word count, checklist, status, associated arcs.</td></tr>
+<tr><td>Scene</td><td>POV, location, time, objective, conflict, outcome, status, word target, characters present, arcs advanced.</td></tr>
+</tbody></table>
+<p>Panels should be configurable. The editor remains the primary focus, not a dashboard full of mandatory fields.</p>
+<h3>Navigation and productivity</h3>
+<ul>
+<li>Command palette (for example, Ctrl/Cmd+K), keyboard navigation, recent and pinned items.</li>
+<li>Global search across titles, content, tags, and entity types.</li>
+<li>Outliner with drag-and-drop reordering.</li>
+<li>Corkboard/storyboard for visual scene planning.</li>
+<li>Timeline view and configurable columns for POV, status, character, or plot thread.</li>
+</ul>
+</section>
+
+<section id="worldbuilding">
+<h2>5. Worldbuilding and reference library</h2>
+<h3>Character sheets</h3>
+<ul>
+<li>Identity, role, status, appearance, biography, background, and portrait/reference image gallery.</li>
+<li>Motivations, goals, fears, values, flaws, skills, secrets, and voice/dialogue style.</li>
+<li>Relationships with typed links (family, ally, rival, mentor, etc.) and descriptions.</li>
+<li>Character development and appearances across scenes, chapters, and books.</li>
+<li>Tags, notes, timeline events, and links to places, items, and story arcs.</li>
+</ul>
+<h3>Worlds, planets, and places</h3>
+<ul>
+<li>Create fictional planets or use Earth as a world root.</li>
+<li>Planet profile: physical properties, orbit/star, gravity, climate, moons, day/year length, calendars, and geography.</li>
+<li>Flexible place hierarchy: planet → continent → country → region → city → building → room, with custom levels allowed.</li>
+<li>Place profiles: sensory details (sight, sound, smell, touch, taste), atmosphere, population, culture, dangers, history, map/coordinates, and images.</li>
+<li>Worldbuilding references: cultures, factions, beliefs, languages, technology or magic systems, economy, history, and events.</li>
+<li>Interactive maps and visual geography tools can be introduced after the core data model is stable.</li>
+</ul>
+<h3>Items, artifacts, events, and lore</h3>
+<ul>
+<li>Items/artifacts: description, origin, provenance, properties, significance, restrictions, and linked scenes/characters/places.</li>
+<li>Timeline events: date or date range, participants, locations, consequences, and links to manuscript scenes.</li>
+<li>Research and lore records with source references, notes, tags, and links.</li>
+</ul>
+</section>
+
+<section id="knowledge">
+<h2>6. Knowledge, links, and discovery</h2>
+<ul>
+<li>Every entity has a permanent stable ID independent of its title or file path.</li>
+<li>Support internal links such as <code>[[Character Name]]</code>, with autocomplete and fuzzy matching.</li>
+<li>Support explicit stable-ID links such as <code>[[id:stable-id]]</code> for unambiguous references.</li>
+<li>Renaming or moving an entity must not break links.</li>
+<li>Every entity has “Links to” and “Linked from”/backlinks views.</li>
+<li>Search across entity title, body, tags, type, and metadata.</li>
+<li>Graph view for relationships among characters, places, scenes, events, arcs, and lore.</li>
+<li>Embed linked entity cards or summaries in manuscript and notes.</li>
+</ul>
+<p>Keep user-facing syntax convenient while resolving links internally through stable IDs. Handle duplicate names with an entity picker rather than silently choosing the wrong record.</p>
+</section>
+
+<section id="storage">
+<h2>7. Local storage, portability, and sync</h2>
+<h3>Local-first project files</h3>
+<p>Basic writing and worldbuilding must work without an account, cloud backend, or network connection. Use readable project files with structured metadata and a local index.</p>
+<pre>/AureliaWorkspace/
+  workspace.json
+  /universes/
+    /universe-id/
+      universe.md
+      /books/
+        /book-id/
+          book.json
+          /manuscript/
+            /chapters/
+              chapter-id.md
+      /characters/
+      /worlds/
+      /places/
+      /items/
+      /events/
+      /research/
+      /media/
+  /standalone-books/
+  /.aurelia/
+    index.db
+    device-state.json
+    sync-manifest.json</pre>
+<p>This is an illustrative layout, not a locked schema. Use Markdown with YAML frontmatter for human-readable content where suitable, and JSON for structured metadata where it improves validation and evolution. Keep generated indexes and caches separate from canonical user content.</p>
+<h3>Browser storage and portability</h3>
+<ul>
+<li>Use a storage abstraction rather than binding the entire app to one browser API.</li>
+<li>Use the File System Access API where supported, with clear permission/reconnection UX.</li>
+<li>Provide a fallback for browsers/platforms without equivalent folder access, using supported local storage such as OPFS/IndexedDB plus import/export.</li>
+<li>Handle permission loss, quota limits, interrupted writes, file renames, and recovery explicitly.</li>
+<li>Use safe-write patterns and recovery journals where appropriate; do not assume all browser/filesystem combinations provide identical atomic-write guarantees.</li>
+</ul>
+<h3>Bring-your-own-cloud approach</h3>
+<p>“Any cloud provider” is best approached through interoperable storage paths and protocols rather than promising a direct OAuth integration with every provider.</p>
+<table><thead><tr><th>Method</th><th>Approach</th></tr></thead><tbody>
+<tr><td>Synced local folder</td><td>User places the Aurelia workspace inside a provider's desktop sync folder (OneDrive, Dropbox, Google Drive for desktop, iCloud Drive, Syncthing, NAS, etc.).</td></tr>
+<tr><td>WebDAV</td><td>Connect to compatible storage endpoints with user-configured credentials.</td></tr>
+<tr><td>S3-compatible</td><td>Support custom endpoint and bucket configuration for compatible object storage, such as S3-compatible services and self-hosted options.</td></tr>
+<tr><td>Native provider connectors</td><td>Consider Google Drive, OneDrive, and Dropbox OAuth integrations later, based on demand and maintenance cost.</td></tr>
+</tbody></table>
+<h3>Sync safety requirements</h3>
+<ul>
+<li>Use content hashes and manifests; do not rely on timestamps alone.</li>
+<li>Track per-device state and remote revisions/ETags where available.</li>
+<li>Use optimistic concurrency and detect divergent edits.</li>
+<li>Never silently overwrite a conflict. Preserve both versions and provide a conflict-resolution workflow.</li>
+<li>Do not assume file locking works consistently across sync providers.</li>
+<li>Make sync status and errors visible, with retry and recovery options.</li>
+</ul>
+<h3>Optional password-protected sync</h3>
+<ul>
+<li>Offer client-side encryption before data leaves the device; design for a zero-knowledge service model.</li>
+<li>Encrypt content and sensitive metadata/manifests if claiming full workspace privacy.</li>
+<li>Use a vetted password KDF (for example, Argon2id) and authenticated encryption from established libraries; never invent cryptography.</li>
+<li>Never store the user's sync password. Explain that losing it may make encrypted data unrecoverable.</li>
+<li>Keep credentials and secrets out of project files, logs, source control, and telemetry.</li>
+</ul>
+</section>
+
+<section id="ai">
+<h2>8. Optional AI capabilities</h2>
+<p>AI is a modular enhancement, not a requirement for using Aurelia. It should be disabled until the user configures a provider and explicitly chooses what context to share.</p>
+<h3>Potential capabilities</h3>
+<ul>
+<li>Tone, voice, pacing, and style analysis.</li>
+<li>Character consistency checks across scenes where a character appears.</li>
+<li>Arc progression analysis against author-defined objectives.</li>
+<li>Scene/chapter summaries and narrative progress reviews.</li>
+<li>Research Q&amp;A with source citations and a record of references.</li>
+<li>Revision suggestions, continuity checks, and fact-check task lists.</li>
+<li>Optional prompt manager and reusable analysis templates.</li>
+</ul>
+<h3>Privacy and control</h3>
+<ul>
+<li>Scope context to selected text, current scene, chapter, book, universe, or entire workspace.</li>
+<li>Require explicit permission before sending broader context.</li>
+<li>Show what is being sent, to which provider, and for what purpose.</li>
+<li>Return suggestions as comments or proposed changes; never silently rewrite the manuscript.</li>
+<li>Use a provider adapter so supported cloud or local model providers can be changed without rewriting the app.</li>
+</ul>
+<div class="callout"><strong>Account and billing distinction:</strong> a ChatGPT subscription is not automatically equivalent to API access for a separate third-party app. Typical approaches are a developer-managed API integration or a user-supplied API key. Verify current provider authentication and product terms before implementing any account connection.</div>
+</section>
+
+<section id="tools">
+<h2>9. Non-AI writing tools</h2>
+<ul>
+<li>Offline spellcheck and grammar assistance, independent of AI.</li>
+<li>Custom project dictionary for character names, invented words, places, and terminology.</li>
+<li>Repeated-word detection, long-sentence indicators, and optional style heuristics.</li>
+<li>Inline underlines, a suggestion panel, ignore/add-to-dictionary actions, and clear explanations.</li>
+<li>Grammar engine should be configurable and should not block typing or saving.</li>
+</ul>
+<p><strong>Default preference:</strong> grammar/spell checking should be OFF by default, reflecting the initial product requirement that it normally be checked off. Users can enable it globally or per project. Distinguish spelling errors, grammar suggestions, and heuristic style signals; do not present uncertain heuristics as definitive corrections.</p>
+</section>
+
+<section id="import">
+<h2>10. Import, export, history, and later collaboration</h2>
+<h3>Import</h3>
+<ul>
+<li>Markdown folders and supported plain-text formats should be first-class import paths.</li>
+<li>Build a robust import pipeline with preview, mapping, validation, and a report of unsupported content.</li>
+<li>Investigate Scrivener, Ulysses, Campfire, and World Anvil import paths. Support only validated project/file variants; do not promise universal compatibility.</li>
+</ul>
+<h3>Export</h3>
+<ul>
+<li>Markdown project bundle for portability and version control.</li>
+<li>DOCX, PDF, and EPUB manuscript export.</li>
+<li>Customizable front matter, chapter breaks, typography, and export profiles.</li>
+<li>MOBI is low priority and should not be a launch requirement.</li>
+</ul>
+<h3>History and collaboration</h3>
+<ul>
+<li>Version snapshots, compare/diff, and restore.</li>
+<li>Optional beta-reader sharing, comments, and revision mode as a later phase.</li>
+<li>Use a sound transaction/document model, but do not imply real-time multi-user collaboration is included merely because the editor supports transactions.</li>
+<li>Defer real-time collaboration until the single-user local-first experience and sync model are reliable.</li>
+</ul>
+</section>
+
+<section id="design">
+<h2>11. Visual identity and design system</h2>
+<p class="lead">Recommended direction: elegant, scholarly, calm, intelligent, and timeless. A restrained black-and-gold identity fits the working name and desired atmosphere.</p>
+<div class="grid">
+<div class="tile"><h3>Core palette</h3>
+<p><code>#0B0B0F</code> Aurelia Black<br><code>#F5C542</code> Aurelia Gold<br><code>#FAF7F2</code> Warm Parchment<br><code>#2A2A33</code> Slate<br><code>#C9A227</code> Muted Gold<br><code>#14141A</code> Dark Panel<br><code>#EDEDED</code> Light Text</p></div>
+<div class="tile"><h3>Typography</h3>
+<p>UI: Inter or Source Sans 3<br>Editor: Literata or Crimson Pro<br>Code: JetBrains Mono<br><span class="small">Self-host fonts where practical and verify font licenses.</span></p></div>
+</div>
+<h3>Theme guidance</h3>
+<ul>
+<li>Light mode: parchment background, near-black text, restrained gold accents.</li>
+<li>Dark mode: near-black background, dark panels, light text, restrained gold accents.</li>
+<li>Use darker gold/brown for small text on light backgrounds where needed for contrast; reserve brighter gold for accents and highlights.</li>
+<li>Define semantic design tokens for both themes and verify WCAG AA contrast for text and controls.</li>
+<li>Logo direction: minimal wordmark with a subtle sun, arc, or manuscript motif; avoid quills and generic fantasy clichés.</li>
+</ul>
+</section>
+
+<section id="architecture">
+<h2>12. Technical architecture direction</h2>
+<h3>Application shape</h3>
+<ul>
+<li>Web application with desktop-like UX and PWA capabilities.</li>
+<li>Offline-capable core; cloud services are optional and should not be prerequisites for editing.</li>
+<li>Separate domain logic, editor model, storage adapters, indexing/search, sync, and AI provider integrations.</li>
+<li>Use a migration-aware data model and versioned project schema.</li>
+</ul>
+<h3>Frontend and editor</h3>
+<p>Use TypeScript and a component architecture suited to a complex desktop-style interface. Vue 3 with <code>&lt;script setup lang="ts"&gt;</code>, Pinia, and PrimeVue/Tailwind is a natural candidate. If evaluating alternatives, document the trade-offs before committing.</p>
+<p>Evaluate ProseMirror/Tiptap and Lexical for the editor. Select based on structured content, custom nodes, Markdown round-tripping, transactions, undo/redo, embeds, annotations, accessibility, and offline behavior. The editor choice should be an explicit architecture decision record.</p>
+<h3>Core technical boundaries</h3>
+<ul>
+<li><strong>Domain layer:</strong> workspace, universe, book, manuscript, worldbuilding, relationships, validation, and migrations.</li>
+<li><strong>Editor layer:</strong> structured document state, commands, Markdown conversion, embeds, and annotations.</li>
+<li><strong>Storage layer:</strong> local project files, browser fallback, media assets, and local indexes.</li>
+<li><strong>Link/index layer:</strong> stable-ID resolution, backlinks, search, and graph data.</li>
+<li><strong>Sync layer:</strong> provider adapters, manifests, revisions, encryption, and conflict resolution.</li>
+<li><strong>AI layer:</strong> provider adapters, scoped context assembly, privacy controls, and reviewable suggestions.</li>
+</ul>
+<h3>Reliability requirements</h3>
+<ul>
+<li>Autosave with clear saved/unsaved/error state and recovery from interrupted operations.</li>
+<li>Deterministic undo/redo and predictable document transactions.</li>
+<li>Schema migrations with backups or recoverable rollback strategy.</li>
+<li>Automated unit, integration, and end-to-end tests for core workflows.</li>
+<li>Accessible keyboard operation, semantic controls, and responsive layouts.</li>
+</ul>
+</section>
+
+<section id="roadmap">
+<h2>13. Suggested delivery roadmap</h2>
+<p>Keep the full vision in the product plan, but deliver it in stages. Protect the local-first foundation and manuscript experience before adding complex integrations.</p>
+<table><thead><tr><th>Phase</th><th>Scope</th><th>Exit criteria</th></tr></thead><tbody>
+<tr><td><strong>0. Foundations</strong></td><td>Inspect existing repository; establish architecture decisions, domain model, project schema, tests, linting, build pipeline, and development documentation.</td><td>Buildable baseline, documented decisions, versioned schema, CI checks.</td></tr>
+<tr><td><strong>1. Workspace shell</strong></td><td>Workspace/universe/book navigation, app shell, theme system, responsive desktop-like layout, PWA baseline.</td><td>Can create/open/switch workspaces, universes, and books; navigation state persists.</td></tr>
+<tr><td><strong>2. Local project storage</strong></td><td>Storage abstraction, local project files, browser fallback, safe writes, media handling, recovery UX.</td><td>Offline create/edit/reopen works; data survives reload and interrupted-write scenarios.</td></tr>
+<tr><td><strong>3. Domain and links</strong></td><td>Core entities, serialization, stable IDs, migrations, indexing, internal links, backlinks, search.</td><td>Rename/move does not break links; shared universe entities resolve from multiple books.</td></tr>
+<tr><td><strong>4. Manuscript editor</strong></td><td>Structured editor, Markdown input/rendering/source mode, toolbar, outline, embeds, undo/redo.</td><td>Supported Markdown round-trips; editing remains reliable under realistic documents.</td></tr>
+<tr><td><strong>5. Story planning</strong></td><td>Arc/chapter/scene metadata, contextual panels, outliner, corkboard, live word metrics.</td><td>Author can plan and reorganize a book without leaving the workspace.</td></tr>
+<tr><td><strong>6. Worldbuilding</strong></td><td>Character, world, place, item, event, lore, and research sheets; relationships and media.</td><td>Entities link across books in the same universe and appear in backlinks/search.</td></tr>
+<tr><td><strong>7. Writing utilities</strong></td><td>Custom dictionary, offline spellcheck/grammar, templates, plot scaffolds, snapshots and diffs.</td><td>Utilities are optional, non-blocking, and do not modify manuscript text without consent.</td></tr>
+<tr><td><strong>8. Import/export</strong></td><td>Markdown import/export, DOCX, PDF, EPUB, validated third-party import paths.</td><td>Exports are readable and repeatable; import reports unsupported content clearly.</td></tr>
+<tr><td><strong>9. Sync</strong></td><td>Folder-based sync guidance, WebDAV, S3-compatible providers, manifests, conflict UX, optional encryption.</td><td>Concurrent edits never silently destroy data; recovery and conflict cases are tested.</td></tr>
+<tr><td><strong>10. AI and advanced views</strong></td><td>Provider abstraction, scoped AI reviews, research citations, graph view, timeline/map enhancements.</td><td>AI is opt-in, context is transparent, and suggestions are reviewable.</td></tr>
+<tr><td><strong>11. Sharing and polish</strong></td><td>Beta-reader mode, comments, accessibility refinement, performance and usability work.</td><td>Core author workflow is stable before expanding collaboration.</td></tr>
+</tbody></table>
+<h3>Codex implementation workflow</h3>
+<ul>
+<li>Start by inspecting the repository; do not assume it is empty or replace existing work.</li>
+<li>Create and maintain <code>AGENTS.md</code> for repository-specific instructions and <code>PLANS.md</code> for milestones and decisions.</li>
+<li>Work in small milestones with explicit acceptance criteria and tests.</li>
+<li>After each milestone, update the plan, document decisions, run relevant checks, and report what changed and what remains.</li>
+<li>Do not scaffold every future feature at once. Establish stable boundaries and implement vertical slices.</li>
+</ul>
+</section>
+
+<section id="acceptance">
+<h2>14. Cross-cutting quality and acceptance criteria</h2>
+<ul>
+<li><strong>Offline:</strong> an existing local project can be opened, edited, searched, saved, and reopened without network access.</li>
+<li><strong>Ownership:</strong> project content is stored in portable, documented formats; no proprietary cloud account is required for core use.</li>
+<li><strong>Integrity:</strong> autosave, undo/redo, snapshots, and recovery prevent silent loss of manuscript content.</li>
+<li><strong>Relationships:</strong> stable IDs and links survive renames, moves, and book-to-book references inside a universe.</li>
+<li><strong>Transparency:</strong> sync status, conflicts, permission requirements, and AI data sharing are visible to the user.</li>
+<li><strong>Accessibility:</strong> core workflows are keyboard accessible and themes meet contrast requirements.</li>
+<li><strong>Extensibility:</strong> new entity types, storage providers, editor nodes, and AI providers can be added without rewriting unrelated layers.</li>
+<li><strong>Scope discipline:</strong> advanced maps, real-time collaboration, and provider-specific integrations remain later-stage work until core writing and data integrity are proven.</li>
+</ul>
+</section>
+
+<section id="decisions">
+<h2>15. Key decisions and open items</h2>
+<table><thead><tr><th>Topic</th><th>Current direction</th><th>Still to decide</th></tr></thead><tbody>
+<tr><td>Product</td><td>Aurelia — “Write worlds. Shape stories.”</td><td>Final logo and domain/trademark checks.</td></tr>
+<tr><td>Platform</td><td>Web app with desktop-like UX and PWA/offline support.</td><td>Whether to add a desktop wrapper later.</td></tr>
+<tr><td>Project model</td><td>Workspace → Universe → Books, plus standalone books.</td><td>Formal representation of standalone book ownership.</td></tr>
+<tr><td>Frontend</td><td>TypeScript; Vue 3 is a strong candidate.</td><td>Confirm component library and final stack.</td></tr>
+<tr><td>Editor</td><td>Structured editor with Markdown support.</td><td>Choose ProseMirror/Tiptap or Lexical after a focused spike.</td></tr>
+<tr><td>Storage</td><td>Local-first project files with browser fallback.</td><td>Exact canonical file schema and supported browser matrix.</td></tr>
+<tr><td>Sync</td><td>Bring-your-own folder, WebDAV, S3-compatible; optional encryption.</td><td>Provider order, encryption UX, and recovery model.</td></tr>
+<tr><td>Grammar</td><td>Non-AI, offline-capable, OFF by default.</td><td>Engine choice, language coverage, and licensing.</td></tr>
+<tr><td>AI</td><td>Optional provider abstraction with explicit scope and consent.</td><td>Initial providers and whether local model support is in first release.</td></tr>
+<tr><td>Collaboration</td><td>Not an initial requirement; preserve sound document architecture.</td><td>Beta-reader and multi-user roadmap after core product.</td></tr>
+</tbody></table>
+<p class="small">This document is a consolidated product and technical direction, not a final implementation contract. Validate platform APIs, provider terms, library licenses, browser support, and security choices before implementation.</p>
+</section>
+</main>
+</div>
+<footer> AURELIA · Product & Technical Specification · Consolidated working document</footer>
+</body>
+</html>

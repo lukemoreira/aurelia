@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Welcome</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; flex-wrap: wrap; background: {{t.canvas}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.5">
+
+<section aria-label="About Aurelia" style="flex: 1 1 420px; box-sizing: border-box; min-height: 420px; padding: 56px 56px 48px; display: flex; flex-direction: column; justify-content: space-between; gap: 40px; background: #0B0B0F; color: #EDEDED">
+<div style="display: flex; align-items: center; gap: 12px">
+<svg width="36" height="36" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0" fill="none" stroke="#F5C542" stroke-width="1.4" stroke-linecap="round"></path><path d="M8 17.5a4 4 0 0 1 8 0z" fill="#F5C542"></path><path d="M2 20.5h20" fill="none" stroke="#F5C542" stroke-width="1.4" stroke-linecap="round"></path></svg>
+<span style="font: 500 28px/1 Literata, Georgia, serif; letter-spacing: .01em">Aurelia</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 18px; max-width: 460px">
+<p style="margin: 0; font: italic 400 40px/1.15 Literata, Georgia, serif; color: #F5C542">Write worlds.<br>Shape stories.</p>
+<p style="margin: 0; font-size: 15px; color: #C2BFC8">A calm studio for novels, histories and branching stories — with your characters, places and lore linked to every scene.</p>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; font-size: 13.5px; color: #C2BFC8">
+<li style="display: flex; gap: 12px; align-items: flex-start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5C542" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"></path></svg><span><b style="color: #EDEDED; font-weight: 600">Your files, on your disk.</b> Plain Markdown. Works offline. No account.</span></li>
+<li style="display: flex; gap: 12px; align-items: flex-start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5C542" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg><span><b style="color: #EDEDED; font-weight: 600">Everything linked.</b> Rename a character and no link breaks.</span></li>
+<li style="display: flex; gap: 12px; align-items: flex-start"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5C542" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 1px"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg><span><b style="color: #EDEDED; font-weight: 600">Continuity you can see.</b> Who knows what, who is where, and what never got paid off.</span></li>
+</ul>
+</section>
+
+<main style="flex: 1.25 1 480px; box-sizing: border-box; padding: 56px 64px 40px; display: flex; flex-direction: column; gap: 28px">
+<div>
+<h1 style="margin: 0; font: 500 32px/1.2 Literata, Georgia, serif">Welcome</h1>
+<p style="margin: 6px 0 0; color: {{t.ink2}}; font-size: 15px">Where should your writing live? You can move it later.</p>
+</div>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px; max-width: 640px">
+<legend style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Storage</legend>
+<sc-for list="{{options}}" as="o" hint-placeholder-count="3">
+<label style="padding: 16px 18px; display: flex; gap: 14px; align-items: flex-start; border-radius: 12px; background: {{t.surface}}; border: {{o.border}}; box-shadow: {{o.shadow}}; cursor: pointer">
+<input type="radio" name="storage" checked="{{o.checked}}" style="margin: 3px 0 0; width: 16px; height: 16px; accent-color: {{t.gold}}">
+<span style="flex: 1; display: flex; flex-direction: column; gap: 3px">
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><span style="font: 600 15px Inter, sans-serif">{{o.title}}</span><span style="padding: 1px 8px; border-radius: 99px; background: {{o.tagBg}}; color: {{o.tagColor}}; font: 600 11px Inter, sans-serif">{{o.tag}}</span></span>
+<span style="font-size: 13.5px; color: {{t.ink2}}">{{o.text}}</span>
+</span>
+</label>
+</sc-for>
+</fieldset>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<button type="button" style="height: 44px; padding: 0 22px; border: 0; border-radius: 10px; background: {{t.gold}}; color: {{t.onGold}}; font: 600 14px Inter, sans-serif; cursor: pointer">Choose a folder…</button>
+<span style="font-size: 12.5px; color: {{t.ink3}}">Your browser will ask for permission to use the folder.</span>
+<span style="flex: 1"></span>
+<a href="#" style="font-size: 13px; color: {{t.goldInk}}; font-weight: 500">Restore from a backup</a>
+</div>
+
+<section aria-labelledby="recent-title" style="max-width: 640px; display: flex; flex-direction: column; gap: 8px; padding-top: 20px; border-top: 1px solid {{t.line}}">
+<h2 id="recent-title" style="margin: 0 0 4px; font: 600 11px Inter, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: {{t.ink3}}">Recent</h2>
+<a href="#" style="padding: 10px 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; text-decoration: none; color: {{t.ink}}; border: 1px solid {{t.line}}; background: {{t.surface}}">
+<span aria-hidden="true" style="width: 34px; height: 34px; flex: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: {{t.goldSoft}}; color: {{t.goldInk}}; font: 500 16px Literata, serif">M</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600; font-size: 14px">My Writing</span><span style="font-size: 12.5px; color: {{t.ink3}}">~/Documents/Writing · 2 universes · opened today</span></span>
+<span style="font-size: 12.5px; color: {{t.goldInk}}; font-weight: 500">Open</span>
+</a>
+<div style="padding: 10px 12px; display: flex; align-items: center; gap: 12px; border-radius: 10px; color: {{t.ink}}; border: 1px solid {{t.warnLine}}; background: {{t.warnSoft}}">
+<span aria-hidden="true" style="width: 34px; height: 34px; flex: none; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: {{t.surface}}; color: {{t.warn}}; font: 500 16px Literata, serif">W</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600; font-size: 14px">Winter 1709 research</span><span style="font-size: 12.5px; color: {{t.ink2}}">~/Dropbox/History · the browser needs your OK to open this folder again</span></span>
+<button type="button" style="height: 32px; padding: 0 12px; border: 1px solid {{t.line2}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">Reconnect</button>
+</div>
+</section>
+
+<p style="margin: auto 0 0; font-size: 12px; color: {{t.ink3}}">Free and open source under the AGPL. The license covers the software — everything you write is yours.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+const AURELIA_TOKENS = {
+  light: { canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F', warn: '#9A5B07', warnSoft: '#FBF0DC', warnLine: '#EBCF9E', shadow: '0 1px 2px rgba(40,32,16,.06), 0 8px 24px rgba(40,32,16,.08)' },
+  dark: { canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F', warn: '#E0A43A', warnSoft: '#251D0F', warnLine: '#4A3A18', shadow: '0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.4)' }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const opt = function (title, tag, text, on, tagKind) {
+      return {
+        title: title, tag: tag, text: text, checked: on,
+        border: on ? '2px solid ' + t.gold : '1px solid ' + t.line,
+        shadow: on ? t.shadow : 'none',
+        tagBg: tagKind === 'gold' ? t.goldSoft : t.raised,
+        tagColor: tagKind === 'gold' ? t.goldInk : t.ink2
+      };
+    };
+    const options = [
+      opt('Choose a folder', 'Recommended', 'Markdown files in a folder you pick. Put it inside Dropbox, OneDrive, iCloud or Syncthing and it syncs — no Aurelia account needed. Chrome and Edge.', true, 'gold'),
+      opt('Keep it in this browser', 'Every browser', 'Nothing to set up. Best for Safari and Firefox. Aurelia copies it to your Google Drive, OneDrive or Nextcloud, with versions, so the browser is never the only copy.', false),
+      opt('Open the sample universe', 'Read-only copy', 'Explore Saltmarch — a novel, its sequel and a branching game book — plus a standalone history.', false)
+    ];
+    return { t: t, options: options };
+  }
+}
+</script>
+</body>
+</html>

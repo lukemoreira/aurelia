@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Aurelia — Top bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<header style="width: 100%; min-height: 52px; box-sizing: border-box; padding: 6px 12px 6px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; background: {{t.chrome}}; border-bottom: 1px solid {{t.line}}; color: {{t.ink}}; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px">
+
+<a href="#" aria-label="Aurelia home" style="display: flex; align-items: center; gap: 9px; text-decoration: none; color: {{t.ink}}">
+<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 17.5a8.5 8.5 0 0 1 17 0" fill="none" stroke="{{t.gold}}" stroke-width="1.6" stroke-linecap="round"></path><path d="M8 17.5a4 4 0 0 1 8 0z" fill="{{t.gold}}"></path><path d="M2 20.5h20" fill="none" stroke="{{t.gold}}" stroke-width="1.6" stroke-linecap="round"></path></svg>
+<span style="font: 500 18px/1 Literata, Georgia, serif; letter-spacing: .01em">Aurelia</span>
+</a>
+
+<span aria-hidden="true" style="width: 1px; height: 22px; background: {{t.line}}"></span>
+
+<button type="button" aria-label="Switch book: {{book}}" style="height: 32px; padding: 0 8px 0 10px; display: flex; align-items: center; gap: 8px; border: 0; border-radius: 8px; background: transparent; color: {{t.ink}}; font: 500 13px Inter, sans-serif; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{t.ink3}}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{bookIcon}}"></path></svg>
+{{book}}
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{t.ink3}}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+
+<nav aria-label="Views" style="display: flex; align-items: center; gap: 2px">
+<sc-for list="{{tabs}}" as="tab" hint-placeholder-count="4">
+<a href="#" aria-current="{{tab.current}}" style="height: 30px; padding: 0 12px; display: flex; align-items: center; gap: 7px; border-radius: 8px; text-decoration: none; background: {{tab.bg}}; color: {{tab.color}}; font-weight: {{tab.weight}}; font-size: 13px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{tab.icon}}"></path></svg>{{tab.label}}</a>
+</sc-for>
+</nav>
+
+<div style="flex: 1 1 24px"></div>
+
+<button type="button" aria-label="Search or run a command (Command K)" style="width: 280px; max-width: 100%; height: 32px; padding: 0 6px 0 10px; display: flex; align-items: center; gap: 8px; border: 1px solid {{t.line}}; border-radius: 8px; background: {{t.surface}}; color: {{t.ink3}}; font: 400 13px Inter, sans-serif; cursor: pointer; text-align: left">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"></path></svg>
+<span style="flex: 1">Search or run a command…</span>
+<kbd style="padding: 2px 6px; border: 1px solid {{t.line}}; border-radius: 5px; background: {{t.canvas}}; color: {{t.ink3}}; font: 500 11px Inter, sans-serif">⌘K</kbd>
+</button>
+
+<button type="button" aria-label="Storage: local folder, all changes saved" title="Saved to a local folder" style="height: 32px; padding: 0 10px; display: flex; align-items: center; gap: 7px; border: 0; border-radius: 8px; background: transparent; color: {{t.ink2}}; font: 500 12.5px Inter, sans-serif; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"></path></svg>
+Local folder
+</button>
+
+<button type="button" aria-label="{{inboxLabel}}" title="Review inbox" style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: {{t.ink2}}; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+<span aria-hidden="true" style="position: absolute; top: 1px; right: 0; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 99px; background: {{t.gold}}; color: {{t.onGold}}; font: 700 10px/16px Inter, sans-serif; text-align: center; display: {{badgeDisplay}}">{{inbox}}</span>
+</button>
+
+<button type="button" aria-label="{{themeLabel}}" title="{{themeLabel}}" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: {{t.ink2}}; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{themeIcon}}"></path></svg>
+</button>
+
+<button type="button" aria-label="Settings" title="Settings" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: {{t.ink2}}; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>
+</button>
+
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"view":{"editor":"enum","options":["write","plan","continuity","world","map"],"default":"write"},"book":{"editor":"text","default":"The Lantern Gate"},"branching":{"editor":"boolean","default":false},"inbox":{"editor":"int","default":0},"$preview":{"width":1440,"height":52}}'>
+const AURELIA_TOKENS = {
+  light: { chrome: '#F3EEE4', canvas: '#FAF7F2', surface: '#FFFDF9', raised: '#EAE3D6', line: '#E2DACB', line2: '#CFC4B0', ink: '#1B1A1F', ink2: '#4F4D56', ink3: '#67646D', gold: '#C9A227', goldSoft: '#F5E7B5', goldInk: '#7A5A0B', onGold: '#1B1A1F' },
+  dark: { chrome: '#0B0B0F', canvas: '#121218', surface: '#1A1A21', raised: '#26262F', line: '#2A2A33', line2: '#3A3A45', ink: '#EDEDED', ink2: '#C2BFC8', ink3: '#9A97A2', gold: '#F5C542', goldSoft: '#2E2715', goldInk: '#F5C542', onGold: '#0B0B0F' }
+};
+const ICONS = {
+  write: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+  plan: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+  map: 'M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 9a9 9 0 0 1-9 9',
+  continuity: 'M3 12h4l3-8 4 16 3-8h4',
+  world: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20',
+  book: 'M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20',
+  sun: 'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
+  moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'
+};
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme === 'dark' ? 'dark' : 'light';
+    const t = AURELIA_TOKENS[theme];
+    const view = this.props.view ?? 'write';
+    const branching = this.props.branching === true || this.props.branching === 'true';
+    const list = [['write', 'Write'], ['plan', 'Plan']];
+    if (branching) list.push(['map', 'Story map']);
+    list.push(['continuity', 'Continuity'], ['world', 'World']);
+    const tabs = list.map(function (p) {
+      const on = p[0] === view;
+      return { label: p[1], icon: ICONS[p[0]], current: on ? 'page' : 'false', bg: on ? t.raised : 'transparent', color: on ? t.ink : t.ink2, weight: on ? 600 : 500 };
+    });
+    const inbox = Number(this.props.inbox ?? 0) || 0;
+    return {
+      t: t,
+      tabs: tabs,
+      inbox: inbox,
+      badgeDisplay: inbox > 0 ? 'block' : 'none',
+      inboxLabel: inbox > 0 ? 'Review inbox, ' + inbox + ' waiting' : 'Review inbox, empty',
+      book: this.props.book ?? 'The Lantern Gate',
+      bookIcon: branching ? ICONS.map : ICONS.book,
+      themeIcon: theme === 'dark' ? ICONS.sun : ICONS.moon,
+      themeLabel: theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
+    };
+  }
+}
+</script>
+</body>
+</html>
