@@ -105,6 +105,7 @@ outcome: She gets in, but owes a favour.
 characters:              # overrides only; presence comes from [[links]] in the text
   add: [chr_1c5v8n2b6z]    # present, but not linked in the text
   remove: []               # linked in the text, but not actually present
+ignoreNames: []          # places the author marked "not a name" (ADR-0010)
 arcs: [arc_9t3r6y1u0e]
 target: 1800
 flashback: false

@@ -24,7 +24,9 @@
     "AddChange.dc.html": { "x": 0, "y": 5540, "w": 480, "h": 700, "title": "Add a change — feeds continuity" },
     "States.dc.html": { "x": 560, "y": 5540, "w": 1040, "h": 980, "title": "Problems and empty states" },
     "Phone.dc.html": { "x": 1680, "y": 5540, "w": 390, "h": 844, "title": "Writing on a phone" },
-    "Backup.dc.html": { "x": 2150, "y": 5540, "w": 720, "h": 980, "title": "Backup and versions — your own cloud" }
+    "Backup.dc.html": { "x": 2150, "y": 5540, "w": 720, "h": 980, "title": "Backup and versions — your own cloud" },
+    "Names.dc.html": { "x": 0, "y": 6920, "w": 1200, "h": 780, "title": "Names found and tagged automatically" },
+    "RenameEverywhere.dc.html": { "x": 1280, "y": 6920, "w": 720, "h": 880, "title": "Rename everywhere — preview every place" }
   },
   "order": [
     "Welcome.dc.html",
@@ -46,7 +48,9 @@
     "AddChange.dc.html",
     "States.dc.html",
     "Phone.dc.html",
-    "Backup.dc.html"
+    "Backup.dc.html",
+    "Names.dc.html",
+    "RenameEverywhere.dc.html"
   ],
   "notes": {
     "row1": { "x": 0, "y": -300, "text": "Screens — writing", "kind": "title1", "maxW": 4480 },
@@ -54,6 +58,7 @@
     "row3": { "x": 0, "y": 2300, "text": "Design system and building blocks", "kind": "title1", "maxW": 3312 },
     "row4": { "x": 0, "y": 3940, "text": "Assistant — your own Claude or ChatGPT", "kind": "title1", "maxW": 3600 },
     "row5": { "x": 0, "y": 5240, "text": "Flows, states and backup", "kind": "title1", "maxW": 2870 },
+    "row6": { "x": 0, "y": 6620, "text": "Names — found automatically, renamed everywhere", "kind": "title1", "maxW": 2000 },
     "chatgptButton": { "x": 3680, "y": 4240, "w": 320, "text": "Build note: the \"Continue with ChatGPT\" button must use OpenAI's official button artwork from their brand guidelines. The design shows a neutral placeholder.", "fill": "orange" },
     "tweaks": { "x": 4560, "y": 0, "w": 340, "text": "Every screen has a Theme tweak. Open Tweaks on a screen to switch it between light and dark.\n\nSample content: the \"Saltmarch\" universe — a novel (The Lantern Gate), a sequel (Tidebound) and a branching game book (Salt & Ash). A history book (The Long Winter of 1709) sits under Standalone books.", "fill": "teal" }
   },

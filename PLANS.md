@@ -20,6 +20,7 @@ plan comes from is in [`docs/spec/aurelia-product-specification.html`](docs/spec
 | Design | Design quality is a top priority. Every screen is designed before it is built | [docs/design/](docs/design/) |
 | Continuity | Tracking character progression, scene links and story-consistency metrics is a **core feature**, not an extra | [ADR-0006](docs/adr/0006-continuity-model.md) |
 | AI assistant | Authors connect **their own** Claude or ChatGPT account to get an agent that helps | [ADR-0008](docs/adr/0008-ai-assistant.md) |
+| Names | Character and place names are **found and tagged automatically** in the text, and a rename can change them everywhere in one step | [ADR-0010](docs/adr/0010-name-mentions.md) |
 | Storage in v0.1 | **The browser.** Real folders in Chrome and Edge; browser storage (OPFS) in Safari and Firefox, protected by cloud backup to the author's own Google Drive, OneDrive or Nextcloud, with versions. The desktop app comes later, before M8 | [ADR-0009](docs/adr/0009-browser-storage-and-backup.md) |
 
 ## 2. Decisions this plan makes (owner can overrule)
@@ -108,6 +109,14 @@ Do not scaffold future features early.
 - Exit: `npm run check` (lint + types + unit) and `npm run e2e` pass in CI.
 - Test rule: Playwright cannot click the native folder picker. E2E uses an in-memory or
   OPFS workspace; the File System Access adapter is tested as described in M2.
+- **Done (2026-11-12).** Vite + Vue 3 + TS strict app at the repo root; ESLint (flat),
+  Prettier, Vitest + happy-dom, Playwright (Chromium, one smoke test), CI workflow.
+  `src/styles/tokens.css` is the one token source (light, dark, system dark) mapped into
+  Tailwind v4 `@theme`; `@fontsource` fonts self-hosted; a WCAG contrast test covers both
+  themes. `src/domain/`: ID generator, zod schema v1 (workspace, universe, book, part,
+  chapter, scene, record; unknown keys kept) and a migration runner with
+  `NewerSchemaError`. `scripts/check-spdx.mjs` and `scripts/check-licenses.mjs` run in
+  `npm run check`. `App.vue` is a placeholder; M1 builds the shell.
 
 **M1 · App shell and design system**
 - Layout: top bar, left navigator, centre, right inspector, status bar.
@@ -118,6 +127,28 @@ Do not scaffold future features early.
   Tree, Tag, Field (on Reka UI headless primitives).
 - Exit: switch universes and books with sample data; state survives reload; AA contrast
   checked for both themes.
+- **Done (2026-11-12).** Design system in `src/components/ui/` (Button, IconButton,
+  Field, Input, Select, SegmentedControl, Tabs, Menu, Dialog, Sheet, Popover, Tooltip, Tree
+  with pin buttons, Tag, StatusDot, Avatar, Kbd, Icon) with the `/ui` gallery. Shell in
+  `src/components/shell/`: top bar (book switcher, view tabs, palette button, storage and
+  review-inbox popovers, theme toggle, settings), navigator (universe switcher, filter,
+  Pinned, Books / Library · shared / Standalone trees), centre with breadcrumb row, scene
+  inspector (Scene tab only, read-only), status bar; below 1024 px
+  the navigator and inspector are sheets and the top bar is the phone header. Panels
+  resize (drag, arrow keys, Home/End) and collapse (Cmd/Ctrl+\ and Cmd/Ctrl+Alt+\).
+  Command palette (Cmd/Ctrl+K): records, scenes, books and chapters, actions; Recent (8)
+  and Pinned, pinned from the palette (Alt+P) or a navigator row. Everything saved per
+  device in localStorage (`aurelia.theme`, and `aurelia.v1.*` for book, scene per book,
+  panels, expanded branches, recent, pinned). Routes: `/` Welcome, `/w/:bookId/:sceneId?` Write,
+  `/w/:bookId/{plan,continuity,world,map}` placeholders with empty states. The Saltmarch
+  sample (`src/sample/`) is validated with the zod schemas on load; its IDs are derived
+  from names so they are the same on every load (a random `newId` would break saved
+  routes). The workspace store (`src/stores/workspace.ts`) takes a `WorkspaceData`
+  (`src/domain/workspace-data.ts`): M2 feeds it from storage. PWA baseline with
+  `vite-plugin-pwa`. Left for later: Recent is in the palette only (the navigator lists
+  Pinned); records open a placeholder in World until M5.
+- **Review fixes (2026-11-12).** Honest UI (nothing claims to be saved), accessible palette and
+  keyboard, strict CSP, prompt-only PWA updates, `parseDocument` as the one way to read a file.
 
 **M2 · Local project storage**
 - `StorageAdapter` interface. **File System Access adapter** (Chrome, Edge): real
@@ -139,6 +170,8 @@ Do not scaffold future features early.
   `navigator.storage.getDirectory()`.
 - Exit: create, edit, close, reopen offline. Data survives reload and a killed write.
   An external change while the file is open is detected and never overwritten.
+- PWA updates are prompt-only: nothing reloads while the author writes. A new version
+  waits behind an "Update available — Reload" toast (`useAppUpdate`).
 
 **M2b · Backup and versions** ([ADR-0009](docs/adr/0009-browser-storage-and-backup.md))
 - `RemoteStore` interface; adapters for **Google Drive** (`drive.file`), **OneDrive**
@@ -171,6 +204,10 @@ Do not scaffold future features early.
   `.aurelia/backups/<fromVersion>/`; one all-or-nothing pass with a marker file, so a
   half-migrated folder is detected.
 - `[[Name]]` and `[[id:…]]` links; a picker when two records share a name.
+- **Names found automatically** ([ADR-0010](docs/adr/0010-name-mentions.md)): records get
+  `aliases` (auto / ask / never); the index finds tagged mentions and suggestions in every
+  scene (whole words, capitals, possessives, longest match, book + universe scope);
+  `ignoreNames` on scenes. Presence and backlinks use tagged mentions.
 - Backlinks ("Linked from"), "Links to", global search (MiniSearch).
 - Exit: rename or move a record and no link breaks; a shared character resolves from
   two books in one universe; an unchanged file round-trips byte-identical (golden test);
@@ -187,6 +224,11 @@ Do not scaffold future features early.
   tables and footnotes in a file are kept as raw Markdown, never dropped.
 - Focus mode; editor font, size, line height, paragraph spacing.
 - Live word counts (scene, chapter, book, session).
+- **Names in the editor** (ADR-0010): hover or focus a name for its card; suggestions
+  with a faint dashed underline ("Is this Will Ashby?" → writes an explicit link, or
+  "Not a name"); "Show names" highlight. **Rename everywhere**: name-form mapping, a
+  preview of every place (uncertain ones not ticked), a version saved first, one undo.
+  Test: renaming "Elena" never touches "Elenath" or "elena@example.com".
 - Exit: golden-file round-trip tests for every dialect feature M4 edits, plus tests that
   tables and footnotes survive as raw text; a 150k-word book stays fast.
 
@@ -228,6 +270,8 @@ Do not scaffold future features early.
 - Worlds and places as a free hierarchy (planet → … → room, custom levels), sensory
   details, Earth as a root for history writing.
 - Items, events, lore, research (with sources), factions, cultures, magic/tech systems.
+- **Find new names** (ADR-0010): a Names panel lists recurring capitalised words that are
+  not records yet, with "Create character / Create place / Not a name".
 - Timeline with real dates (incl. BCE) and custom calendars (builds on the M5 outline
   columns).
 - Media gallery (portraits, maps, reference images) stored in the project folder. The
@@ -330,3 +374,8 @@ backup — ADR-0009.)
   empty states, and the phone.
 - 2026-11-12 — Owner chose the browser for v0.1. Safari and Firefox books are protected
   by cloud backup (Google Drive, OneDrive, Nextcloud) and versions: ADR-0009, M2b.
+- 2026-11-12 — M0 Foundations built: project scaffold, tokens and fonts, schema v1 and
+  migrations, SPDX and licence checks, CI. Next: M1 app shell.
+- 2026-11-12 — M1 App shell built: shell layout, resizable panels, command palette with
+  recent and pinned items, Saltmarch sample, per-device state, narrow-screen sheets, PWA
+  baseline, e2e with axe in both themes. Next: M2 local project storage.
