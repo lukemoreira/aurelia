@@ -38,6 +38,18 @@ function screenFor(
 
 beforeEach(() => setActivePinia(createPinia()))
 
+describe('the folder a renamed workspace backs up to', () => {
+  it('shows the current name when the backup knows it, the folder’s own when it does not', () => {
+    const on = { enabled: true, status: 'idle', lastBackup: NOW - 2 * 60_000 } as const
+    expect(screenFor({ ...on, name: 'Renamed' }, 'available').text).toBe(
+      'Backing up to Aurelia › Renamed. Last backup 2 min ago.',
+    )
+    expect(screenFor({ ...on }, 'available').text).toBe(
+      'Backing up to Aurelia › My Book. Last backup 2 min ago.',
+    )
+  })
+})
+
 describe('what the Backup screen says, in every state', () => {
   // backup on: the engine's status decides
   it.each([

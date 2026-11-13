@@ -51,7 +51,7 @@ export async function listBackups(store: RemoteStore): Promise<BackupListing[]> 
       return [
         {
           folder: e.path,
-          name: m.name,
+          name: m.name ?? parsed.name,
           workspaceId: m.workspaceId,
           device: parsed.device ?? null,
           deviceName: m.deviceName,

@@ -9,6 +9,8 @@ import { saltmarchSample } from '@/sample/saltmarch'
 import { openSession, recents, reopen, workspaceIdOf } from '@/storage/app'
 import type { StorageAdapter } from '@/storage/adapter'
 import type { SessionView, WorkspaceSession } from '@/storage/session'
+import { StorageError } from '@/storage/errors'
+import { WORKSPACE_FILE } from '@/storage/paths'
 import { saveWords } from '@/storage/status'
 
 const isRecordOfStrings = (v: unknown): v is Record<string, string> =>
@@ -151,6 +153,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
   const flush = () => session.value?.flush()
 
+  /** Rename the open workspace; once the file says so, this device's recent list does too. */
+  async function renameWorkspace(name: string) {
+    const open = session.value
+    if (!open)
+      throw new StorageError(
+        'read-only',
+        'The sample workspace cannot be renamed. It is only a tour.',
+      )
+    await open.renameWorkspace(name)
+    // Unsaved (a conflict, a failing disk): the list catches up the next time it is opened.
+    if (!open.pipeline.isBusy(WORKSPACE_FILE))
+      await recents.rename(open.data.workspace.id, open.data.workspace.name).catch(() => undefined)
+  }
+
   const hasBook = (id: string) => data.value?.books.some((b) => b.id === id) ?? false
 
   /** The scene to show for a book: the one asked for, else the last one open here, else `fallback`, else the first. */
@@ -207,6 +223,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     editScene,
     addScene,
     flush,
+    renameWorkspace,
     hasBook,
     sceneFor,
     select,

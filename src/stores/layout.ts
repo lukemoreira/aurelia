@@ -25,7 +25,10 @@ export const useLayoutStore = defineStore('layout', () => {
   const navSheet = ref(false)
   const inspectorSheet = ref(false)
   const paletteOpen = ref(false)
+  /** What the palette does once it has closed and given focus back, so a dialog it opens remembers the right opener. */
+  const paletteThen = ref<(() => void) | null>(null)
   const backupOpen = ref(false)
+  const renameOpen = ref(false)
 
   // Below 1024px the panels are sheets; a sheet left open has no place on a wide screen.
   watch(wide, (isWide) => {
@@ -55,7 +58,9 @@ export const useLayoutStore = defineStore('layout', () => {
     navSheet,
     inspectorSheet,
     paletteOpen,
+    paletteThen,
     backupOpen,
+    renameOpen,
     toggleNavigator,
     toggleInspector,
     closeSheets,

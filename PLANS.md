@@ -484,3 +484,10 @@ backup — ADR-0009.)
   ID on screen, Close is secondary, focus moves to each restore step's heading, one
   live region, gold is a border only, the status bar nudges "turn on backup" in warn
   where a server exists, one `persistedWords`, h3 sections.
+- 2026-11-12 — Rename workspace (branch `feat/rename-workspace`): "Rename workspace…" in the
+  workspace menu (status bar and top bar) and the command palette. Only the `name` in
+  `aurelia.json` changes, byte for byte, through the save pipeline (journal, compare-and-write;
+  an outside change is the conflict flow, which calls the file "Workspace settings"). The
+  device's recent list follows once saved. The backup folder keeps its first name (it is found
+  by ID); `backup.json` carries the current name (now optional, older manifests still load), and
+  the Backup screen and restore list show it. One `checkWorkspaceName` for create and rename.

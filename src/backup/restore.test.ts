@@ -41,6 +41,29 @@ describe('restoring from the server', () => {
     })
   })
 
+  it('lists a renamed workspace under its current name, from the folder that kept its first one', async () => {
+    const rig = await backedUp()
+    const main = (await rig.adapter.read('aurelia.json'))!.text
+    await rig.adapter.write('aurelia.json', main.replace('"My Book"', '"Renamed Book"'))
+    rig.setName('Renamed Book')
+    const engine = await rig.open()
+    await engine.run()
+    engine.dispose()
+    const [found] = await listBackups(rig.store)
+    expect(found).toMatchObject({ name: 'Renamed Book', folder: rig.folder })
+    expect(rig.folder).toContain('My Book')
+  })
+
+  it('still lists a backup whose backup.json has no name (older manifests), by the name in its folder name', async () => {
+    const rig = await backedUp()
+    const manifest = rig.dav.json<Record<string, unknown>>(`${rig.folder}/backup.json`)
+    delete manifest.name
+    rig.dav.seed(`${rig.folder}/backup.json`, JSON.stringify(manifest))
+    expect(await listBackups(rig.store)).toEqual([
+      expect.objectContaining({ name: 'My Book', folder: rig.folder }),
+    ])
+  })
+
   it('reads the latest backup back with no problems, and it opens as the same workspace', async () => {
     const rig = await backedUp()
     const { files, problems } = await fetchBackup(rig.store, rig.folder, 'current')

@@ -33,6 +33,12 @@ export class Recents {
     await run(await this.db(), RECENT, 'readwrite', (s) => s.put(entry))
   }
 
+  /** Show a renamed workspace under its new name; everything else about the entry stays. */
+  async rename(key: string, name: string) {
+    const entry = await this.get(key)
+    if (entry) await this.put({ ...entry, name })
+  }
+
   async remove(key: string) {
     await run(await this.db(), RECENT, 'readwrite', (s) => s.delete(key))
   }

@@ -12,6 +12,13 @@ const fresh = () => {
 beforeEach(() => localStorage.clear())
 
 describe('workspace store', () => {
+  it('refuses to rename the sample, in plain words', async () => {
+    const ws = fresh()
+    ws.loadSample()
+    await expect(ws.renameWorkspace('Mine')).rejects.toThrow(/sample workspace cannot be renamed/)
+    expect(ws.data?.workspace.name).not.toBe('Mine')
+  })
+
   it('has nothing loaded to begin with, and nothing to reopen', async () => {
     const ws = fresh()
     expect(ws.loaded).toBe(false)

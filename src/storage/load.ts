@@ -26,6 +26,8 @@ export interface ConflictedCopy {
 
 export interface LoadedWorkspace {
   data: WorkspaceData
+  /** The text of `aurelia.json` as read: a rename changes only the name in it. */
+  workspaceText: string
   /** Hash of every file read, by path: what compare-and-write expects to find next time. */
   hashes: Map<string, string>
   /** Each scene file's head (frontmatter and the gap after it), kept to write back untouched. */
@@ -180,5 +182,5 @@ export async function loadWorkspace(adapter: StorageAdapter): Promise<LoadedWork
         reason: 'Its book is missing, so it is not in the outline.',
       })
 
-  return { data, hashes, heads, scenePaths, readOnly, problems, copies }
+  return { data, workspaceText: found.text, hashes, heads, scenePaths, readOnly, problems, copies }
 }

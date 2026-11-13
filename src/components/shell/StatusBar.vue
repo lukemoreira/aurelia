@@ -5,14 +5,13 @@ import Icon from '@/components/ui/Icon.vue'
 import Popover from '@/components/ui/Popover.vue'
 import StorageDetails from '@/components/workspace/StorageDetails.vue'
 import { backupNeedsAttention, backupWords } from '@/backup/words'
+import { useOpenDialogFromMenu } from '@/composables/useOpenDialogFromMenu'
 import { needsAttention } from '@/storage/status'
 import { useBackupStore } from '@/stores/backup'
-import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const ws = useWorkspaceStore()
 const backup = useBackupStore()
-const layout = useLayoutStore()
 const detailsOpen = ref(false)
 const fmt = (n: number) => n.toLocaleString('en-US')
 const where = computed(() => {
@@ -46,10 +45,10 @@ const announced = computed(() =>
     .filter(Boolean)
     .join('. '),
 )
-const openBackup = () => {
-  detailsOpen.value = false
-  layout.backupOpen = true
-}
+const detailsTrigger = ref<HTMLElement | null>(null)
+const openFromDetails = useOpenDialogFromMenu(detailsOpen, detailsTrigger)
+const openRename = () => openFromDetails('renameOpen')
+const openBackup = () => openFromDetails('backupOpen')
 // While it nudges, the chip goes straight to the Backup screen; otherwise it opens the storage details.
 const popoverOpen = computed({
   get: () => detailsOpen.value,
@@ -83,6 +82,7 @@ const popoverOpen = computed({
     <Popover v-if="ws.view" v-model:open="popoverOpen">
       <template #trigger>
         <button
+          ref="detailsTrigger"
           type="button"
           :class="[
             'flex h-[22px] items-center gap-1.5 rounded-[5px] px-1.5 text-xs hover:bg-raised hover:text-ink pointer-coarse:h-11',
@@ -99,7 +99,7 @@ const popoverOpen = computed({
           />{{ kept }}
         </button>
       </template>
-      <StorageDetails @backup="openBackup" />
+      <StorageDetails @backup="openBackup" @rename="openRename" />
     </Popover>
   </footer>
 </template>

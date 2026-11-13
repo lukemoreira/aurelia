@@ -4,6 +4,7 @@ import { watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import BackupDialog from '@/components/backup/BackupDialog.vue'
 import Sheet from '@/components/ui/Sheet.vue'
+import RenameWorkspaceDialog from '@/components/workspace/RenameWorkspaceDialog.vue'
 import { useBackup } from '@/composables/useBackup'
 import { MAIN_CONTENT_ID, panelAttr } from '@/composables/useFocusMain'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
@@ -95,5 +96,6 @@ watch(
     /></Sheet>
     <CommandPalette />
     <BackupDialog />
+    <RenameWorkspaceDialog />
   </div>
 </template>

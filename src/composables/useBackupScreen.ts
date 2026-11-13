@@ -44,7 +44,7 @@ export function useBackupScreen() {
     if (v?.enabled) {
       if (v.status === 'ask') return '' // the box below says it
       if ((v.status === 'paused' || v.status === 'failed') && v.error) return v.error
-      const folder = v.folder ? folderWords(v.folder) : ''
+      const folder = v.folder ? folderWords(v.folder, v.name) : ''
       return v.lastBackup === null
         ? `Backing up to ${folder}…`
         : `Backing up to ${folder}. Last backup ${agoWords(v.lastBackup, backup.now)}.`

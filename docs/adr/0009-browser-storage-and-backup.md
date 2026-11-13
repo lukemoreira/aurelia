@@ -47,8 +47,11 @@ Aurelia/                              (in the provider's app folder)
   <Workspace name> (wsp_…)/
     current/        the workspace, same layout as a real folder (ADR-0003)
     versions/       2026-11-12T18-30.zip, …
-    backup.json     manifest: device id, revision, file hashes, last backup time
+    backup.json     manifest: workspace name, device id, revision, file hashes, last backup time
 ```
+
+The folder keeps the name the workspace had when it was first backed up (it is found by its ID). A rename
+changes the name in `backup.json` on the next round, and screens show that one.
 
 **When:**
 - Changed files are uploaded about a minute after the author stops typing, and again

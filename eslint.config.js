@@ -6,7 +6,17 @@ import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist', 'dist-e2e', 'coverage', 'playwright-report', 'test-results', 'docs'] },
+  {
+    ignores: [
+      'dist',
+      'dist-e2e',
+      'coverage',
+      'playwright-report',
+      'test-results',
+      'docs',
+      '.claude/worktrees',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...vue.configs['flat/recommended'],
