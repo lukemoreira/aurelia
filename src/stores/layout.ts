@@ -31,6 +31,10 @@ export const useLayoutStore = defineStore('layout', () => {
   const renameOpen = ref(false)
   /** Focus mode: the panels, the bars and the counts go, and the text stays. Not kept: every visit starts normal. */
   const focus = ref(false)
+  /** The list of files with two versions (conflicted copies) and files that could not be read. */
+  const filesOpen = ref(false)
+  /** The path of the file whose two versions are being compared (the conflict dialog). */
+  const comparing = ref<string>()
 
   // Below 1024px the panels are sheets; a sheet left open has no place on a wide screen.
   watch(wide, (isWide) => {
@@ -66,6 +70,8 @@ export const useLayoutStore = defineStore('layout', () => {
     renameOpen,
     focus,
     toggleFocus,
+    filesOpen,
+    comparing,
     toggleNavigator,
     toggleInspector,
     closeSheets,

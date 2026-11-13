@@ -40,6 +40,8 @@ export class FakeDav {
   down = false
   /** Every request, as `METHOD path`, in order. */
   log: string[] = []
+  /** Writes and removals of a file that came with no `If-Match` and no `If-None-Match`: `METHOD path`. */
+  unconditional: string[] = []
   private counter = 0
 
   private etag = () => `"${++this.counter}"`
@@ -116,6 +118,8 @@ export class FakeDav {
       case 'GET':
         return file ? reply(200, { ETag: file.etag }, file.bytes) : reply(404)
       case 'PUT': {
+        if (h['if-match'] === undefined && h['if-none-match'] === undefined)
+          this.unconditional.push(`PUT ${path}`)
         if (isFolder) return reply(405)
         if (!this.folders.has(parentOf(path))) return reply(409)
         if ((req.body?.length ?? 0) > DAV_LIMIT) return reply(413)
@@ -125,6 +129,7 @@ export class FakeDav {
         return reply(file ? 204 : 201, { ETag: this.files.get(path)!.etag })
       }
       case 'DELETE': {
+        if (file && h['if-match'] === undefined) this.unconditional.push(`DELETE ${path}`)
         if (file) {
           if (h['if-match'] !== undefined && file.etag !== h['if-match']) return reply(412)
           this.files.delete(path)

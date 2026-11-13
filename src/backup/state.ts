@@ -15,8 +15,16 @@ export interface BackupState {
   claimOpen?: boolean
   /** The workspace name `backup.json` last said: the folder keeps its first name, this is the current one. */
   name?: string
+  /** `sync`: this device keeps the folder in sync (ADR-0012). Absent: plain backup. */
+  mode?: 'sync'
+  /** Sync: per file, the server's tag and the bytes' hash when this device last agreed with the server. */
+  base?: Record<string, { etag: string; hash: string }>
+  /** Sync switched off: what the shared folder last agreed on, kept for switching it on again. */
+  syncBase?: { folder: string; base: NonNullable<BackupState['base']> }
   lastBackup: number | null
   lastVersion: number | null
+  /** Sync: a hash of every file as the last `before-sync` version holds it: the same workspace needs no second one. */
+  lastSyncFingerprint?: string
   /** A version is owed: why. `hourly` has no mark in its name. */
   versionDue: string | null
 }

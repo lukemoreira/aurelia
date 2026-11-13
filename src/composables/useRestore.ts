@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { backupState, server } from '@/backup/app'
 import {
   fetchBackup,
+  joinSync,
   listBackups,
   listVersions,
   withNewId,
@@ -25,7 +26,7 @@ import {
   pickFolder,
 } from '@/storage/browser'
 import { inspectFolder } from '@/storage/create'
-import { RemoteError, wordsFor } from '@/storage/errors'
+import { RemoteError, StorageError, wordsFor } from '@/storage/errors'
 import { detectServer } from '@/storage/remote/webdav-store'
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -35,6 +36,8 @@ export type RestoreStep = 'workspaces' | 'versions' | 'destination' | 'problems'
 export interface RestoreSource {
   folder: string
   name: string
+  /** The folder is kept in sync by its devices: this copy may join them (ADR-0012). */
+  sync?: boolean
 }
 
 /**
@@ -55,6 +58,10 @@ export function useRestore(onOpened?: () => void) {
   const versions = ref<VersionInfo[]>([])
   const choice = ref('current')
   const problems = ref<Problem[]>([])
+  /** "…and keep it in sync": the copy keeps the folder's workspace ID and syncs with the other devices. */
+  const keepInSync = ref(false)
+  /** Only the latest copy of a synced folder can join it: a version is a past, not a place to sync from. */
+  const canKeepInSync = computed(() => !!picked.value?.sync && choice.value === 'current')
   /** Whether Welcome should offer a restore at all: a server is there (maybe asking for a sign-in). */
   const server_ = ref<'unknown' | 'available' | 'sign-in' | 'none'>('unknown')
 
@@ -78,8 +85,9 @@ export function useRestore(onOpened?: () => void) {
     open.value = true
     problems.value = []
     error.value = ''
+    keepInSync.value = false
     if (source) {
-      picked.value = { folder: source.folder, name: source.name }
+      picked.value = { folder: source.folder, name: source.name, sync: source.sync }
       choice.value = source.choice ?? 'current'
       step.value = 'destination'
       return
@@ -91,7 +99,7 @@ export function useRestore(onOpened?: () => void) {
   }
 
   async function pick(listing: BackupListing) {
-    picked.value = { folder: listing.folder, name: listing.name }
+    picked.value = { folder: listing.folder, name: listing.name, sync: listing.sync }
     loading.value = true
     const found = await guarded(() => listVersions(server, listing.folder))
     loading.value = false
@@ -131,6 +139,7 @@ export function useRestore(onOpened?: () => void) {
     if (!source || busy.value) return
     busy.value = true
     error.value = ''
+    const sync = keepInSync.value && canKeepInSync.value
     let made: string | null = null
     try {
       // The folder picker needs the click that got us here, so it comes before the (slow) download.
@@ -149,6 +158,12 @@ export function useRestore(onOpened?: () => void) {
       const id = JSON.parse(new TextDecoder().decode(fetched.files.get('aurelia.json')))
         .id as string
       const fresh = await freeId(id)
+      // A synced copy is the same workspace as the folder's: it cannot take another ID, so it needs this device to be new to it.
+      if (sync && fresh !== id)
+        throw new StorageError(
+          'other',
+          'This device already has this workspace, so Aurelia cannot make a second copy that stays in sync. Open it here and turn sync on in Backup and versions.',
+        )
       const files = fresh === id ? fetched.files : withNewId(fetched.files, fresh)
       let adapter = folder
       if (!adapter) {
@@ -156,7 +171,9 @@ export function useRestore(onOpened?: () => void) {
         adapter = browserAdapter(await browserDirectory(fresh, true))
       }
       await writeRestored(adapter, files)
-      await backupState.clear(fresh).catch(() => undefined) // a restored copy starts with backup off
+      if (sync)
+        await joinSync(backupState, fresh, source.folder, fetched) // sync on, each file's base from this very read
+      else await backupState.clear(fresh).catch(() => undefined) // a restored copy starts with backup off
       made = null
       open.value = false
       await ws.open(adapter)
@@ -184,6 +201,8 @@ export function useRestore(onOpened?: () => void) {
     picked,
     versions,
     problems,
+    keepInSync,
+    canKeepInSync,
     serverState: server_,
     canKeepInBrowser: canKeepInBrowser(),
     canPickFolder: canPickFolder(),

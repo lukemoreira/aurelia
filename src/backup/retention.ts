@@ -5,6 +5,8 @@ export interface VersionStamp {
   at: Date
   /** Saved before a big change: kept as it is for 30 days, whatever the hour. */
   protectedFor30Days?: boolean
+  /** Saved before changes from another device came in (sync): kept as it is for a day. */
+  protectedFor1Day?: boolean
 }
 
 const HOUR = 3_600_000
@@ -30,6 +32,7 @@ export function versionsToDelete(versions: VersionStamp[], now: Date): string[] 
   for (const v of versions) {
     const age = now.getTime() - v.at.getTime()
     if (v.protectedFor30Days && age < 30 * DAY) keep.add(v.name)
+    if (v.protectedFor1Day && age < DAY) keep.add(v.name)
     const key = slot(v.at, age)
     const best = newest.get(key)
     if (!best || v.at > best.at) newest.set(key, v)

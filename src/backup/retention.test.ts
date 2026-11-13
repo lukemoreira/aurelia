@@ -72,4 +72,16 @@ describe('version retention', () => {
     expect(kept).toBeGreaterThan(70)
     expect(kept).toBeLessThan(90)
   })
+
+  it('a version before changes from another device is kept for a day, then thinned like the rest', () => {
+    const sync = (msAgo: number, name: string) => at(msAgo, name, { protectedFor1Day: true })
+    // Three in one hour, all inside the day: the protected ones stay beside the newest.
+    expect(
+      gone([at(30 * 60_000, 'hourly'), sync(50 * 60_000, 's1'), sync(40 * 60_000, 's2')]),
+    ).toEqual([])
+    // Past a day it is an ordinary version again.
+    expect(
+      gone([at(30 * HOUR + 10 * 60_000, 'hourly'), sync(30 * HOUR + 20 * 60_000, 'old')]),
+    ).toEqual(['old'])
+  })
 })

@@ -51,12 +51,18 @@ export const stampOf = (d: Date) =>
   `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}-${pad(d.getUTCMinutes())}-${pad(d.getUTCSeconds())}`
 
 /** Why a version was saved besides the hourly rhythm. Part of the file name, so it needs no database. */
-export type VersionReason = 'before-keep-mine' | 'before-use-file' | 'before-use-backup' | 'manual'
+export type VersionReason =
+  'before-keep-mine' | 'before-use-file' | 'before-use-backup' | 'before-sync' | 'manual'
 
-export const versionName = (at: Date, reason?: string | null) =>
-  `${stampOf(at)}${reason && reason !== 'hourly' ? `_${reason}` : ''}.zip`
+/**
+ * `2026-11-12T18-30-05~3fa9c0d1_before-sync.zip`: the first eight letters of the zip's own hash follow the second, so two
+ * versions of different text made in one second are two files, never one dropped. Older names (no hash) still parse.
+ */
+export const versionName = (at: Date, reason?: string | null, hash?: string) =>
+  `${stampOf(at)}${hash ? `~${hash.slice(0, 8)}` : ''}${reason && reason !== 'hourly' ? `_${reason}` : ''}.zip`
 
-const VERSION = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})(?:_([a-z-]+))?\.zip$/
+const VERSION =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})(?:~[0-9a-f]{8})?(?:_([a-z-]+))?\.zip$/
 
 export function parseVersion(file: string): { at: Date; reason: string | null } | null {
   const m = VERSION.exec(file)
@@ -76,6 +82,7 @@ const REASONS: Record<string, string> = {
   'before-keep-mine': 'Before keeping your version of a scene',
   'before-use-file': 'Before using the file’s version of a scene',
   'before-use-backup': 'Before using the backup on your server',
+  'before-sync': 'Before changes from another device',
   manual: 'Saved by you',
 }
 export const reasonWords = (reason: string | null) =>

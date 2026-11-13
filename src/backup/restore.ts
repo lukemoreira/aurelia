@@ -7,6 +7,7 @@ import type { RemoteStore } from '@/storage/remote/remote-store'
 import { readZip } from '@/storage/zip'
 import { BACKUP_ROOT, currentPath, parseFolder, parseVersion, versionsDir } from './layout'
 import { readManifest } from './manifest'
+import type { BackupStore } from './state'
 
 /** A workspace that has a backup on the server. */
 export interface BackupListing {
@@ -17,6 +18,8 @@ export interface BackupListing {
   device: string | null
   deviceName: string
   lastBackup: string
+  /** The folder is kept in sync by its devices (ADR-0012): a copy may be restored "and kept in sync". */
+  sync: boolean
   files: number
   size: number
 }
@@ -36,6 +39,8 @@ export interface Problem {
 
 export interface Fetched {
   files: Map<string, Uint8Array<ArrayBuffer>>
+  /** The server's tag of each file of the latest backup, as read with it (none for a version). */
+  etags: Map<string, string | null>
   problems: Problem[]
 }
 
@@ -56,6 +61,7 @@ export async function listBackups(store: RemoteStore): Promise<BackupListing[]> 
           device: parsed.device ?? null,
           deviceName: m.deviceName,
           lastBackup: m.lastBackup,
+          sync: !!m.sync,
           files: Object.keys(m.files).length,
           size: Object.values(m.files).reduce((n, f) => n + f.size, 0),
         },
@@ -98,6 +104,7 @@ export async function fetchBackup(
   choice: 'current' | string,
 ): Promise<Fetched> {
   const files = new Map<string, Uint8Array<ArrayBuffer>>()
+  const etags = new Map<string, string | null>()
   const problems: Problem[] = []
   if (choice === 'current') {
     const found = await readManifest(store, folder)
@@ -109,6 +116,7 @@ export async function fetchBackup(
           const file = await store.read(currentPath(folder, path))
           if (!file) return void problems.push({ path, kind: 'missing' })
           files.set(path, file.bytes)
+          etags.set(path, file.etag)
           if ((await hashBytes(file.bytes)) !== expected.hash)
             problems.push({ path, kind: 'changed' })
         }),
@@ -125,7 +133,7 @@ export async function fetchBackup(
   if (!files.has(WORKSPACE_FILE) && !problems.some((p) => p.path === WORKSPACE_FILE))
     problems.push({ path: WORKSPACE_FILE, kind: 'missing' })
   for (const [path, bytes] of files) if (!isText(bytes)) problems.push({ path, kind: 'unreadable' })
-  return { files, problems: problems.sort((a, b) => a.path.localeCompare(b.path)) }
+  return { files, etags, problems: problems.sort((a, b) => a.path.localeCompare(b.path)) }
 }
 
 /** The same files under a new workspace ID: only `aurelia.json` changes. */
@@ -169,4 +177,29 @@ export async function spaceUsed(store: RemoteStore, folder: string): Promise<num
     versions.reduce((n, v) => n + v.size, 0) +
     Object.values(manifest?.manifest.files ?? {}).reduce((n, f) => n + f.size, 0)
   )
+}
+
+/**
+ * A restored copy that keeps in sync (ADR-0012): sync on, in the folder it came from, with each file's
+ * base set from the very reads it was restored from, so its first push can only be an `If-Match`
+ * against what it restored. The workspace keeps the ID of the server's folder.
+ */
+export async function joinSync(
+  store: BackupStore,
+  workspaceId: string,
+  folder: string,
+  fetched: Fetched,
+): Promise<void> {
+  const base: NonNullable<Awaited<ReturnType<BackupStore['load']>>['base']> = {}
+  for (const [path, bytes] of fetched.files) {
+    const etag = fetched.etags.get(path)
+    if (etag) base[path] = { etag, hash: await hashBytes(bytes) }
+  }
+  await store.save({
+    ...(await store.load(workspaceId)),
+    enabled: true,
+    mode: 'sync',
+    folder,
+    base,
+  })
 }

@@ -11,6 +11,9 @@ import { readZip } from '@/storage/zip'
 import type { BackupEngine } from './engine'
 import { manifestSchema, type Manifest } from './manifest'
 
+/** A version's name without the short hash of its content: the tests ask when, and why. */
+const plain = (name: string | undefined) => name?.replace(/~[0-9a-f]{8}/, '')
+
 const engines: BackupEngine[] = []
 afterEach(() => {
   for (const e of engines.splice(0)) e.dispose()
@@ -81,7 +84,7 @@ describe('turning backup on', () => {
     }
 
     const versions = rig.dav.paths(`${rig.folder}/versions/`)
-    expect(versions).toEqual([`${rig.folder}/versions/2026-11-12T18-30-00.zip`])
+    expect(versions.map(plain)).toEqual([`${rig.folder}/versions/2026-11-12T18-30-00.zip`])
     const zip = readZip(new Uint8Array(rig.dav.files.get(versions[0]!)!.bytes))
     expect(zip.map((z) => z.path).sort()).toEqual(local.map((p) => `My Book/${p}`).sort())
     expect(zip.every((z) => z.crcOk)).toBe(true)
@@ -345,7 +348,9 @@ describe('never overwriting another device', () => {
     const folder = await engine.useBackupHere()
     expect(folder).toBe(rig.folder)
     const versions = rig.dav.paths(`${rig.folder}/versions/`)
-    expect(versions).toEqual([`${rig.folder}/versions/2026-11-12T18-30-00_before-use-backup.zip`])
+    expect(versions.map(plain)).toEqual([
+      `${rig.folder}/versions/2026-11-12T18-30-00_before-use-backup.zip`,
+    ])
     const zip = readZip(new Uint8Array(rig.dav.files.get(versions[0]!)!.bytes))
     expect(zip.find((z) => z.path === 'My Book/aurelia.json')?.crcOk).toBe(true) // this browser's copy
     expect(rig.dav.text(`${rig.folder}/current/aurelia.json`)).toBe('{"theirs":true}')
@@ -362,7 +367,7 @@ describe('never overwriting another device', () => {
     const engine = track(await rig.open())
     await engine.turnOn()
     await engine.useBackupHere()
-    const names = rig.dav.paths(`${rig.folder}/versions/`).map((p) => p.split('/').at(-1))
+    const names = rig.dav.paths(`${rig.folder}/versions/`).map((p) => plain(p.split('/').at(-1)))
     expect(names).toEqual([
       '2026-10-01T10-00-00.zip',
       '2026-10-01T10-20-00.zip',
@@ -522,7 +527,8 @@ describe('versions', () => {
   it('one an hour while writing, none while idle, one before a big change, and old ones thinned', async () => {
     const rig = await backupRig()
     const engine = track(await rig.open())
-    const names = () => rig.dav.paths(`${rig.folder}/versions/`).map((p) => p.split('/').at(-1))
+    const names = () =>
+      rig.dav.paths(`${rig.folder}/versions/`).map((p) => plain(p.split('/').at(-1)))
     await engine.turnOn()
     expect(names()).toEqual(['2026-11-12T18-30-00.zip'])
 
@@ -553,7 +559,7 @@ describe('versions', () => {
       rig.dav.seed(`${rig.folder}/versions/2026-10-01T${t}.zip`, 'zip')
     const engine = track(await rig.open())
     await engine.turnOn()
-    const left = rig.dav.paths(`${rig.folder}/versions/`).map((p) => p.split('/').at(-1))
+    const left = rig.dav.paths(`${rig.folder}/versions/`).map((p) => plain(p.split('/').at(-1)))
     expect(left).toEqual(['2026-10-01T10-40-00.zip', '2026-11-12T18-30-00.zip'])
   })
 

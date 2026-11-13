@@ -124,7 +124,7 @@ describe('restoring from the server', () => {
     const rig = await backedUp()
     rig.dav.seed(`${rig.folder}/versions/2026-11-01T10-00-00_before-use-file.zip`, 'old')
     const versions = await listVersions(rig.store, rig.folder)
-    expect(versions.map((v) => [v.name, v.reason])).toEqual([
+    expect(versions.map((v) => [v.name.replace(/~[0-9a-f]{8}/, ''), v.reason])).toEqual([
       ['2026-11-12T18-30-00.zip', null],
       ['2026-11-01T10-00-00_before-use-file.zip', 'before-use-file'],
     ])
@@ -136,7 +136,7 @@ describe('restoring from the server', () => {
 
   it('refuses a version whose bytes were damaged', async () => {
     const rig = await backedUp()
-    const name = '2026-11-12T18-30-00.zip'
+    const name = (await listVersions(rig.store, rig.folder))[0]!.name
     const stored = rig.dav.files.get(`${rig.folder}/versions/${name}`)!
     const at = Buffer.from(stored.bytes).indexOf('"schemaVersion"') // inside a file's bytes, not a header
     expect(at).toBeGreaterThan(0)
@@ -177,11 +177,10 @@ describe('restoring from the server', () => {
 
   it('downloads a version as a zip and measures the space a backup takes', async () => {
     const rig = await backedUp()
-    const blob = await downloadVersion(rig.store, rig.folder, '2026-11-12T18-30-00.zip')
+    const name = (await listVersions(rig.store, rig.folder))[0]!.name
+    const blob = await downloadVersion(rig.store, rig.folder, name)
     expect(blob.type).toBe('application/zip')
-    expect(blob.size).toBe(
-      rig.dav.files.get(`${rig.folder}/versions/2026-11-12T18-30-00.zip`)!.bytes.length,
-    )
+    expect(blob.size).toBe(rig.dav.files.get(`${rig.folder}/versions/${name}`)!.bytes.length)
     const used = await spaceUsed(rig.store, rig.folder)
     expect(used).toBeGreaterThan(blob.size)
   })

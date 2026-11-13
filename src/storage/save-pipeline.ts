@@ -381,6 +381,52 @@ export class SavePipeline {
     return copy
   }
 
+  /**
+   * A text that came from another device (sync), or its removal (`text` null). It goes to the file
+   * only while the file still holds the bytes with hash `expect` (null: no file), and after any
+   * save in flight, so it is compare-and-write like every other write. Otherwise it is `deferred`:
+   * the caller looks again. Unsaved edits in the file are not touched: they stay as they are and
+   * wait as a conflict with the text that arrived (a removal never overrides them).
+   */
+  async receive(
+    path: string,
+    text: string | null,
+    expect: string | null,
+  ): Promise<'applied' | 'deferred'> {
+    const s = this.state(path)
+    const work = async (): Promise<'applied' | 'deferred'> => {
+      const disk = await this.deps.adapter.read(path)
+      if ((disk?.hash ?? null) !== expect) return 'deferred'
+      if (text === null) {
+        if (s.pending !== undefined) return 'deferred'
+        await this.deps.adapter.remove(path)
+        this.writes++
+        // `known` stays as it was until the caller reads the files again (`adopt`): text typed on the screen as
+        // it was meets a file that changed, which is a conflict, never a silent write over what arrived.
+        return 'applied'
+      }
+      await this.deps.adapter.write(path, text)
+      this.writes++
+      const hash = await hashText(text)
+      if (s.pending === text) {
+        s.pending = undefined
+        s.status = 'idle'
+        s.firstQueuedAt = undefined
+        clearTimeout(s.timer)
+        void this.journalClear(path, s)
+      } else if (s.pending !== undefined) {
+        clearTimeout(s.timer)
+        s.status = 'conflict'
+        s.theirs = { text, hash }
+      }
+      this.deps.notify()
+      return 'applied'
+    }
+    const run = s.saving.then(work)
+    s.saving = run.catch(() => undefined)
+    return run
+  }
+
   /** Access is back: try the edits that were waiting for it. */
   async reconnect(): Promise<void> {
     const blocked = [...this.files].filter(([, s]) => s.status === 'blocked')

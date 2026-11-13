@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button.vue'
 import Dialog from '@/components/ui/Dialog.vue'
 import type { SessionView } from '@/storage/session'
 
-defineProps<{ view: SessionView | null; busy: string; error: string }>()
+defineProps<{ view: SessionView | null; busy: string; error: string; sync?: boolean }>()
 defineEmits<{
   reconcile: [path: string, keep: 'original' | 'copy']
   keep: [id: string, path: string]
@@ -63,21 +63,31 @@ const path = 'break-all font-mono text-xs text-ink'
             :key="c.path"
             class="flex flex-col gap-2 rounded-control border border-line p-3"
           >
-            <p v-if="c.title !== c.original" class="m-0 font-medium text-ink">“{{ c.title }}”</p>
-            <p class="m-0 text-ink-2">
-              <span :class="path">{{ c.path }}</span><br />is a copy of
-              <span :class="path">{{ c.original }}</span>
+            <p class="m-0 font-medium text-ink">
+              “{{ c.title }}”<template v-if="sync"> — two versions</template>
             </p>
+            <p v-if="sync" class="m-0 text-ink-2">
+              One text is in the scene now; the other was set aside when two devices changed it.
+              Keep the one you want. The other is stored, never deleted.
+            </p>
+            <!-- The file names carry IDs: they are there for whoever looks, not for the author who reads. -->
+            <details class="text-ink-2">
+              <summary class="cursor-pointer">Show the files</summary>
+              <p class="m-0 mt-1">
+                <span :class="path">{{ c.path }}</span><br />is a copy of
+                <span :class="path">{{ c.original }}</span>
+              </p>
+            </details>
             <div class="flex flex-wrap gap-2">
               <Button
                 :disabled="busy === c.path || view.readOnly"
                 @click="$emit('reconcile', c.path, 'original')"
-                >Keep the original</Button
+                >{{ sync ? 'Keep the text in the scene' : 'Keep the original' }}</Button
               >
               <Button
                 :disabled="busy === c.path || view.readOnly"
                 @click="$emit('reconcile', c.path, 'copy')"
-                >Keep this copy</Button
+                >{{ sync ? 'Use the set-aside text' : 'Keep this copy' }}</Button
               >
             </div>
           </li>

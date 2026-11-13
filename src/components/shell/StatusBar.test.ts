@@ -18,10 +18,24 @@ const settle = async () => {
   }
 }
 
-function render(opts: { kind?: 'browser' | 'folder'; enabled?: boolean; server: ServerState }) {
+function render(opts: {
+  kind?: 'browser' | 'folder'
+  enabled?: boolean
+  server: ServerState
+  view?: Partial<import('@/backup/engine').BackupView>
+  workspace?: Record<string, unknown>
+}) {
   setActivePinia(createPinia())
   fakeWs.value = reactive({
-    view: { kind: opts.kind ?? 'browser', save: { kind: 'saved' }, label: 'x', persisted: null },
+    view: {
+      kind: opts.kind ?? 'browser',
+      save: { kind: 'saved' },
+      label: 'x',
+      persisted: null,
+      conflicts: [],
+      copies: [],
+      ...opts.workspace,
+    },
     words: { scene: 1, chapter: 2, book: 3, session: 4 },
     context: null,
     saveLabel: 'Saved',
@@ -38,6 +52,7 @@ function render(opts: { kind?: 'browser' | 'folder'; enabled?: boolean; server: 
         folder: 'Aurelia/x',
         error: null,
         ask: null,
+        ...opts.view,
       }
     : null
   const wrapper = mount(StatusBar, { attachTo: document.body })
@@ -77,5 +92,87 @@ describe('the status bar’s place for the work', () => {
   it('the nudge is not announced aloud (it is always there, not news)', () => {
     const { wrapper } = render({ server: 'available' })
     expect(wrapper.find('[role="status"].sr-only').text()).toBe('')
+  })
+})
+
+const SCENE = 'universes/unv_a/books/bok_b/scenes/scn_c.md'
+const synced = {
+  mode: 'sync',
+  sync: { devices: [], waiting: 0 },
+} satisfies Partial<import('@/backup/engine').BackupView>
+
+describe('a synced workspace in the status bar', () => {
+  it.each([
+    ['Synced', {}],
+    ['Syncing…', { status: 'working' }],
+    ['Offline — changes waiting', { status: 'offline', sync: { devices: [], waiting: 1 } }],
+  ] as const)('says “%s”', (words, view) => {
+    const { chip } = render({
+      enabled: true,
+      server: 'available',
+      view: { ...synced, ...view } as never,
+    })
+    expect(chip.text()).toBe(words)
+  })
+
+  it('says it aloud when offline, but not when synced or syncing', () => {
+    const say = (view: object) =>
+      render({ enabled: true, server: 'available', view: { ...synced, ...view } as never })
+        .wrapper.find('[role="status"].sr-only')
+        .text()
+    expect(say({})).toBe('')
+    expect(say({ status: 'working' })).toBe('')
+    expect(say({ status: 'offline' })).toBe('') // offline with nothing waiting is not news
+    expect(say({ status: 'offline', sync: { devices: [], waiting: 2 } })).toBe(
+      'Offline — changes waiting',
+    )
+  })
+
+  it('says a scene has two versions, in warn, and the chip opens the list where they are chosen between', async () => {
+    const { chip, layout } = render({
+      enabled: true,
+      server: 'available',
+      view: synced,
+      workspace: {
+        copies: [
+          {
+            path: `${SCENE.slice(0, -3)} (Aurelia copy 0a1b2c3d).md`,
+            original: SCENE,
+            title: 'Scene',
+          },
+        ],
+      },
+    })
+    expect(chip.text()).toBe('Conflict — 1 scene has two versions')
+    expect(chip.classes()).toContain('text-warn')
+    await chip.trigger('click')
+    await settle()
+    expect(layout.filesOpen).toBe(true)
+    expect(layout.backupOpen).toBe(false)
+  })
+
+  it('a text that arrived over unsaved edits opens the compare dialog', async () => {
+    const { chip, layout } = render({
+      enabled: true,
+      server: 'available',
+      view: synced,
+      workspace: { conflicts: [{ path: SCENE, title: 'Scene', mine: 'a', theirs: 'b' }] },
+    })
+    expect(chip.text()).toBe('Conflict — 1 scene has two versions')
+    await chip.trigger('click')
+    await settle()
+    expect(layout.comparing).toBe(SCENE)
+  })
+
+  it('plain backup keeps the details popover, whatever copies there are', async () => {
+    const { chip, layout } = render({
+      enabled: true,
+      server: 'available',
+      workspace: { copies: [{ path: 'x (copy).md', original: 'x.md', title: 'x' }] },
+    })
+    expect(chip.text()).toContain('Backed up')
+    await chip.trigger('click')
+    await settle()
+    expect(layout.filesOpen).toBe(false)
   })
 })

@@ -51,6 +51,14 @@ export const opfs = {
       for (const part of parts.slice(0, -1)) dir = await dir.getDirectoryHandle(part)
       return (await (await dir.getFileHandle(parts.at(-1)!)).getFile()).text()
     }, path),
+  /** Remove a file the way another app would: straight from the disk, not through Aurelia. */
+  remove: (page: Page, path: string) =>
+    page.evaluate(async (p) => {
+      let dir = await navigator.storage.getDirectory()
+      const parts = ['workspaces', ...p.split('/')]
+      for (const part of parts.slice(0, -1)) dir = await dir.getDirectoryHandle(part)
+      await dir.removeEntry(parts.at(-1)!)
+    }, path),
   /** Write a file the way another app would: straight to the disk, not through Aurelia. */
   write: (page: Page, path: string, text: string) =>
     page.evaluate(
@@ -76,7 +84,9 @@ export async function firstScenePath(page: Page) {
 /** Open the Backup screen from the status bar. Off, with a server there, the chip goes straight to it; otherwise it opens the details first. */
 export async function openBackupScreen(page: Page) {
   await statusBar(page)
-    .getByRole('button', { name: /browser|folder|Backup|Backed up|Backing/ })
+    .getByRole('button', {
+      name: /browser|folder|Backup|Backed up|Backing|Synced|Syncing|Offline|Conflict/,
+    })
     .click()
   const screen = page.getByRole('dialog', { name: 'Backup and versions' })
   const more = page.getByRole('button', { name: 'Backup and versions…' })

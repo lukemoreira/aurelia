@@ -368,6 +368,18 @@ Do not scaffold future features early.
 - Exit: random edit sequences on two and three devices, online and offline, never lose a
   word (property tests); a device back from a week offline gets every change and loses
   none of its own.
+- **Built (2026-11-12, [ADR-0012](docs/adr/0012-sync.md)):** per-file base (server ETag + hash) in the
+  device database; a round plans push / pull / compare / delete from three facts per file
+  (`sync-plan.ts`, pure) and acts with `If-Match` / `If-None-Match` only (`sync.ts`); a conflict keeps
+  the device's text in the file and the server's as `… (Aurelia copy <hash>).md` that reaches every
+  device; deletes are tombstones in `backup.json` (`sync.devices` replaces the single-writer rule);
+  remote changes are applied through the session (`applyRemote` → `pipeline.receive`: compare-and-write
+  after any save in flight, unsaved edits become the M2 conflict); a `before-sync` version first;
+  restore "…and keep it in sync" keeps the folder's workspace ID with each file's base from the restore's
+  own reads. Status bar: Synced / Syncing… / Offline — changes waiting / Conflict — 1 scene has two
+  versions. Property tests (random edits, creates, deletes, moves, offline periods, 2 and 3 devices)
+  and two-browser end-to-end tests pass. Left: sync through Google Drive and OneDrive (M10), a
+  three-way merge of texts (a conflict keeps both whole), the real storage container in the sync run.
 
 ### Release v0.2 "Plan" — shape the story
 
@@ -562,3 +574,8 @@ backup — ADR-0009.)
   keyboard, Unfiled), duplicate-ID choice, the inspector's fields, and the World view with
   record sheets for characters, places and the other types. Parallel browser tests: set
   `E2E_PORT` (`E2E_PORT=4175 npm run e2e`). Next: M3b (links, backlinks, search, names).
+- 2026-11-12 — M4b Sync through your server (branch `feat/m4b-sync`): two-way sync of a workspace
+  between devices through the WebDAV target, per ADR-0012. The one engine has two modes (backup, sync);
+  with sync on, the sync round replaces the plain upload and versions, retention, retries and "sign in
+  again" are shared. Random-order property tests prove: no saved word is lost, devices converge,
+  a deleted file does not silently return, nothing reaches `current/` without a precondition.

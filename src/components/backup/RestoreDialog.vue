@@ -1,7 +1,8 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import Checkbox from '@/components/ui/Checkbox.vue'
 import Dialog from '@/components/ui/Dialog.vue'
 import { useAppUpdate } from '@/composables/useAppUpdate'
 import { INSECURE_REASON, NO_STORAGE_REASON, insecurePage } from '@/composables/useOpenWorkspace'
@@ -30,10 +31,17 @@ const ago = (iso: string) => agoWords(Date.parse(iso), nowMs())
 const when = (at: Date) => versionWhen(at, nowMs())
 
 const PROBLEM = {
-  missing: 'is missing from your server',
-  changed: 'does not match what was backed up',
-  unreadable: 'is not text Aurelia can read',
+  missing: (n: number) => `${n} ${n === 1 ? 'file is' : 'files are'} missing from your server`,
+  changed: (n: number) => `${n} ${n === 1 ? 'file does' : 'files do'} not match what was backed up`,
+  unreadable: (n: number) => `${n} ${n === 1 ? 'file is' : 'files are'} not text Aurelia can read`,
 } as const
+/** What went wrong, counted: the file names carry IDs, so they wait in a fold-out. */
+const summary = computed(() =>
+  (['missing', 'changed', 'unreadable'] as const).flatMap((kind) => {
+    const n = r.problems.filter((p) => p.kind === kind).length
+    return n ? [PROBLEM[kind](n)] : []
+  }),
+)
 
 const DESCRIPTION = {
   workspaces: 'Choose a workspace backed up on your server.',
@@ -72,8 +80,8 @@ const row =
             <button type="button" :class="row" @click="r.pick(l)">
               <span class="text-sm font-semibold text-ink">{{ l.name }}</span>
               <span class="text-[12.5px] text-ink-2">
-                Backed up {{ ago(l.lastBackup) }} from {{ l.deviceName }} · {{ l.files }} files ·
-                {{ sizeWords(l.size) }}
+                {{ l.sync ? 'Kept in sync' : 'Backed up' }} {{ ago(l.lastBackup) }} from
+                {{ l.deviceName }} · {{ l.files }} files · {{ sizeWords(l.size) }}
               </span>
             </button>
           </li>
@@ -110,6 +118,13 @@ const row =
         <h3 data-step-focus tabindex="-1" :class="[landing, 'm-0 text-sm font-semibold']">
           Where should “{{ r.picked?.name }}” go?
         </h3>
+        <div v-if="r.canKeepInSync" class="flex flex-col gap-0.5">
+          <Checkbox v-model="r.keepInSync" label="Keep it in sync with your other devices" />
+          <p class="m-0 pl-7 text-[12.5px] text-ink-2">
+            This copy stays one workspace with your other devices. Changes go both ways; if two
+            devices change the same scene, both versions are kept.
+          </p>
+        </div>
         <!-- Busy is said, not disabled: a disabled button would drop the focus that is on it. -->
         <button
           type="button"
@@ -145,11 +160,16 @@ const row =
           The backup did not pass the check, so nothing was opened.
         </p>
         <ul class="m-0 flex list-none flex-col gap-1 p-0 text-[12.5px] text-ink-2">
-          <li v-for="p in r.problems" :key="p.path">
-            <code class="rounded-[4px] bg-raised px-1 py-px text-ink">{{ p.path }}</code>
-            {{ PROBLEM[p.kind] }}
-          </li>
+          <li v-for="line in summary" :key="line">{{ line }}</li>
         </ul>
+        <details class="text-[12.5px] text-ink-2">
+          <summary class="cursor-pointer">Show the files</summary>
+          <ul class="m-0 mt-1 flex list-none flex-col gap-1 p-0">
+            <li v-for="p in r.problems" :key="p.path">
+              <code class="rounded-[4px] bg-raised px-1 py-px text-ink">{{ p.path }}</code>
+            </li>
+          </ul>
+        </details>
         <p class="m-0 text-ink-2">Try an earlier version, or look at the files on your server.</p>
       </template>
 

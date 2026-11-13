@@ -2,6 +2,7 @@
 // The app's wiring for backup: the author's own server at /dav/, and this device's state.
 import { deviceDb } from '@/storage/device-db'
 import { WebDavStore } from '@/storage/remote/webdav-store'
+import { regenerateOutlines } from '@/storage/outline-actions'
 import type { WorkspaceSession } from '@/storage/session'
 import { BackupEngine } from './engine'
 import { BackupStore } from './state'
@@ -20,6 +21,8 @@ export const openBackup = (session: WorkspaceSession) =>
       flush: () => session.flush(),
       blocked: () => session.view().readOnly, // read-only, or settling after a tab took over
       subscribe: (fn) => session.subscribe(fn),
+      apply: (changes) => session.applyRemote(changes),
+      regenerate: () => regenerateOutlines(session),
     },
     store: server,
     state: backupState,
