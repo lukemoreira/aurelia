@@ -15,12 +15,13 @@ export async function backupRig(opts: { userAgent?: string; workspaceName?: stri
   const dav = new FakeDav()
   const adapter = new MemoryAdapter()
   await createWorkspace(adapter, opts.workspaceName ?? 'My Book', id)
+  let name = opts.workspaceName ?? 'My Book'
   let blocked = false
   let flushing: () => Promise<void> = async () => undefined
   const listeners = new Set<() => void>()
   const source: BackupSource = {
     id,
-    name: () => opts.workspaceName ?? 'My Book',
+    name: () => name,
     adapter,
     flush: () => flushing(),
     blocked: () => blocked,
@@ -62,6 +63,8 @@ export async function backupRig(opts: { userAgent?: string; workspaceName?: stri
     /** What a change in the workspace tells the engine (the session's own notification). */
     notify: () => listeners.forEach((fn) => fn()),
     setBlocked: (b: boolean) => (blocked = b),
+    /** The author renamed the workspace: the engine reads the name live, as the app's wiring does. */
+    setName: (n: string) => (name = n),
     /** What the session's `flush()` does: a test can hold it, as a save in flight would. */
     onFlush: (fn: () => Promise<void>) => (flushing = fn),
     advance: (ms: number) => (clock += ms),

@@ -11,6 +11,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { altLabel, modLabel } from './useKeyboardShortcuts'
 import { useNavigation } from './useNavigation'
 import { useNewScene } from './useNewScene'
+import { useRenameReason } from './useRenameWorkspace'
 import { useTheme } from './useTheme'
 
 export interface PaletteItem {
@@ -21,6 +22,10 @@ export interface PaletteItem {
   icon: IconName
   hint?: string
   color?: string
+  /** Opens a dialog: runs once the palette has closed and focus is back where it was. */
+  afterClose?: boolean
+  /** Shown but not available: `sub` says why. */
+  disabled?: boolean
   /** The entry key a pin toggles. Actions have none. */
   pinKey?: string
   run: () => void
@@ -48,6 +53,7 @@ export function usePalette() {
   const newScene = useNewScene()
   const router = useRouter()
   const { resolved, setTheme } = useTheme()
+  const renameReason = useRenameReason()
 
   const query = ref('')
   const highlighted = ref<string>()
@@ -98,6 +104,20 @@ export function usePalette() {
               sub: 'Storage',
               icon: 'cloud' as const,
               run: () => (layout.backupOpen = true),
+            },
+          ]
+        : []),
+      // Not in the sample, which is only a tour.
+      ...(ws.view
+        ? [
+            {
+              id: 'action:rename',
+              title: 'Rename workspace…',
+              sub: renameReason.value ?? 'Workspace',
+              icon: 'write' as const,
+              disabled: !!renameReason.value,
+              afterClose: true,
+              run: () => (layout.renameOpen = true),
             },
           ]
         : []),
@@ -174,8 +194,10 @@ export function usePalette() {
   const resultIds = computed(() => items.value.map((i) => i.id).join('|'))
 
   function choose(item: PaletteItem) {
+    if (item.disabled) return
     layout.paletteOpen = false
-    item.run()
+    if (item.afterClose) layout.paletteThen = item.run
+    else item.run()
   }
   /** Pin or unpin the highlighted result: the keyboard way to what the pin button does. */
   function togglePinHighlighted() {

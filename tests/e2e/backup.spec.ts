@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import AxeBuilder from '@axe-core/playwright'
 import { createHash } from 'node:crypto'
-import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { FakeDav } from '../helpers/fake-dav'
+import { serveDav } from '../helpers/serve-dav'
 import {
   banner,
   createBrowserWorkspace,
@@ -18,25 +19,6 @@ import {
 // to `/dav/` — so they can later run against the real container too.
 test.use({ serviceWorkers: 'block', viewport: { width: 1440, height: 900 } })
 const shots = 'test-results/m2b-screenshots'
-
-async function serveDav(context: BrowserContext, dav: FakeDav) {
-  await context.route('**/dav/**', async (route) => {
-    const request = route.request()
-    const url = new URL(request.url())
-    const r = dav.handle({
-      method: request.method(),
-      path: decodeURIComponent(url.pathname).replace(/^\/dav\/?/, ''),
-      headers: request.headers(),
-      body: request.postDataBuffer(),
-    })
-    await route.fulfill({
-      status: r.status,
-      headers: r.headers,
-      body:
-        typeof r.body === 'string' || r.body === null ? (r.body ?? undefined) : Buffer.from(r.body),
-    })
-  })
-}
 
 const dialog = (page: Page) => page.getByRole('dialog', { name: 'Backup and versions' })
 /** Serious accessibility problems inside the open dialog (the page behind its overlay is not under test). */

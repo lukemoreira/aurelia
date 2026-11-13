@@ -85,6 +85,43 @@ describe('turning backup on', () => {
   })
 })
 
+describe('a renamed workspace', () => {
+  /** What the workspace's own rename writes: only the name in aurelia.json changes. */
+  async function rename(rig: Awaited<ReturnType<typeof backupRig>>, name: string) {
+    const main = (await rig.adapter.read('aurelia.json'))!.text
+    await rig.adapter.write('aurelia.json', main.replace('"My Book"', JSON.stringify(name)))
+    rig.setName(name)
+  }
+
+  it('keeps its server folder, uploads the changed aurelia.json and says the new name in backup.json', async () => {
+    const rig = await backupRig()
+    const engine = track(await rig.open())
+    await engine.turnOn()
+    expect(engine.view().name).toBe('My Book')
+    await rename(rig, 'Renamed Book')
+    await engine.run()
+
+    expect(rig.dav.paths().filter((p) => p.endsWith('backup.json'))).toEqual([
+      `${rig.folder}/backup.json`,
+    ])
+    expect(manifestOf(rig)).toMatchObject({ name: 'Renamed Book', revision: 2, complete: true })
+    expect(JSON.parse(rig.dav.text(`${rig.folder}/current/aurelia.json`)!).name).toBe(
+      'Renamed Book',
+    )
+    expect(engine.view()).toMatchObject({ name: 'Renamed Book', folder: rig.folder })
+  })
+
+  it('remembers the name across a reload (the device database holds it)', async () => {
+    const rig = await backupRig()
+    const first = track(await rig.open())
+    await first.turnOn()
+    await rename(rig, 'Renamed Book')
+    await first.run()
+    first.dispose()
+    expect((await rig.open()).view().name).toBe('Renamed Book')
+  })
+})
+
 describe('what goes up', () => {
   it('only the files whose hash changed — and nothing at all when nothing changed', async () => {
     const rig = await backupRig()

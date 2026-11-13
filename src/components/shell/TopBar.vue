@@ -11,6 +11,7 @@ import StorageDetails from '@/components/workspace/StorageDetails.vue'
 import { buttonBase, iconSizeClass } from '@/components/ui/buttonStyles'
 import type { IconName } from '@/domain/ui-names'
 import { modLabel, searchLabel } from '@/composables/useKeyboardShortcuts'
+import { useOpenDialogFromMenu } from '@/composables/useOpenDialogFromMenu'
 import { useNavigation } from '@/composables/useNavigation'
 import { useTheme } from '@/composables/useTheme'
 import type { ViewName } from '@/router'
@@ -25,6 +26,9 @@ const nav = useNavigation()
 const route = useRoute()
 const { resolved, setTheme } = useTheme()
 const settingsOpen = ref(false)
+const detailsOpen = ref(false)
+const detailsTrigger = ref<HTMLElement | null>(null)
+const openFromDetails = useOpenDialogFromMenu(detailsOpen, detailsTrigger)
 
 const books = computed(
   () =>
@@ -112,9 +116,10 @@ const iconButton = [buttonBase, iconSizeClass.md, 'text-ink-2 hover:bg-raised ho
       >
     </div>
 
-    <Popover>
+    <Popover v-model:open="detailsOpen">
       <template #trigger>
         <button
+          ref="detailsTrigger"
           type="button"
           class="flex h-8 shrink-0 items-center gap-[7px] rounded-control px-2.5 text-[12.5px] font-medium text-ink-2 hover:bg-raised hover:text-ink"
         >
@@ -123,7 +128,10 @@ const iconButton = [buttonBase, iconSizeClass.md, 'text-ink-2 hover:bg-raised ho
           }}</span>
         </button>
       </template>
-      <StorageDetails />
+      <StorageDetails
+        @backup="openFromDetails('backupOpen')"
+        @rename="openFromDetails('renameOpen')"
+      />
     </Popover>
 
     <Popover>

@@ -14,6 +14,18 @@ const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`
 
 export const MAX_NAME = 80
 
+/** The one check for a workspace name, when creating and when renaming: trimmed, not empty, not long, no hidden characters. */
+export function checkWorkspaceName(raw: string): { name: string; error: string; ok: boolean } {
+  const name = raw.trim()
+  const error =
+    name.length > MAX_NAME
+      ? `Keep the name under ${MAX_NAME} letters.`
+      : /\p{Cc}/u.test(name)
+        ? 'Take out the line breaks and other hidden characters.'
+        : ''
+  return { name, error, ok: name.length > 0 && !error }
+}
+
 /** What is in a folder someone picked: a workspace, nothing, or something that is not ours to write into. */
 export type FolderState =
   { state: 'workspace' } | { state: 'empty' } | { state: 'other'; names: string[] }

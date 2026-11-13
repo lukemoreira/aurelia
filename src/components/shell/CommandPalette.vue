@@ -28,6 +28,12 @@ const layout = useLayoutStore()
 const ws = useWorkspaceStore()
 const { paletteOpen } = storeToRefs(layout)
 const returnFocus = useReturnFocus(paletteOpen)
+function closed(event: Event) {
+  returnFocus(event)
+  const then = layout.paletteThen
+  layout.paletteThen = null
+  then?.()
+}
 const { query, groups, items, resultIds, highlighted, choose, togglePinHighlighted, isPinned } =
   usePalette()
 
@@ -87,7 +93,7 @@ const iconStyle = (item: PaletteItem) =>
       <DialogContent
         aria-describedby=""
         class="fixed left-1/2 top-[10vh] z-50 flex max-h-[min(480px,80vh)] w-[calc(100vw-1.5rem)] max-w-[640px] -translate-x-1/2 flex-col overflow-hidden rounded-[14px] border border-line bg-surface text-[13px] text-ink shadow-card"
-        @close-auto-focus="returnFocus"
+        @close-auto-focus="closed"
         @keydown="onKeydown"
       >
         <DialogTitle class="sr-only">Command palette</DialogTitle>
@@ -136,7 +142,8 @@ const iconStyle = (item: PaletteItem) =>
                   v-for="item in g.items"
                   :key="item.id"
                   :value="item.id"
-                  class="group flex h-11 cursor-pointer items-center gap-2.5 rounded-control px-2.5 data-[highlighted]:bg-gold-soft"
+                  :disabled="item.disabled"
+                  class="group flex h-11 cursor-pointer items-center gap-2.5 rounded-control px-2.5 data-[disabled]:cursor-not-allowed data-[highlighted]:bg-gold-soft"
                   @select="onSelect(item)"
                 >
                   <span

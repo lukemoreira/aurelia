@@ -76,6 +76,8 @@ describe('backup words', () => {
       'Aurelia › My Book',
     )
     expect(folderWords('Aurelia/Not ours')).toBe('Aurelia › Not ours')
+    // The folder keeps the first name; the current one, when known, is what the author sees.
+    expect(folderWords('Aurelia/My Book (wsp_abc1234567)', 'Renamed')).toBe('Aurelia › Renamed')
   })
 
   it('has one answer for what "keep this storage" came to, and it is plain', () => {

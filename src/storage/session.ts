@@ -6,15 +6,18 @@ import { CURRENT_SCHEMA_VERSION } from '@/domain/schema/common'
 import type { Scene } from '@/domain/schema/scene'
 import type { WorkspaceData } from '@/domain/workspace-data'
 import { moveFile, type AdapterKind, type StorageAdapter } from './adapter'
+import { checkWorkspaceName } from './create'
 import { OpenError, StorageError, isPermissionError, wordsFor } from './errors'
 import { encode } from './hash'
 import { guardWrites } from './guard-writes'
 import { withBody, newHead } from './frontmatter'
 import type { Journal } from './journal'
 import { loadWorkspace, type ConflictedCopy, type LoadedWorkspace, type Problem } from './load'
-import { classify, conflictedCopyOf, conflictsPathFor, scenePath } from './paths'
+import { WORKSPACE_FILE, classify, conflictedCopyOf, conflictsPathFor, scenePath } from './paths'
+import { renameInWorkspaceJson, workspaceNameIn } from './rename-workspace'
 import { SavePipeline, type SaveSummary } from './save-pipeline'
 import { parseSceneFile } from './scene-file'
+import { renameBlock } from './status'
 import { zipFiles } from './zip'
 
 export interface Note {
@@ -73,6 +76,10 @@ export interface SessionDeps {
 
 const key = (items: object[]) => JSON.stringify(items)
 
+/** What a conflict shows of a file: the writing, and for the workspace file just its name. */
+const shown = (path: string, text: string) =>
+  path === WORKSPACE_FILE ? `Workspace name: ${workspaceNameIn(text) ?? '(unreadable)'}` : text
+
 /**
  * An open workspace: the data on screen, and everything that keeps it true to the files —
  * saving (one pipeline), conflicts, external changes, conflicted copies, lost permission.
@@ -92,6 +99,8 @@ export class WorkspaceSession {
   private settling = false
   private releaseLock?: () => void
   private stopWaiting = new AbortController()
+  /** `aurelia.json` as last read from the files. */
+  private workspaceText: string
   private heads: Map<string, string>
   private scenePaths: Map<string, string>
   private problems: Problem[]
@@ -116,6 +125,7 @@ export class WorkspaceSession {
   ) {
     this.data = loaded.data
     this.newer = loaded.readOnly
+    this.workspaceText = loaded.workspaceText
     this.heads = loaded.heads
     this.scenePaths = loaded.scenePaths
     this.problems = loaded.problems
@@ -214,6 +224,7 @@ export class WorkspaceSession {
   }
 
   private titleOf(path: string): string {
+    if (path === WORKSPACE_FILE) return 'Workspace settings'
     for (const [id, p] of this.scenePaths)
       if (p === path) return this.data.scenes.find((s) => s.meta.id === id)?.meta.title ?? path
     return path
@@ -232,7 +243,12 @@ export class WorkspaceSession {
       settling: this.settling,
       save,
       permissionLost: this.permissionLost || save.kind === 'blocked',
-      conflicts: this.pipeline.conflicts().map((c) => ({ ...c, title: this.titleOf(c.path) })),
+      conflicts: this.pipeline.conflicts().map((c) => ({
+        ...c,
+        mine: shown(c.path, c.mine),
+        theirs: c.theirs === null ? null : shown(c.path, c.theirs),
+        title: this.titleOf(c.path),
+      })),
       copies: this.copies.map((c) => ({ ...c, title: this.titleOf(c.original) })),
       problems: this.problems,
       notes: this.notes,
@@ -323,6 +339,27 @@ export class WorkspaceSession {
     await this.pipeline.edit(path, head)
     await this.pipeline.flush(path)
     return meta.id
+  }
+
+  /**
+   * Change the workspace's name: only the name in `aurelia.json`, through the save pipeline
+   * (journal first, compare-and-write). A file changed outside Aurelia is the conflict flow's.
+   */
+  async renameWorkspace(raw: string): Promise<void> {
+    const why = renameBlock(this.view())
+    if (why) throw new StorageError('read-only', why)
+    const { name, error, ok } = checkWorkspaceName(raw)
+    if (!ok) throw new StorageError('other', error || 'Give the workspace a name.')
+    if (name === this.data.workspace.name) return
+    const base = this.pipeline.pendingEntries().get(WORKSPACE_FILE) ?? this.workspaceText
+    const text = renameInWorkspaceJson(base, name)
+    this.wrote = true
+    this.data = { ...this.data, workspace: { ...this.data.workspace, name } }
+    const written = this.pipeline.edit(WORKSPACE_FILE, text)
+    this.changed()
+    await written
+    await this.pipeline.flush(WORKSPACE_FILE)
+    if (!this.pipeline.isBusy(WORKSPACE_FILE)) this.workspaceText = text
   }
 
   flush(): Promise<void> {
@@ -427,6 +464,7 @@ export class WorkspaceSession {
   private apply(loaded: LoadedWorkspace) {
     this.pipeline.adopt(loaded.hashes)
     this.newer = loaded.readOnly
+    this.workspaceText = loaded.workspaceText
     this.heads = loaded.heads
     this.scenePaths = loaded.scenePaths
     this.problems = loaded.problems
@@ -444,6 +482,10 @@ export class WorkspaceSession {
 
   /** `data` with a scene file's text shown as the scene (and its head kept for the next edit). */
   private showText(data: WorkspaceData, path: string, text: string): WorkspaceData {
+    if (path === WORKSPACE_FILE) {
+      const name = workspaceNameIn(text)
+      return name === undefined ? data : { ...data, workspace: { ...data.workspace, name } }
+    }
     // A copy of a scene carries the scene's ID: shown as the scene, it would replace it.
     if (classify(path).kind !== 'scene' || conflictedCopyOf(path)) return data
     try {
@@ -506,11 +548,19 @@ export class WorkspaceSession {
   // ---- the author's choices --------------------------------------------------------------
 
   async resolveConflict(path: string, choice: 'theirs' | 'mine'): Promise<void> {
-    const theirs = this.pipeline.conflicts().find((c) => c.path === path)?.theirs
+    const found = this.pipeline.conflicts().find((c) => c.path === path)
+    const theirs = found?.theirs
+    // Keeping my rename keeps the file as it now is, with only my name put in it.
+    if (choice === 'mine' && path === WORKSPACE_FILE && typeof theirs === 'string') {
+      const name = workspaceNameIn(found!.mine)
+      if (name !== undefined)
+        await this.pipeline.edit(path, renameInWorkspaceJson(theirs, name)).catch(() => undefined)
+    }
     const copy = await this.pipeline.resolve(path, choice)
     // The conflict is gone from the view now: show the file's text at once, so a key typed
     // before the files are read again is typed on it, not on the text just set aside.
     if (choice === 'theirs' && typeof theirs === 'string' && !this.pipeline.isBusy(path)) {
+      if (path === WORKSPACE_FILE) this.workspaceText = theirs
       this.data = this.showText(this.data, path, theirs)
       this.changed()
     }

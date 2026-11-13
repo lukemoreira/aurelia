@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button.vue'
 import Dialog from '@/components/ui/Dialog.vue'
 import Field from '@/components/ui/Field.vue'
 import Input from '@/components/ui/Input.vue'
-import { MAX_NAME } from '@/storage/create'
+import { checkWorkspaceName } from '@/storage/create'
 
 const props = defineProps<{ where: 'folder' | 'browser' | null; busy: boolean }>()
 const emit = defineEmits<{ create: [name: string]; cancel: [] }>()
@@ -22,12 +22,9 @@ function focusName(event: Event) {
   form.value?.querySelector('input')?.focus()
 }
 
-const trimmed = computed(() => name.value.trim())
-const error = computed(() =>
-  trimmed.value.length > MAX_NAME ? `Keep the name under ${MAX_NAME} letters.` : '',
-)
-const ready = computed(() => trimmed.value.length > 0 && !error.value)
-const submit = () => ready.value && !props.busy && emit('create', trimmed.value)
+const checked = computed(() => checkWorkspaceName(name.value))
+const error = computed(() => checked.value.error)
+const submit = () => checked.value.ok && !props.busy && emit('create', checked.value.name)
 </script>
 
 <template>
@@ -53,7 +50,7 @@ const submit = () => ready.value && !props.busy && emit('create', trimmed.value)
         type="submit"
         form="new-workspace"
         :loading="busy"
-        :disabled="!ready"
+        :disabled="!checked.ok"
         >Create workspace</Button
       >
     </template>

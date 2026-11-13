@@ -1,15 +1,18 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import { useDownloadCopy } from '@/composables/useDownloadCopy'
+import { useRenameReason } from '@/composables/useRenameWorkspace'
 import { backupWords, persistedWords } from '@/backup/words'
 import { useBackupStore } from '@/stores/backup'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const ws = useWorkspaceStore()
 const backup = useBackupStore()
-defineEmits<{ backup: [] }>()
+defineEmits<{ backup: []; rename: [] }>()
+const renameReason = useRenameReason()
+const reasonId = useId()
 const { download, busy, error } = useDownloadCopy()
 
 // A copy on the server changes what "only in this browser" means.
@@ -39,6 +42,15 @@ const protection = computed(() => persistedWords(ws.view?.persisted))
     </template>
     <Button variant="primary" @click="$emit('backup')">Backup and versions…</Button>
     <Button :loading="busy" @click="download">Download a copy (.zip)</Button>
+    <Button
+      :aria-disabled="renameReason ? 'true' : undefined"
+      :aria-describedby="renameReason ? reasonId : undefined"
+      class="aria-disabled:cursor-not-allowed aria-disabled:border-transparent aria-disabled:bg-raised aria-disabled:text-ink-3"
+      @click="!renameReason && $emit('rename')"
+    >
+      Rename workspace…
+    </Button>
+    <p v-if="renameReason" :id="reasonId" class="m-0 text-xs text-ink-3">{{ renameReason }}</p>
     <p v-if="error" role="alert" class="m-0 text-xs font-medium text-danger">{{ error }}</p>
   </div>
   <div v-else class="flex flex-col gap-1">

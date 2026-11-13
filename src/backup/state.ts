@@ -13,6 +13,8 @@ export interface BackupState {
   uploaded: Record<string, string>
   /** `backup.json` was claimed (`complete: false`) and not yet closed: look at the server again even if no file changed. */
   claimOpen?: boolean
+  /** The workspace name `backup.json` last said: the folder keeps its first name, this is the current one. */
+  name?: string
   lastBackup: number | null
   lastVersion: number | null
   /** A version is owed: why. `hourly` has no mark in its name. */

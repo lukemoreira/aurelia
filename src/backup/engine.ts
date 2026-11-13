@@ -38,6 +38,8 @@ export interface BackupView {
   status: BackupStatus
   lastBackup: number | null
   folder: string | null
+  /** The name `backup.json` carries now; the folder's own name is the first one the workspace had. */
+  name?: string
   /** Plain words for what went wrong, while it has. */
   error: string | null
   /** Another device owns the backup folder: the author chooses (Keep both / Use the backup here). */
@@ -119,6 +121,7 @@ export class BackupEngine {
       status: this.status,
       lastBackup: this.s.lastBackup,
       folder: this.s.folder,
+      ...(this.s.name ? { name: this.s.name } : {}),
       error: this.error,
       ask: this.ask,
     }
@@ -289,11 +292,13 @@ export class BackupEngine {
         tag,
       )
       s.claimOpen = false
+      s.name = head.name
       s.revision = revision + 1
       s.uploaded = hashesOf(files)
     } else {
       s.claimOpen = false
       s.revision = revision
+      if (found?.manifest.name) s.name = found.manifest.name
       s.uploaded = { ...base }
     }
     s.lastBackup = at

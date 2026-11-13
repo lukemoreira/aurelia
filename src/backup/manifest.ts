@@ -9,7 +9,8 @@ import { manifestPath } from './layout'
 export const manifestSchema = z.object({
   schemaVersion: z.literal(1),
   workspaceId: z.string(),
-  name: z.string(),
+  /** The workspace's name when it was last backed up. Older manifests have none: the folder's name stands in. */
+  name: z.string().optional(),
   deviceId: z.string(),
   deviceName: z.string(),
   /** Goes up by one each time a device claims the folder for a round of uploads. */

@@ -56,12 +56,15 @@ export function sizeWords(bytes: number): string {
   return `${(bytes / 1_000_000_000).toFixed(1)} GB`
 }
 
-/** `Aurelia › My Book`: where a backup folder is, for the author. The workspace ID is never shown. */
-export function folderWords(folder: string): string {
+/**
+ * `Aurelia › My Book`: where a backup folder is, for the author. The workspace ID is never shown.
+ * `name` is the workspace's current name (the folder keeps the first one); without it the folder's own.
+ */
+export function folderWords(folder: string, name?: string): string {
   const slash = folder.indexOf('/')
   if (slash < 0) return folder
   const rest = folder.slice(slash + 1)
-  return `${folder.slice(0, slash)} › ${parseFolder(rest)?.name ?? rest}`
+  return `${folder.slice(0, slash)} › ${name ?? parseFolder(rest)?.name ?? rest}`
 }
 
 /** ADR-0009 §1: the browser's answer to "keep this storage", in plain words. One place for every screen. */

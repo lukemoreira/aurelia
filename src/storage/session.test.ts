@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { newId } from '@/domain/ids'
 import { FakeLocks } from '../../tests/helpers/fake-locks'
 import { readZip } from '../../tests/helpers/read-zip'
-import { createWorkspace, inspectFolder } from './create'
+import { checkWorkspaceName, createWorkspace, inspectFolder } from './create'
 import { openDeviceDb } from './device-db'
 import { splitDocument } from './frontmatter'
 import { hashText } from './hash'
@@ -709,5 +709,177 @@ describe('no IndexedDB', () => {
     ).toBe(true)
     expect(session.view().save.kind).toBe('saved')
     expect(session.view().journalFailed).toBe(true)
+  })
+})
+
+describe('renaming the workspace', () => {
+  const nameOnDisk = async () => JSON.parse((await adapter.read('aurelia.json'))!.text).name
+
+  it('changes only the name in aurelia.json, byte for byte, and shows it at once', async () => {
+    const before = (await adapter.read('aurelia.json'))!.text
+    const session = await open()
+    await session.renameWorkspace('  A better name ')
+    expect(session.data.workspace.name).toBe('A better name')
+    expect(session.view().name).toBe('A better name')
+    expect((await adapter.read('aurelia.json'))!.text).toBe(
+      before.replace('"My Book"', '"A better name"'),
+    )
+    expect(session.view().save.kind).toBe('saved')
+  })
+
+  it('goes through the save pipeline: the journal has the text before the file is touched, and is cleared after', async () => {
+    const session = await open()
+    const seen: unknown[] = []
+    adapter.beforeWrite = async (path) => {
+      if (path === 'aurelia.json')
+        seen.push((await journal.list(session.data.workspace.id)).map((e) => e.path))
+    }
+    await session.renameWorkspace('Journaled')
+    expect(seen).toEqual([['aurelia.json']])
+    expect(await journal.list(session.data.workspace.id)).toEqual([])
+  })
+
+  it('does not write when the name did not change', async () => {
+    const session = await open()
+    const writes = vi.spyOn(adapter, 'write')
+    await session.renameWorkspace(' My Book ')
+    expect(writes).not.toHaveBeenCalled()
+  })
+
+  it('opens the conflict flow, naming it "Workspace settings", when aurelia.json changed outside Aurelia — nothing is overwritten', async () => {
+    const session = await open()
+    const outside = (await adapter.read('aurelia.json'))!.text.replace('"My Book"', '"Their name"')
+    await adapter.write('aurelia.json', outside)
+    await session.renameWorkspace('My name')
+    const view = session.view()
+    expect(view.save.kind).toBe('conflict')
+    expect((await adapter.read('aurelia.json'))!.text).toBe(outside)
+    expect(view.conflicts).toEqual([
+      expect.objectContaining({
+        path: 'aurelia.json',
+        title: 'Workspace settings',
+        mine: 'Workspace name: My name',
+        theirs: 'Workspace name: Their name',
+      }),
+    ])
+    expect(session.data.workspace.name).toBe('My name') // the author still sees their name
+    // Using the file's version keeps both: ours becomes a copy, the file's name is shown.
+    await session.resolveConflict('aurelia.json', 'theirs')
+    expect(session.data.workspace.name).toBe('Their name')
+    expect(await nameOnDisk()).toBe('Their name')
+  })
+
+  it('keeping mine after a conflict writes our name and sets the file’s text aside as a copy', async () => {
+    const session = await open()
+    await adapter.write(
+      'aurelia.json',
+      (await adapter.read('aurelia.json'))!.text.replace('My Book', 'Theirs'),
+    )
+    await session.renameWorkspace('Mine')
+    await session.resolveConflict('aurelia.json', 'mine')
+    expect(await nameOnDisk()).toBe('Mine')
+    const copy = (await adapter.list()).find((p) => p.includes('Aurelia copy'))!
+    expect(JSON.parse((await adapter.read(copy))!.text).name).toBe('Theirs')
+  })
+
+  it('keeping mine after another device changed aurelia.json keeps their file and only my name', async () => {
+    const session = await open()
+    const before = (await adapter.read('aurelia.json'))!.text
+    await adapter.write('aurelia.json', before.replace('}\n', ',\n  "x-note": 7\n}\n'))
+    await session.renameWorkspace('Mine')
+    await session.resolveConflict('aurelia.json', 'mine')
+    expect(JSON.parse((await adapter.read('aurelia.json'))!.text)).toMatchObject({
+      name: 'Mine',
+      'x-note': 7,
+    })
+  })
+
+  it('after using theirs, a rename started before the files are re-read builds on their file', async () => {
+    const session = await open()
+    const before = (await adapter.read('aurelia.json'))!.text
+    await adapter.write('aurelia.json', before.replace('}\n', ',\n  "x-note": 7\n}\n'))
+    await session.renameWorkspace('Mine')
+    const refresh = session.refresh.bind(session)
+    vi.spyOn(session, 'refresh').mockImplementation(async () => {
+      await session.renameWorkspace('Second')
+      await refresh()
+    })
+    await session.resolveConflict('aurelia.json', 'theirs')
+    expect(JSON.parse((await adapter.read('aurelia.json'))!.text)).toMatchObject({
+      name: 'Second',
+      'x-note': 7,
+    })
+  })
+
+  it('an unsaved rename stays on screen when the files are read again', async () => {
+    const session = await open()
+    adapter.beforeWrite = () => {
+      throw new Error('disk full')
+    }
+    const wrote = session.renameWorkspace('Kept on screen')
+    await wrote.catch(() => undefined)
+    adapter.beforeWrite = undefined
+    await session.refresh()
+    expect(session.data.workspace.name).toBe('Kept on screen')
+    expect(await nameOnDisk()).toBe('My Book')
+  })
+
+  it('picks up a rename made outside Aurelia and builds the next rename on that file', async () => {
+    const session = await open()
+    await adapter.write(
+      'aurelia.json',
+      (await adapter.read('aurelia.json'))!.text
+        .replace('"My Book"', '"Elsewhere"')
+        .replace('}\n', ',\n  "x-note": 1\n}\n'),
+    )
+    await session.checkAll()
+    expect(session.data.workspace.name).toBe('Elsewhere')
+    await session.renameWorkspace('Again')
+    expect(JSON.parse((await adapter.read('aurelia.json'))!.text)).toMatchObject({
+      name: 'Again',
+      'x-note': 1,
+    })
+  })
+
+  it('is refused, in plain words, for a newer version, another tab and a tab that is settling — and writes nothing', async () => {
+    const before = (await adapter.read('aurelia.json'))!.text
+    const path = await scenePathOf()
+    const sceneText = (await adapter.read(path))!.text
+    await adapter.write(path, sceneText.replace('schemaVersion: 1', 'schemaVersion: 2'))
+    const newer = await open()
+    await expect(newer.renameWorkspace('X')).rejects.toThrow(/newer version/)
+    await adapter.write(path, sceneText)
+
+    const locks = new FakeLocks()
+    const a = await WorkspaceSession.open(adapter, {
+      journal,
+      debounceMs: 1e9,
+      locks: locks.asManager(),
+    })
+    const b = await WorkspaceSession.open(adapter, {
+      journal,
+      debounceMs: 1e9,
+      locks: locks.asManager(),
+    })
+    await expect(b.renameWorkspace('X')).rejects.toThrow(/another tab/)
+
+    const gate = gateRead(adapter, path)
+    a.dispose()
+    await vi.waitFor(() => expect(gate.isHeld()).toBe(true))
+    expect(b.view().settling).toBe(true)
+    await expect(b.renameWorkspace('X')).rejects.toThrow(/catching up/)
+    gate.release()
+    await vi.waitFor(() => expect(b.view().readOnly).toBe(false))
+    expect((await adapter.read('aurelia.json'))!.text).toBe(before)
+    expect(await journal.list(b.data.workspace.id)).toEqual([])
+  })
+
+  it('uses the same name check as creating a workspace', async () => {
+    const session = await open()
+    for (const bad of ['', '   ', 'x'.repeat(81), 'two\nlines', 'bell\u0007'])
+      await expect(session.renameWorkspace(bad)).rejects.toThrow()
+    expect(checkWorkspaceName('  ok  ')).toEqual({ name: 'ok', error: '', ok: true })
+    expect(checkWorkspaceName('x'.repeat(80)).ok).toBe(true)
+    expect(await nameOnDisk()).toBe('My Book')
   })
 })
