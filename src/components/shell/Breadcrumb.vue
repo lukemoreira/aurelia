@@ -22,13 +22,26 @@ const crumbs = computed<Crumb[]>(() => {
   if (!book) return []
   const bookCrumb = { label: book.title, go: () => void nav.openBook(book.id) }
   const ctx = ws.context
-  if (route.name !== 'write' || !ctx) return [bookCrumb, { label: String(route.meta.title ?? '') }]
+  if (route.name === 'world') {
+    const record = ws.data?.records.find((r) => r.meta.id === route.query.record)
+    const world = { label: 'World', go: () => void nav.openView('world') }
+    return [
+      bookCrumb,
+      record ? world : { label: world.label },
+      ...(record ? [{ label: record.meta.title }] : []),
+    ]
+  }
+  if (route.name !== 'write' || !ctx)
+    return [bookCrumb, ...(route.meta.title ? [{ label: String(route.meta.title) }] : [])]
   const chapter = ctx.chapter
   return [
     bookCrumb,
     ...(ctx.part ? [{ label: ctx.part.title }] : []),
     {
-      label: `${chapter.number} · ${chapter.chapter.title}`,
+      label:
+        chapter.number === 0
+          ? chapter.chapter.title
+          : `${chapter.number} · ${chapter.chapter.title}`,
       go: () => void nav.openChapter(chapter.chapter.id),
     },
     { label: ctx.scene.meta.title },

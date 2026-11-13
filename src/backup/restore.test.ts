@@ -37,7 +37,7 @@ describe('restoring from the server', () => {
       workspaceId: rig.id,
       device: null,
       deviceName: 'Chrome on macOS',
-      files: 5,
+      files: 6,
     })
   })
 

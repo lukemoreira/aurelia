@@ -20,4 +20,13 @@ describe('moveFile', () => {
     expect(await adapter.readBytes('a.md')).not.toBeNull()
     expect(await adapter.readBytes('b.md')).toBeNull()
   })
+
+  it('keeps the original when the copy does not read back the same (a disk that corrupts)', async () => {
+    const adapter = new MemoryAdapter({ 'a.md': 'the words' })
+    const write = adapter.write.bind(adapter)
+    adapter.write = (path, text) =>
+      write(path, path === 'b.md' ? `${text} and a flipped bit` : text)
+    await expect(moveFile(adapter, 'a.md', 'b.md')).rejects.toMatchObject({ code: 'other' })
+    expect((await adapter.read('a.md'))!.text).toBe('the words') // the original is untouched
+  })
 })

@@ -192,10 +192,9 @@ test.describe('moving around', () => {
       .click()
     await expect(heading(page, 'Continuity')).toBeVisible()
     await expect(page.getByText('Continuity checks arrive in v0.2.')).toBeVisible()
-    // The inspector says so too: it never shows the open scene's fields on another view.
-    const inspector = page.getByRole('complementary', { name: 'Scene inspector' })
-    await expect(inspector).toContainText('Nothing to inspect here')
-    await expect(inspector).not.toContainText('Get through the gate')
+    // The inspector is not there on another view (320 px of nothing), and never shows the scene's fields.
+    await expect(page.getByRole('complementary', { name: 'Scene inspector' })).toHaveCount(0)
+    await expect(page.getByText('Get through the gate')).toHaveCount(0)
     await page
       .getByRole('navigation', { name: 'Views' })
       .getByRole('link', { name: 'Write' })
@@ -224,10 +223,15 @@ test.describe('command palette', () => {
     await expect(palette(page)).toBeHidden()
     await expect(page).toHaveURL(/\/world\?record=chr_/)
     await expect(heading(page, 'Tomas Brandt')).toBeVisible()
-    await expect(page.getByText('Its sheet arrives in v0.3.')).toBeVisible()
-    await expect(page.getByRole('complementary', { name: 'Scene inspector' })).not.toContainText(
-      'Get through the gate',
+    // The sheet opens, read-only: the sample is a tour that is never saved.
+    const sheet = page.getByRole('region', { name: 'Record' })
+    await expect(sheet.getByLabel('Summary', { exact: true })).toHaveValue(
+      /Warden of the Lantern Gate/,
     )
+    await expect(sheet.getByLabel('Summary', { exact: true })).toBeDisabled()
+    await expect(sheet.getByRole('button', { name: 'Rename…' })).toHaveCount(0)
+    // No scene's fields beside a record: the inspector is not on this view at all.
+    await expect(page.getByRole('complementary', { name: 'Scene inspector' })).toHaveCount(0)
   })
 
   test('finds a scene by a part of its title, with accents and case ignored, and runs actions', async ({

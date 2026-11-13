@@ -5,6 +5,8 @@ export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(
 /** How the shortcut modifier is written on this device. */
 export const modLabel = isMac ? '⌘' : 'Ctrl'
 export const altLabel = isMac ? '⌥' : 'Alt'
+/** How the delete key is written on this device: ⌘⌫ on a Mac, Del elsewhere. */
+export const deleteLabel = isMac ? '⌘⌫' : 'Del'
 /** The accessible name of the search button, with its shortcut spelled out. */
 export const searchLabel = `Search or run a command (${isMac ? 'Command K' : 'Ctrl K'})`
 /** How the focus mode chord is written on this device. */

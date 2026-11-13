@@ -271,6 +271,51 @@ Do not scaffold future features early.
   scene (whole words, capitals, possessives, longest match, book + universe scope);
   `ignoreNames` on scenes. Presence and backlinks use tagged mentions.
 - Backlinks ("Linked from"), "Links to", global search (MiniSearch).
+- **M3a built (2026-11-12, branch `feat/m3a-outline-records`): the domain write layer, outline
+  editing, and characters and places.** Links, backlinks, search, names found in the text and
+  schema migrations are the next wave (M3b).
+  *Write layer:* `patchFrontmatter` (`storage/yaml-edit.ts`) reads the YAML with the `yaml`
+  Document API only to find where a key sits and rewrites just that place, so comments, spacing,
+  key order, unknown keys, line endings and the body stay byte for byte (a patch that changes
+  nothing returns the same text; strings are quoted on write); `setTopLevel` / `removeTopLevel`
+  do the same for `book.json` and `aurelia.json` (`storage/json-edit.ts`, which `rename` now
+  shares). Every entity — universe, book, part, chapter, scene, record — loads and saves
+  through the session (`write`, `create`, `setFields`): text that does not read as its kind is
+  refused before it is journaled or written. Several-file actions run one at a time
+  (`session.exclusive`) and the focus/poll checks wait for them. *Outline:* add a book (in a
+  shared universe or on its own), part, chapter (with an empty first scene) and scene; rename;
+  delete = move to `.aurelia/trash/<stamp>/<path>` with a `manifest.json` written first (copy,
+  check, then remove, via `moveFile`; Undo toast and a "Recently deleted" list; a place that has
+  been taken is never written over); reorder by drag-and-drop or by keyboard (Alt+↑/↓, F2 renames,
+  Del deletes, the context-menu key opens a row's menu, "Move to chapter…") with fractional
+  keys (`keyBetween`) so a move changes ONE file (the moved item's own `order`/`chapter`/`part`);
+  `book.json`'s outline cache and `OUTLINE.md` (now also written when a workspace is created)
+  are derived after every structural change and never read as the truth (a stale cache loses to
+  the scene files). Files not in the outline show under **Unfiled** (a scene whose chapter is
+  gone; "Move to chapter…" files it). A book or universe on disk that no list names is adopted
+  in memory, never hidden. Two files with one ID are shown (banner, Files dialog) with "Keep
+  this one"; the other goes to `.aurelia/conflicts/`. *Crash order:* content files first, the
+  line that lists them (universe `books`, `aurelia.json`) and the cache last; a stop at any step
+  leaves a state the app shows (tests stop every write and removal of every action and reopen).
+  *Inspector:* title, status, summary and (for scenes) point of view for scene, chapter, part
+  and book — additive optional schema fields, so no migration. *World:* records by type with
+  create / rename / delete (to the trash) / find by name, scoped to the universe or to one book;
+  the record sheet (Profile of `Character.dc.html`): name, summary, the type's basic fields,
+  other names with auto / ask / never (the field only; finding mentions is M3b), plain-text
+  notes. Left for later: the rich notes editor (other branch), the Progression tab, linked-from,
+  promoting a record between scopes, deleting a book's universe-level records with it,
+  migrations (rule 5), and making a shared universe from the UI (no screen does yet; adding a book to one is tested).
+  *Review fixes:* words typed while a delete moves the files go into the trashed copy (the pipeline
+  holds the old paths meanwhile); a chapter or scene is not restored while its book is still in the
+  trash, and a scene whose book is missing is reported; an `&anchor` is never rewritten; an empty
+  YAML value is set properly; when no order key fits between two neighbours they get fresh keys
+  (placement is always what was asked); `OUTLINE.md` and the outline cache in `book.json` are
+  derived and never raise a conflict; alias keys this version does not know are kept. Moves are
+  announced to a screen reader, Backspace and ⌘⌫ delete, Undo takes focus after a keyboard delete
+  (Esc dismisses, Ctrl/⌘+Z undoes), and the inspector is absent on views that have none.
+  *Backup:* the trash and `.aurelia/conflicts/` are backed up like every other file (the engine
+  uploads everything the adapter lists), so a deleted chapter survives on the server and comes
+  back with a restore; a test pins it.
 - Exit: rename or move a record and no link breaks; a shared character resolves from
   two books in one universe; an unchanged file round-trips byte-identical (golden test);
   a half-migrated folder and a duplicate ID are both detected (tests).
@@ -512,3 +557,8 @@ backup — ADR-0009.)
   measured Markdown converter (ADR-0007), byte-identical open and edit-only-the-block saves,
   toolbar, Markdown typing, focus mode, editor settings, live word counts. Next: M3, then
   the names, links and rename part of M4.
+- 2026-11-12 — M3a (branch `feat/m3a-outline-records`): the domain write layer, outline editing
+  (add, rename, delete to the trash with Undo and "Recently deleted", reorder by drag and by
+  keyboard, Unfiled), duplicate-ID choice, the inspector's fields, and the World view with
+  record sheets for characters, places and the other types. Parallel browser tests: set
+  `E2E_PORT` (`E2E_PORT=4175 npm run e2e`). Next: M3b (links, backlinks, search, names).

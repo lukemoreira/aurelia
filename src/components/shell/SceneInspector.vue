@@ -5,11 +5,14 @@ import Avatar from '@/components/ui/Avatar.vue'
 import Icon from '@/components/ui/Icon.vue'
 import StatusDot from '@/components/ui/StatusDot.vue'
 import Tag from '@/components/ui/Tag.vue'
+import ItemDetails from './ItemDetails.vue'
 import { sceneDetails } from '@/domain/scene-details'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const ws = useWorkspaceStore()
 const d = computed(() => (ws.data && ws.sceneId ? sceneDetails(ws.data, ws.sceneId) : undefined))
+// A real workspace edits the scene's details in a form; the sample is a tour that only shows them.
+const editable = computed(() => !!ws.view)
 const colour = (c?: string) => (c ? `var(--${c})` : undefined)
 const progress = computed(() =>
   d.value?.target ? Math.min(100, Math.round((d.value.words / d.value.target) * 100)) : 0,
@@ -21,7 +24,13 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
 
 <template>
   <div v-if="d" class="flex flex-col gap-4 text-[12.5px]">
-    <div class="flex items-center justify-between">
+    <ItemDetails
+      v-if="editable"
+      :id="ws.sceneId ?? undefined"
+      kind="scene"
+      :heading="`Scene ${d.label}`"
+    />
+    <div v-else class="flex items-center justify-between">
       <h3 :class="[label, 'tracking-[.08em]']">Scene {{ d.label }}</h3>
       <span
         v-if="d.status"
@@ -32,7 +41,7 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
     </div>
 
     <dl class="m-0 grid grid-cols-[76px_minmax(0,1fr)] items-center gap-y-2.5">
-      <template v-if="d.pov">
+      <template v-if="d.pov && !editable">
         <dt class="text-ink-3">POV</dt>
         <dd class="m-0 flex items-center gap-2">
           <Avatar :name="d.pov.name" :color="colour(d.pov.color)" :size="24" />{{ d.pov.name }}

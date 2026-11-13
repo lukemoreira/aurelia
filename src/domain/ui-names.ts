@@ -4,6 +4,7 @@
 /** Every icon the app draws. The paths live in components/ui/icons.ts, which must cover all. */
 export type IconName =
   | 'chevron-down'
+  | 'chevron-up'
   | 'chevron-right'
   | 'chevrons-up-down'
   | 'menu'
@@ -52,6 +53,8 @@ export type IconName =
   | 'write'
   | 'plan'
   | 'continuity'
+  | 'trash'
+  | 'more'
 
 export type StatusKind = 'idea' | 'outline' | 'draft' | 'revised' | 'final'
 

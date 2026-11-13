@@ -7,7 +7,7 @@ import FilesDialog from '@/components/workspace/FilesDialog.vue'
 import Banner from './Banner.vue'
 
 const ws = useWorkspaceStore()
-const { banners, comparing, conflict, filesOpen, busy, error, resolve, reconcile } =
+const { banners, comparing, conflict, filesOpen, busy, error, resolve, reconcile, keepFile } =
   useWorkspaceNotices()
 </script>
 
@@ -42,5 +42,6 @@ const { banners, comparing, conflict, filesOpen, busy, error, resolve, reconcile
     :busy="busy"
     :error="error"
     @reconcile="reconcile"
+    @keep="keepFile"
   />
 </template>

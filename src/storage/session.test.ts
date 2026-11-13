@@ -53,7 +53,7 @@ describe('creating and loading a workspace', () => {
     expect(loaded.readOnly).toBe(false)
     const paths = await adapter.list()
     expect(paths).toContain('aurelia.json')
-    expect(paths.filter((p) => p.endsWith('.md'))).toHaveLength(3)
+    expect(paths.filter((p) => p.endsWith('.md'))).toHaveLength(4) // the derived OUTLINE.md too
   })
 
   it('tells a workspace, an empty folder and a folder of other files apart', async () => {
@@ -96,10 +96,18 @@ describe('creating and loading a workspace', () => {
     const text = (await adapter.read(path))!.text
     const twin = path.replace(/scn_\w+\.md$/, 'scn_zzzzzzzzzz.md')
     await adapter.write(twin, text)
-    const { problems, data } = await loadWorkspace(adapter)
+    const { problems, data, duplicates } = await loadWorkspace(adapter)
     expect(data.scenes).toHaveLength(1)
-    expect(problems).toHaveLength(1)
-    expect(problems[0]?.reason).toContain('Another file already uses this ID')
+    expect(problems).toEqual([])
+    expect(duplicates).toEqual([
+      {
+        id: data.scenes[0]!.meta.id,
+        files: [
+          { path, title: 'Untitled scene' },
+          { path: twin, title: 'Untitled scene' },
+        ],
+      },
+    ])
   })
 
   it('opens read-only, and refuses every write, when a file has a newer schemaVersion', async () => {

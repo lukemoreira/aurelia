@@ -18,6 +18,8 @@ export interface SceneDoc {
   meta: Scene
   body: string
   words: number
+  /** The book whose folder the file is in. A scene whose chapter is missing is shown there, as unfiled. */
+  book?: string
 }
 
 /** A record file (character, place, item…). `universe` is where it lives. */
@@ -25,6 +27,8 @@ export interface RecordDoc {
   meta: RecordFrontmatter
   universe: string
   summary?: string
+  /** The notes under the details, as plain text. */
+  body?: string
 }
 
 /**

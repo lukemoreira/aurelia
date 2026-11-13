@@ -37,6 +37,23 @@ const foreign = (revision = 5, workspaceId = 'wsp_x'): Manifest => ({
 })
 
 describe('turning backup on', () => {
+  it('backs up the trash too: a deleted chapter is still on the server, and comes back with a restore', async () => {
+    const rig = await backupRig()
+    await rig.adapter.write('.aurelia/trash/2026-11-12T18-00-00-000Z/manifest.json', '{"files":[]}')
+    await rig.adapter.write(
+      '.aurelia/trash/2026-11-12T18-00-00-000Z/universes/unv_a/books/bok_a/chapters/chp_a.md',
+      'deleted words',
+    )
+    const engine = track(await rig.open())
+    await engine.turnOn()
+    expect(current(rig.dav.paths(), rig.folder)).toEqual(
+      expect.arrayContaining([
+        '.aurelia/trash/2026-11-12T18-00-00-000Z/manifest.json',
+        '.aurelia/trash/2026-11-12T18-00-00-000Z/universes/unv_a/books/bok_a/chapters/chp_a.md',
+      ]),
+    )
+  })
+
   it('copies every file to current/, writes a backup.json that matches, and saves a first version', async () => {
     const rig = await backupRig()
     const engine = track(await rig.open())

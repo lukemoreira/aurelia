@@ -1,27 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, ref, watch } from 'vue'
-import type { IconName } from '@/domain/ui-names'
 import type { OutlineChapter } from '@/domain/outline'
-import { bookOutline, bookWords, formatWords, outlineScenes } from '@/domain/outline'
-import type { RecordFrontmatter } from '@/domain/schema/record'
-import type { WorkspaceData } from '@/domain/workspace-data'
+import { bookOutline, bookUnfiled, bookWords, formatWords, outlineScenes } from '@/domain/outline'
+import { LIBRARY_GROUPS } from '@/domain/record-types'
+import type { SceneDoc, WorkspaceData } from '@/domain/workspace-data'
 import { fold } from '@/index/palette-search'
 import { entryKey } from '@/index/palette-entries'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { isStringArray, uniqueStrings, usePersisted } from './usePersisted'
 import type { TreeNode } from './useTree'
 
-type RecordType = RecordFrontmatter['type']
-
-const LIBRARY: { id: string; label: string; icon: IconName; types: RecordType[] }[] = [
-  { id: 'characters', label: 'Characters', icon: 'user', types: ['character'] },
-  { id: 'places', label: 'Worlds & places', icon: 'place', types: ['world', 'place'] },
-  { id: 'items', label: 'Items', icon: 'item', types: ['item'] },
-  { id: 'events', label: 'Events & timeline', icon: 'event', types: ['event'] },
-  { id: 'arcs', label: 'Arcs', icon: 'arc', types: ['arc'] },
-  { id: 'lore', label: 'Lore', icon: 'lore', types: ['lore', 'faction', 'culture', 'system'] },
-  { id: 'research', label: 'Research', icon: 'research', types: ['research', 'note'] },
-]
+const sceneNode = (s: SceneDoc): TreeNode => ({
+  id: s.meta.id,
+  label: s.meta.title,
+  icon: 'scene',
+  ...(s.meta.status ? { status: s.meta.status } : {}),
+  meta: formatWords(s.words),
+  pinKey: entryKey('scene', s.meta.id),
+  draggable: true,
+})
 
 const chapterNode = (c: OutlineChapter): TreeNode => ({
   id: c.chapter.id,
@@ -29,15 +26,12 @@ const chapterNode = (c: OutlineChapter): TreeNode => ({
   icon: 'chapter',
   meta: formatWords(c.words),
   pinKey: entryKey('chapter', c.chapter.id),
-  children: c.scenes.map((s) => ({
-    id: s.meta.id,
-    label: s.meta.title,
-    icon: 'scene' as const,
-    ...(s.meta.status ? { status: s.meta.status } : {}),
-    meta: formatWords(s.words),
-    pinKey: entryKey('scene', s.meta.id),
-  })),
+  draggable: true,
+  children: c.scenes.map(sceneNode),
 })
+
+/** The id of the group of a book's unfiled scenes. */
+export const unfiledId = (bookId: string) => `unfiled:${bookId}`
 
 function bookNode(data: WorkspaceData, bookId: string): TreeNode | undefined {
   const book = data.books.find((b) => b.id === bookId)
@@ -50,11 +44,22 @@ function bookNode(data: WorkspaceData, bookId: string): TreeNode | undefined {
             id: group.part.id,
             label: group.part.title,
             icon: 'part',
+            draggable: true,
             children: group.chapters.map(chapterNode),
           },
         ]
       : group.chapters.map(chapterNode),
   )
+  // Scenes whose chapter is not there are listed, never hidden; moving one to a chapter files it.
+  const unfiled = bookUnfiled(data, bookId)
+  if (unfiled.length)
+    children.push({
+      id: unfiledId(bookId),
+      label: 'Unfiled',
+      icon: 'warning',
+      meta: String(unfiled.length),
+      children: unfiled.map(sceneNode),
+    })
   return {
     id: bookId,
     label: book.title,
@@ -121,9 +126,9 @@ export function useNavigatorTree() {
   const library = computed(() => {
     const data = ws.data
     const universe = ws.universe
-    if (!data || !universe || universe.kind !== 'shared') return []
+    if (!data || !universe) return []
     // Counts come from the records themselves; a group with none is not shown.
-    const nodes = LIBRARY.flatMap((g): TreeNode[] => {
+    const nodes = LIBRARY_GROUPS.flatMap((g): TreeNode[] => {
       const children = data.records
         .filter(
           (r) =>
@@ -166,9 +171,12 @@ export function useNavigatorTree() {
     () => {
       const ctx = ws.context
       if (!ctx) return
-      const open = [ctx.book.id, ctx.part?.id, ctx.chapter.chapter.id].filter(
-        (id): id is string => !!id,
-      )
+      const open = [
+        ctx.book.id,
+        ctx.part?.id,
+        ctx.chapter.chapter.id,
+        ctx.chapter.number === 0 ? unfiledId(ctx.book.id) : undefined,
+      ].filter((id): id is string => !!id)
       const missing = open.filter((id) => !stored.value.includes(id))
       if (missing.length) stored.value = [...stored.value, ...missing]
     },

@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { CURRENT_SCHEMA_VERSION } from '@/domain/schema/common'
 import { newId } from '@/domain/ids'
+import { outlineMarkdown } from '@/domain/outline-files'
 import type { Book, Chapter } from '@/domain/schema/book'
 import type { Scene } from '@/domain/schema/scene'
 import type { Universe } from '@/domain/schema/universe'
 import type { StorageAdapter } from './adapter'
 import { newHead } from './frontmatter'
-import { WORKSPACE_FILE, bookPath, chapterPath, scenePath, universePath } from './paths'
+import {
+  WORKSPACE_FILE,
+  bookPath,
+  chapterPath,
+  outlinePath,
+  scenePath,
+  universePath,
+} from './paths'
 import { newSceneText } from './scene-file'
 
 const V = CURRENT_SCHEMA_VERSION
@@ -85,6 +93,19 @@ export async function createWorkspace(
   await adapter.write(scenePath(unv, bok, scn), newSceneText(scene))
   await adapter.write(chapterPath(unv, bok, chp), newHead(chapter))
   await adapter.write(bookPath(unv, bok), json(book))
+  const outline = outlineMarkdown(
+    {
+      workspace: { schemaVersion: V, id: workspaceId, name, universes: [unv] },
+      universes: [universe],
+      books: [book],
+      parts: [],
+      chapters: [chapter],
+      scenes: [{ meta: scene, body: '', words: 0, book: bok }],
+      records: [],
+    },
+    bok,
+  )
+  await adapter.write(outlinePath(unv, bok), outline) // derived (ADR-0003 rule 9), so it is there from the start
   await adapter.write(universePath(unv), newHead(universe))
   await adapter.write(
     WORKSPACE_FILE,

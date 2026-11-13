@@ -76,7 +76,7 @@ export function sceneDetails(data: WorkspaceData, sceneId: string): SceneDetails
   }
   const target = meta.target
   return {
-    label: `${ctx.chapter.number}.${ctx.index}`,
+    label: ctx.chapter.number === 0 ? String(ctx.index) : `${ctx.chapter.number}.${ctx.index}`,
     ...(meta.status ? { status: meta.status } : {}),
     ...(meta.pov && person(meta.pov) ? { pov: person(meta.pov)! } : {}),
     ...(meta.location ? { location: name(meta.location) } : {}),

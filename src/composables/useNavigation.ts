@@ -51,7 +51,8 @@ export function useNavigation() {
     if (isId(id, 'scn')) return openScene(ws.bookId ?? '', id)
     if (isId(id, 'chp')) return openChapter(id)
     if (isId(id, 'bok')) return openBook(id)
-    if (!id.startsWith('lib:') && !isId(id, 'prt') && ws.bookId) return openRecord(ws.bookId, id)
+    if (!id.startsWith('lib:') && !id.startsWith('unfiled:') && !isId(id, 'prt') && ws.bookId)
+      return openRecord(ws.bookId, id)
   }
 
   return { openBook, openScene, viewHref, openView, openRecord, openChapter, openEntry, openId }

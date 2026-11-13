@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import { isString, usePersisted } from '@/composables/usePersisted'
-import { bookOutline, bookWords, outlineScenes, sceneContext } from '@/domain/outline'
+import { bookOutline, bookScenes, bookWords, sceneContext } from '@/domain/outline'
 import { validateWorkspaceData, type WorkspaceData } from '@/domain/workspace-data'
 import { buildEntries } from '@/index/palette-entries'
 import { saltmarchSample } from '@/sample/saltmarch'
@@ -180,7 +180,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   /** The scene to show for a book: the one asked for, else the last one open here, else `fallback`, else the first. */
   function sceneFor(book: string, wanted?: string, fallback?: string): string | undefined {
     if (!data.value) return undefined
-    const scenes = outlineScenes(bookOutline(data.value, book)).map((s) => s.meta.id)
+    const scenes = bookScenes(data.value, book).map((s) => s.meta.id)
     return [wanted, lastScene.value[book], fallback, scenes[0]].find(
       (id) => id && scenes.includes(id),
     )

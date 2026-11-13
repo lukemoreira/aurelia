@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { z } from 'zod'
-import { idOf, orderKey, schemaVersion, storyTime } from './common'
+import { idOf, orderKey, progressStatus, schemaVersion, storyTime } from './common'
 
 // ADR-0006: unknown kinds are kept, so `kind` is a plain string.
 const changeSchema = z.looseObject({
@@ -28,7 +28,8 @@ export const sceneSchema = z.looseObject({
   id: idOf('scn'),
   chapter: idOf('chp'),
   order: orderKey,
-  status: z.enum(['idea', 'outline', 'draft', 'revised', 'final']).optional(),
+  status: progressStatus.optional(),
+  summary: z.string().optional(),
   pov: idOf('chr').optional(),
   location: idOf('plc').optional(),
   time: storyTime.optional(),
