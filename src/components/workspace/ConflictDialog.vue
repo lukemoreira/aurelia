@@ -10,6 +10,8 @@ const props = defineProps<{
   conflict: ConflictView | undefined
   busy: boolean
   disabled?: boolean
+  /** The other text came from another device (sync), not from another app. */
+  sync?: boolean
   error: string
 }>()
 defineEmits<{ choose: [choice: 'theirs' | 'mine'] }>()
@@ -33,7 +35,7 @@ const pane =
     v-model:open="open"
     size="lg"
     :title="`“${conflict?.title ?? ''}” has two versions`"
-    description="The file changed outside Aurelia while you were writing. Nothing was overwritten. Pick the one to use; the other is saved as a copy next to it."
+    :description="`${sync ? 'Another device changed this scene' : 'The file changed outside Aurelia'} while you were writing. Nothing was overwritten. Pick the one to use; the other is saved as a copy next to it.`"
   >
     <div v-if="conflict" class="flex flex-col gap-3">
       <div class="grid gap-3 md:grid-cols-2">
@@ -53,11 +55,13 @@ const pane =
             id="theirs-title"
             class="m-0 text-xs font-semibold uppercase tracking-[.08em] text-ink-3"
           >
-            The file’s version
+            {{ sync ? 'The other device’s version' : 'The file’s version' }}
           </h3>
-          <pre :class="pane" tabindex="0" aria-label="The file’s version, text">{{
-            conflict.theirs === null ? '(the file was removed)' : theirs || '(empty)'
-          }}</pre>
+          <pre
+            :class="pane"
+            tabindex="0"
+            :aria-label="`${sync ? 'The other device’s version' : 'The file’s version'}, text`"
+            >{{ conflict.theirs === null ? '(the file was removed)' : theirs || '(empty)' }}</pre>
         </section>
       </div>
       <p v-if="detailsDiffer" class="m-0 text-xs text-ink-3">
@@ -70,7 +74,7 @@ const pane =
         v-if="conflict?.theirs !== null"
         :disabled="busy || disabled"
         @click="$emit('choose', 'theirs')"
-        >Use the file’s version</Button
+        >{{ sync ? 'Use the other device’s version' : 'Use the file’s version' }}</Button
       >
       <Button
         variant="primary"

@@ -87,4 +87,61 @@ describe('RestoreDialog', () => {
     expect(why.textContent).toContain('cannot keep files for Aurelia')
     wrapper.unmount()
   })
+
+  it('offers "…and keep it in sync" only when the copy can join the sync, and ticks the composable’s flag', async () => {
+    const r = fake({ step: 'destination', canKeepInSync: false, keepInSync: false })
+    const wrapper = mount(RestoreDialog, { props: { restore: r }, attachTo: document.body })
+    await settle()
+    const box = () => document.querySelector('[role="checkbox"]') as HTMLElement | null
+    expect(box()).toBeNull()
+    ;(r as unknown as { canKeepInSync: boolean }).canKeepInSync = true
+    await settle()
+    expect(box()).not.toBeNull()
+    expect(document.body.textContent).toContain('Keep it in sync with your other devices')
+    box()!.click()
+    await settle()
+    expect((r as unknown as { keepInSync: boolean }).keepInSync).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('says which backups are kept in sync', async () => {
+    const r = fake({
+      listings: [
+        {
+          folder: 'Aurelia/My Book (wsp_x)',
+          name: 'My Book',
+          lastBackup: new Date().toISOString(),
+          deviceName: 'Chrome on macOS',
+          sync: true,
+          files: 3,
+          size: 3000,
+        },
+      ],
+    })
+    const wrapper = mount(RestoreDialog, { props: { restore: r }, attachTo: document.body })
+    await settle()
+    expect(document.body.textContent).toContain('Kept in sync')
+    wrapper.unmount()
+  })
+
+  it('counts what did not pass and keeps the file names in a fold-out', async () => {
+    const r = fake({
+      step: 'problems',
+      problems: [
+        { path: 'universes/unv_a/books/bok_b/scenes/scn_c.md', kind: 'changed' },
+        { path: 'universes/unv_a/books/bok_b/scenes/scn_d.md', kind: 'changed' },
+        { path: 'aurelia.json', kind: 'missing' },
+      ],
+    })
+    const wrapper = mount(RestoreDialog, { props: { restore: r }, attachTo: document.body })
+    await settle()
+    const text = document.body.textContent!
+    expect(text).toContain('2 files do not match what was backed up')
+    expect(text).toContain('1 file is missing from your server')
+    const details = document.querySelector('details') as HTMLDetailsElement
+    expect(details.open).toBe(false)
+    expect(details.textContent).toContain('scn_c.md')
+    expect(text.replace(details.textContent!, '')).not.toContain('scn_c.md')
+    wrapper.unmount()
+  })
 })

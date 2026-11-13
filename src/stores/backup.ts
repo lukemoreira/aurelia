@@ -61,6 +61,10 @@ export const useBackupStore = defineStore('backup', () => {
 
   const turnOn = () => engine.value?.turnOn()
   const turnOff = () => engine.value?.turnOff()
+  const turnOnSync = () => engine.value?.turnOnSync()
+  const turnOffSync = () => engine.value?.turnOffSync()
+  /** Sync: look at the server for changes from other devices. */
+  const poll = () => engine.value?.poll()
   const backUpNow = () => engine.value?.backUpNow()
   const resume = () => engine.value?.resume()
   const keepBoth = () => engine.value?.keepBoth()
@@ -91,6 +95,9 @@ export const useBackupStore = defineStore('backup', () => {
     refreshVersions,
     turnOn,
     turnOff,
+    turnOnSync,
+    turnOffSync,
+    poll,
     backUpNow,
     resume,
     keepBoth,

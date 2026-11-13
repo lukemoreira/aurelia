@@ -4,14 +4,16 @@ import { computed, ref } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
 import Popover from '@/components/ui/Popover.vue'
 import StorageDetails from '@/components/workspace/StorageDetails.vue'
-import { backupNeedsAttention, backupWords } from '@/backup/words'
+import { backupNeedsAttention, backupWords, twoVersionsOf } from '@/backup/words'
 import { useOpenDialogFromMenu } from '@/composables/useOpenDialogFromMenu'
 import { needsAttention } from '@/storage/status'
 import { useBackupStore } from '@/stores/backup'
+import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const ws = useWorkspaceStore()
 const backup = useBackupStore()
+const layout = useLayoutStore()
 const detailsOpen = ref(false)
 const fmt = (n: number) => n.toLocaleString('en-US')
 const where = computed(() => {
@@ -31,16 +33,27 @@ const nudge = computed(
   () => ws.view?.kind === 'browser' && !backup.view?.enabled && backup.serverState === 'available',
 )
 // Where the work is kept: the backup's words once there is one, else where the files are.
+// Files with two versions to choose from: a text that arrived while the author was typing, or a copy kept beside a file.
+const twoVersions = computed(() => twoVersionsOf(ws.view))
 const kept = computed(
   () =>
-    backupWords(backup.view, backup.now) ??
+    backupWords(backup.view, backup.now, twoVersions.value) ??
     (nudge.value
       ? 'Only in this browser — turn on backup'
       : ws.view?.kind === 'browser'
         ? 'Only in this browser'
         : 'In a folder'),
 )
-const keptWarns = computed(() => backupNeedsAttention(backup.view))
+const keptWarns = computed(() => backupNeedsAttention(backup.view, twoVersions.value))
+// A synced workspace with two versions of a file: the chip goes straight to where they are chosen between.
+const syncConflict = computed(
+  () => backup.view?.enabled && backup.view.mode === 'sync' && twoVersions.value.length > 0,
+)
+const openTwoVersions = () => {
+  const first = ws.view?.conflicts[0]
+  if (first) layout.comparing = first.path
+  else layout.filesOpen = true
+}
 // Said aloud: only what the author must act on, saving or backup alike.
 const announced = computed(() =>
   [attention.value ? ws.saveLabel : '', keptWarns.value ? kept.value : '']
@@ -54,7 +67,12 @@ const openBackup = () => openFromDetails('backupOpen')
 // While it nudges, the chip goes straight to the Backup screen; otherwise it opens the storage details.
 const popoverOpen = computed({
   get: () => detailsOpen.value,
-  set: (open) => (nudge.value && open ? openBackup() : (detailsOpen.value = open)),
+  set: (open) =>
+    nudge.value && open
+      ? openBackup()
+      : syncConflict.value && open
+        ? openTwoVersions()
+        : (detailsOpen.value = open),
 })
 </script>
 

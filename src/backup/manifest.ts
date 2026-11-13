@@ -6,6 +6,13 @@ import type { RemoteStore } from '@/storage/remote/remote-store'
 import { manifestPath } from './layout'
 
 /** `backup.json`: what a backup folder holds and who wrote it. Compare-and-write rests on `revision` and the server's tag. */
+/** Sync (ADR-0012): the devices that keep this folder in sync, and what was deleted from it. */
+export const syncSchema = z.object({
+  devices: z.record(z.string(), z.object({ name: z.string(), at: z.string() })),
+  tombstones: z.record(z.string(), z.object({ hash: z.string(), at: z.string() })),
+})
+export type SyncInfo = z.infer<typeof syncSchema>
+
 export const manifestSchema = z.object({
   schemaVersion: z.literal(1),
   workspaceId: z.string(),
@@ -19,6 +26,8 @@ export const manifestSchema = z.object({
   complete: z.boolean(),
   lastBackup: z.string(),
   files: z.record(z.string(), z.object({ hash: z.string(), size: z.number() })),
+  /** Present when the folder is kept in sync: then any device in `devices` may write it. */
+  sync: syncSchema.optional(),
 })
 export type Manifest = z.infer<typeof manifestSchema>
 

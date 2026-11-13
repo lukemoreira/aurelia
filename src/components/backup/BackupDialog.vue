@@ -11,6 +11,7 @@ import { useBackupStore } from '@/stores/backup'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 import BackupServerCard from './BackupServerCard.vue'
+import BackupSyncCard from './BackupSyncCard.vue'
 import BackupVersions from './BackupVersions.vue'
 import RestoreDialog from './RestoreDialog.vue'
 
@@ -41,7 +42,7 @@ const kept = computed(() => persistedWords(ws.view?.persisted))
         <span
           :class="[
             'inline-flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold',
-            ['paused', 'failed', 'ask'].includes(backup.view?.status ?? '')
+            ['paused', 'failed', 'ask', 'offline'].includes(backup.view?.status ?? '')
               ? 'bg-warn-soft text-warn'
               : 'bg-ok-soft text-ok',
           ]"
@@ -92,6 +93,7 @@ const kept = computed(() => persistedWords(ws.view?.persisted))
       </section>
 
       <BackupServerCard :screen="screen" />
+      <BackupSyncCard :screen="screen" />
       <BackupVersions :screen="screen" />
     </div>
     <p v-else class="m-0 text-ink-2">

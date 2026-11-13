@@ -47,4 +47,22 @@ describe('backup layout', () => {
     expect(reasonWords(null)).toMatch(/every hour/)
     expect(reasonWords('before-keep-mine')).toMatch(/keeping your version/)
   })
+
+  it('adds the first eight letters of the zip’s hash, so one second can hold two versions, and still reads old names', () => {
+    const at = new Date('2026-11-12T18:30:05Z')
+    expect(versionName(at, null, '3fa9c0d1e2b4aa')).toBe('2026-11-12T18-30-05~3fa9c0d1.zip')
+    expect(versionName(at, 'before-sync', '3fa9c0d1e2b4aa')).toBe(
+      '2026-11-12T18-30-05~3fa9c0d1_before-sync.zip',
+    )
+    expect(versionName(at, null, 'aaaaaaaa11')).not.toBe(versionName(at, null, 'bbbbbbbb22'))
+    expect(parseVersion('2026-11-12T18-30-05~3fa9c0d1.zip')).toEqual({ at, reason: null })
+    expect(parseVersion('2026-11-12T18-30-05~3fa9c0d1_before-sync.zip')).toEqual({
+      at,
+      reason: 'before-sync',
+    })
+    expect(parseVersion('2026-11-12T18-30-05_before-sync.zip')).toEqual({
+      at,
+      reason: 'before-sync',
+    })
+  })
 })

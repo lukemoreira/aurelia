@@ -34,6 +34,14 @@ export interface Note {
   text: string
 }
 
+/** A file as another device has it (`text` null: removed), for the file as this device last saw it (`expect`). */
+export interface RemoteChange {
+  path: string
+  text: string | null
+  /** Hash the file on disk must still have (null: there must be none). */
+  expect: string | null
+}
+
 export interface ConflictView {
   path: string
   title: string
@@ -530,6 +538,21 @@ export class WorkspaceSession {
 
   flush(): Promise<void> {
     return this.pipeline.flush()
+  }
+
+  /**
+   * Changes that came from another device: each is written through the save pipeline (compare-and-write,
+   * after any save in flight), then the files are read again so what is on screen follows them.
+   * Unsaved edits in a file become a conflict, never lost. Nothing is applied while read-only.
+   */
+  async applyRemote(changes: RemoteChange[]): Promise<Map<string, 'applied' | 'deferred'>> {
+    if (this.readOnly || this.settling)
+      throw new StorageError('read-only', 'This workspace is read-only, so nothing was changed.')
+    const out = new Map<string, 'applied' | 'deferred'>()
+    for (const c of changes) out.set(c.path, await this.pipeline.receive(c.path, c.text, c.expect))
+    if ([...out.values()].includes('applied'))
+      await this.refresh().catch((e: unknown) => this.onError(e)) // the files changed; a failed re-read is the next check's
+    return out
   }
 
   // ---- what happens on disk behind our back ----------------------------------------------

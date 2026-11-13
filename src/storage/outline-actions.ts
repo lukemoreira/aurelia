@@ -87,6 +87,14 @@ export async function syncOutline(s: WorkspaceSession, bookId: string): Promise<
   return written
 }
 
+/** Every book's derived files written again from its scenes: after sync brought files in, the outline may be stale. */
+export const regenerateOutlines = (s: WorkspaceSession) =>
+  s.exclusive(async () => {
+    const written: string[] = []
+    for (const book of s.data.books) written.push(...(await syncOutline(s, book.id)))
+    await s.flushPaths(written)
+  })
+
 /** An action that touches one book's files, then brings the book's derived files in step and saves them. */
 const inBook = (s: WorkspaceSession, bookId: string, work: () => Promise<void>) =>
   s.exclusive(async () => {

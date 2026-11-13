@@ -8,6 +8,9 @@ import {
   folderWords,
   persistedWords,
   sizeWords,
+  statusTag,
+  twoVersionsOf,
+  twoVersionsSentence,
   versionWhen,
 } from './words'
 
@@ -89,5 +92,76 @@ describe('backup words', () => {
     ])
     expect(persistedWords(true).yes).toBe(true)
     expect(persistedWords(false).yes).toBe(false)
+  })
+
+  describe('a synced workspace (ADR-0012)', () => {
+    const synced = (extra: Partial<BackupView>) =>
+      view({ mode: 'sync', sync: { devices: [], waiting: 0 }, ...extra })
+    const SCENE = 'universes/unv_a/books/bok_b/scenes/scn_c.md'
+
+    it('has the status bar words for every state', () => {
+      expect(backupWords(synced({}), NOW)).toBe('Synced')
+      expect(backupWords(synced({ lastBackup: null }), NOW)).toBe('Syncing…')
+      expect(backupWords(synced({ status: 'working' }), NOW)).toBe('Syncing…')
+      expect(backupWords(synced({ status: 'offline' }), NOW)).toBe('Offline')
+      expect(
+        backupWords(synced({ status: 'offline', sync: { devices: [], waiting: 2 } }), NOW),
+      ).toBe('Offline — changes waiting')
+      expect(backupWords(synced({ status: 'paused' }), NOW)).toBe('Sync paused — sign in again')
+      expect(backupWords(synced({ status: 'failed' }), NOW)).toBe('Sync failed — will retry')
+      expect(backupWords(synced({ status: 'ask' }), NOW)).toBe('Sync needs your OK')
+      expect(backupWords(synced({ status: 'blocked' }), NOW)).toBe('Sync on hold — read-only')
+    })
+
+    it('says plainly that a scene has two versions, in the singular and the plural', () => {
+      expect(backupWords(synced({}), NOW, [SCENE])).toBe('Conflict — 1 scene has two versions')
+      expect(backupWords(synced({}), NOW, [SCENE, SCENE.replace('scn_c', 'scn_d')])).toBe(
+        'Conflict — 2 scenes have two versions',
+      )
+      expect(backupWords(synced({}), NOW, ['aurelia.json'])).toBe(
+        'Conflict — 1 file has two versions',
+      )
+      // Only a settled sync says it: while working or offline, that is what the bar says.
+      expect(backupWords(synced({ status: 'working' }), NOW, [SCENE])).toBe('Syncing…')
+    })
+
+    it('does not say Synced while changes wait to go, and says Offline aloud only when something waits', () => {
+      expect(backupWords(synced({ sync: { devices: [], waiting: 1 } }), NOW)).toBe('Syncing…')
+      expect(backupWords(synced({ sync: { devices: [], waiting: 1 } }), NOW, [SCENE])).toBe(
+        'Syncing…',
+      )
+      expect(backupNeedsAttention(synced({ status: 'offline' }))).toBe(false)
+      expect(
+        backupNeedsAttention(synced({ status: 'offline', sync: { devices: [], waiting: 3 } })),
+      ).toBe(true)
+    })
+
+    it('has one list of the files with two versions, and one sentence for them', () => {
+      expect(
+        twoVersionsOf({
+          conflicts: [{ path: 'a.md' }],
+          copies: [{ original: 'a.md' }, { original: 'b.md' }],
+        }),
+      ).toEqual(['a.md', 'b.md'])
+      expect(twoVersionsOf(null)).toEqual([])
+      expect([1, 2].map(twoVersionsSentence)).toEqual([
+        '1 file has two versions',
+        '2 files have two versions',
+      ])
+    })
+
+    it('has one tag for each state that is not simply on', () => {
+      expect(statusTag('ask')?.label).toBe('Needs your OK')
+      expect(statusTag('offline')).toEqual({ label: 'Offline', tone: 'warn' })
+      expect(statusTag('idle')).toBeNull()
+    })
+
+    it('calls for attention when two versions wait, not when synced', () => {
+      expect(backupNeedsAttention(synced({}))).toBe(false)
+      expect(backupNeedsAttention(synced({ status: 'working' }))).toBe(false)
+      expect(backupNeedsAttention(synced({}), [SCENE])).toBe(true)
+      // Plain backup: two versions and offline are not its words.
+      expect(backupNeedsAttention(view({}), [SCENE])).toBe(false)
+    })
   })
 })

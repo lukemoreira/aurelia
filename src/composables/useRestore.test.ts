@@ -3,6 +3,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BackupStore } from '@/backup/state'
 import { openDeviceDb } from '@/storage/device-db'
+import { hashBytes } from '@/storage/hash'
 
 const m = vi.hoisted(() => ({
   state: undefined as unknown as import('@/backup/state').BackupStore,
@@ -60,6 +61,7 @@ beforeEach(() => {
   m.fetched = {
     problems: [],
     files: new Map([['aurelia.json', bytes(JSON.stringify({ id: 'wsp_old', name: 'My Book' }))]]),
+    etags: new Map([['aurelia.json', '"e1"']]),
   }
 })
 
@@ -134,5 +136,79 @@ describe('restoring a backup', () => {
     await r.restore('browser')
     expect(idOf(m.written[0]!)).toBe('wsp_old')
     expect((await m.state.load('wsp_old')).enabled).toBe(false)
+  })
+})
+
+describe('restoring and keeping it in sync (ADR-0012)', () => {
+  const synced = { folder: 'Aurelia/My Book (wsp_old)', name: 'My Book', sync: true }
+
+  it('keeps the folder’s workspace ID, turns sync on in that folder and sets each file’s base from the very read', async () => {
+    const r = useRestore()
+    await r.start(synced)
+    expect(r.canKeepInSync).toBe(true)
+    r.keepInSync = true
+    await r.restore('browser')
+    expect(idOf(m.written[0]!)).toBe('wsp_old')
+    const s = await m.state.load('wsp_old')
+    expect([s.enabled, s.mode, s.folder]).toEqual([true, 'sync', 'Aurelia/My Book (wsp_old)'])
+    expect(s.base).toEqual({
+      'aurelia.json': {
+        etag: '"e1"',
+        hash: await hashBytes(m.written[0]!.get('aurelia.json') as Uint8Array<ArrayBuffer>),
+      },
+    })
+    expect(m.open).toHaveBeenCalled()
+  })
+
+  it('without the tick it is the ordinary restore: backup off', async () => {
+    const r = useRestore()
+    await r.start(synced)
+    await r.restore('browser')
+    expect(await m.state.load('wsp_old')).toMatchObject({ enabled: false, folder: null })
+  })
+
+  it('is refused, and writes nothing, when this device already has a workspace by that ID', async () => {
+    m.recent.mockResolvedValue({ key: 'wsp_old' })
+    const r = useRestore()
+    await r.start(synced)
+    r.keepInSync = true
+    await r.restore('browser')
+    expect(r.error).toContain('already has this workspace')
+    expect(m.written).toEqual([])
+    expect(m.open).not.toHaveBeenCalled()
+    expect((await m.state.load('wsp_old')).enabled).toBe(false)
+  })
+
+  it('is refused when this device remembers a backup of that workspace', async () => {
+    await m.state.save({
+      ...(await m.state.load('wsp_old')),
+      enabled: true,
+      folder: 'Aurelia/My Book (wsp_old)',
+    })
+    const r = useRestore()
+    await r.start(synced)
+    r.keepInSync = true
+    await r.restore('browser')
+    expect(r.error).toContain('already has this workspace')
+    expect(m.written).toEqual([])
+  })
+
+  it('is not offered for an earlier version, or for a folder that is not kept in sync', async () => {
+    const r = useRestore()
+    await r.start({ ...synced, choice: '2026-11-12T18-30-00.zip' })
+    expect(r.canKeepInSync).toBe(false)
+    r.keepInSync = true // a tick left from before: it counts for nothing
+    await r.restore('browser')
+    expect(await m.state.load('wsp_old')).toMatchObject({ enabled: false })
+    await r.start({ ...synced, sync: false })
+    expect(r.canKeepInSync).toBe(false)
+  })
+
+  it('a ticked box is cleared when the dialog opens again', async () => {
+    const r = useRestore()
+    await r.start(synced)
+    r.keepInSync = true
+    await r.start(synced)
+    expect(r.keepInSync).toBe(false)
   })
 })

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import type { ConflictView } from '@/storage/session'
 import type { BannerKind } from '@/components/shell/Banner.vue'
+import { twoVersionsSentence } from '@/backup/words'
 import { wordsFor } from '@/storage/errors'
 import { chooseDuplicate } from '@/storage/outline-actions'
 import { useBackupStore } from '@/stores/backup'
@@ -31,9 +33,10 @@ export function useWorkspaceNotices() {
   const layout = useLayoutStore()
   const { updateReady, reload, signIn } = useAppUpdate()
   const install = useInstallHint()
-  /** The conflict being compared, and whether the file list is open. */
-  const comparing = ref<string>()
-  const filesOpen = ref(false)
+  /** The conflict being compared and whether the file list is open are the layout's, so the status bar can open them. */
+  const { comparing, filesOpen } = storeToRefs(layout)
+  /** The workspace is kept in sync: the other text of a conflict is another device's. */
+  const synced = computed(() => !!backup.view?.enabled && backup.view.mode === 'sync')
   /** What a dialog is waiting for (`resolve`, or a copy's path), and why it failed. One place for both dialogs. */
   const busy = ref('')
   const error = ref('')
@@ -140,7 +143,7 @@ export function useWorkspaceNotices() {
       out.push({
         id: `conflict:${c.path}`,
         kind: 'info',
-        title: `“${c.title}” changed outside Aurelia while it was open here`,
+        title: `“${c.title}” changed ${synced.value ? 'on another device' : 'outside Aurelia'} while it was open here`,
         text: 'Nothing was overwritten. Both versions are kept.',
         tag: 'Two versions',
         action: 'Compare versions',
@@ -158,16 +161,21 @@ export function useWorkspaceNotices() {
         run: () => (filesOpen.value = true),
       })
 
-    if (view.copies.length)
+    if (view.copies.length) {
       out.push({
         id: 'copies',
         kind: 'warn',
-        title: `${view.copies.length} ${plural(view.copies.length, 'copy', 'copies')} set aside by a sync tool`,
-        text: 'Two versions of a file met. Choose which to keep. Nothing is deleted.',
-        tag: 'Conflicted copy',
+        title: synced.value
+          ? `${twoVersionsSentence(view.copies.length)} after syncing`
+          : `${view.copies.length} ${plural(view.copies.length, 'copy', 'copies')} set aside by a sync tool`,
+        text: synced.value
+          ? 'Two devices changed the same file. Both versions are kept. Choose which to keep; nothing is deleted.'
+          : 'Two versions of a file met. Choose which to keep. Nothing is deleted.',
+        tag: synced.value ? 'Two versions' : 'Conflicted copy',
         action: 'Review',
         run: () => (filesOpen.value = true),
       })
+    }
 
     if (view.problems.length)
       out.push({
@@ -248,5 +256,16 @@ export function useWorkspaceNotices() {
     if (live.value) last = live.value
     return last?.path === comparing.value ? last : undefined
   })
-  return { banners, comparing, conflict, filesOpen, busy, error, resolve, reconcile, keepFile }
+  return {
+    banners,
+    comparing,
+    conflict,
+    filesOpen,
+    busy,
+    error,
+    synced,
+    resolve,
+    reconcile,
+    keepFile,
+  }
 }

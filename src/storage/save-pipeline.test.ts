@@ -373,3 +373,102 @@ describe('no IndexedDB', () => {
     expect(p.journalFailed).toBe(true)
   })
 })
+
+describe('a text from another device (sync)', () => {
+  it('goes to the file while the file is still what the base says, and is remembered', async () => {
+    const p = await opened()
+    expect(await p.receive(PATH, 'from afar', await hashText('original'))).toBe('applied')
+    expect((await adapter.read(PATH))?.text).toBe('from afar')
+    expect(p.summary().kind).toBe('saved')
+  })
+
+  it('text typed on the screen as it was, before the files are read again, meets what arrived as a conflict and never writes over it', async () => {
+    const p = await opened()
+    await p.receive(PATH, 'from afar', await hashText('original'))
+    await p.edit(PATH, 'original, and typed after') // the screen still showed the old text
+    await p.flush(PATH)
+    expect((await adapter.read(PATH))?.text).toBe('from afar')
+    expect(p.conflicts()).toEqual([
+      { path: PATH, mine: 'original, and typed after', theirs: 'from afar' },
+    ])
+  })
+
+  it('the same for a file that was removed', async () => {
+    const p = await opened()
+    await p.receive(PATH, null, await hashText('original'))
+    await p.edit(PATH, 'typed after')
+    await p.flush(PATH)
+    expect(await adapter.read(PATH)).toBeNull()
+    expect(p.conflicts()).toEqual([{ path: PATH, mine: 'typed after', theirs: null }])
+  })
+
+  it('is deferred, and writes nothing, when the file is no longer what the base says', async () => {
+    const p = await opened()
+    await adapter.write(PATH, 'saved here since')
+    expect(await p.receive(PATH, 'from afar', await hashText('original'))).toBe('deferred')
+    expect((await adapter.read(PATH))?.text).toBe('saved here since')
+  })
+
+  it('a new file needs there to be none; a removal removes only what the base says', async () => {
+    const p = await opened()
+    expect(await p.receive(PATH, 'x', null)).toBe('deferred') // there is a file
+    expect(await p.receive('scenes/new.md', 'new', null)).toBe('applied')
+    expect(await p.receive(PATH, null, await hashText('other'))).toBe('deferred')
+    expect((await adapter.read(PATH))?.text).toBe('original')
+    expect(await p.receive(PATH, null, await hashText('original'))).toBe('applied')
+    expect(await adapter.read(PATH)).toBeNull()
+  })
+
+  it('unsaved edits stay on screen as a conflict with the text that arrived, and both choices keep both', async () => {
+    for (const choice of ['mine', 'theirs'] as const) {
+      adapter = new MemoryAdapter({ [PATH]: 'original' })
+      const p = await opened()
+      await p.edit(PATH, 'mine, unsaved')
+      expect(await p.receive(PATH, 'from afar', await hashText('original'))).toBe('applied')
+      expect(p.summary().kind).toBe('conflict')
+      expect(p.conflicts()).toEqual([{ path: PATH, mine: 'mine, unsaved', theirs: 'from afar' }])
+      expect((await journal.list(WS))[0]?.content).toBe('mine, unsaved')
+      await p.flush(PATH) // nothing is written over the text that arrived
+      expect((await adapter.read(PATH))?.text).toBe('from afar')
+      await p.resolve(PATH, choice)
+      const texts = [...(await adapter.list())].map((f) => adapter.read(f))
+      const all = (await Promise.all(texts)).map((f) => f?.text).join('|')
+      expect(all).toContain('mine, unsaved')
+      expect(all).toContain('from afar')
+    }
+  })
+
+  it('a removal never overrides unsaved edits', async () => {
+    const p = await opened()
+    await p.edit(PATH, 'mine, unsaved')
+    expect(await p.receive(PATH, null, await hashText('original'))).toBe('deferred')
+    expect((await adapter.read(PATH))?.text).toBe('original')
+    expect(p.pendingEntries().get(PATH)).toBe('mine, unsaved')
+  })
+
+  it('waits for a save that is in flight, so the two cannot interleave', async () => {
+    const p = await opened()
+    let release: () => void = () => undefined
+    const held = new Promise<void>((r) => (release = r))
+    adapter.beforeWrite = async (_path, text) => {
+      if (text === 'mine') await held
+    }
+    await p.edit(PATH, 'mine')
+    const saving = p.flush(PATH)
+    const arriving = p.receive(PATH, 'from afar', await hashText('original'))
+    await new Promise((r) => setTimeout(r, 10))
+    release()
+    await saving
+    // The save landed first, so the file is no longer what the base said: deferred, nothing lost.
+    expect(await arriving).toBe('deferred')
+    expect((await adapter.read(PATH))?.text).toBe('mine')
+  })
+
+  it('the same text arriving as the unsaved one is no conflict', async () => {
+    const p = await opened()
+    await p.edit(PATH, 'same words')
+    expect(await p.receive(PATH, 'same words', await hashText('original'))).toBe('applied')
+    expect(p.summary().kind).toBe('saved')
+    expect(p.conflicts()).toEqual([])
+  })
+})
