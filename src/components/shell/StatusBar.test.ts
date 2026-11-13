@@ -22,7 +22,7 @@ function render(opts: { kind?: 'browser' | 'folder'; enabled?: boolean; server: 
   setActivePinia(createPinia())
   fakeWs.value = reactive({
     view: { kind: opts.kind ?? 'browser', save: { kind: 'saved' }, label: 'x', persisted: null },
-    words: { scene: 1, chapter: 2, book: 3 },
+    words: { scene: 1, chapter: 2, book: 3, session: 4 },
     context: null,
     saveLabel: 'Saved',
     saveState: 'Saved',

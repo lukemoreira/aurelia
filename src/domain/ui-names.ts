@@ -39,6 +39,7 @@ export type IconName =
   | 'undo'
   | 'redo'
   | 'list'
+  | 'list-ordered'
   | 'checklist'
   | 'quote'
   | 'callout'

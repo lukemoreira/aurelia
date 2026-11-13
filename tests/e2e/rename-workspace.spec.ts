@@ -193,7 +193,7 @@ test.describe('rename a workspace', () => {
     await page.keyboard.press('Escape')
 
     const fresh = await browser.newContext({
-      baseURL: 'http://localhost:4173',
+      baseURL: `http://localhost:${process.env.E2E_PORT ?? 4173}`,
       serviceWorkers: 'block',
       viewport: { width: 1440, height: 900 },
     })

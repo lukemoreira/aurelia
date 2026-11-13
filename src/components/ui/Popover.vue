@@ -3,6 +3,10 @@
 import { PopoverContent, PopoverPortal, PopoverRoot, PopoverTrigger } from 'reka-ui'
 
 const open = defineModel<boolean>('open', { default: false })
+defineProps<{
+  /** Where focus goes when the popover closes, instead of back to its button (the text being written). */
+  returnFocusTo?: () => void
+}>()
 </script>
 
 <template>
@@ -12,6 +16,13 @@ const open = defineModel<boolean>('open', { default: false })
       <PopoverContent
         :side-offset="6"
         class="z-50 w-72 rounded-card border border-line bg-surface p-3 text-[13px] text-ink shadow-card"
+        @close-auto-focus="
+          (e: Event) => {
+            if (!returnFocusTo) return
+            e.preventDefault()
+            returnFocusTo()
+          }
+        "
       >
         <slot />
       </PopoverContent>

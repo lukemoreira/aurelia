@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { onBeforeUnmount, onMounted } from 'vue'
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
 /** How the shortcut modifier is written on this device. */
 export const modLabel = isMac ? '⌘' : 'Ctrl'
 export const altLabel = isMac ? '⌥' : 'Alt'
 /** The accessible name of the search button, with its shortcut spelled out. */
 export const searchLabel = `Search or run a command (${isMac ? 'Command K' : 'Ctrl K'})`
+/** How the focus mode chord is written on this device. */
+export const focusLabel = isMac ? '⌘⇧F' : 'Ctrl+Shift+F'
 /** How the pin chord is written on this device. */
 export const pinLabel = isMac ? '⌥P' : 'Alt+P'
 

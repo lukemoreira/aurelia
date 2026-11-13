@@ -1,28 +1,54 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useAutosize } from '@/composables/useAutosize'
+import { EditorContent } from '@tiptap/vue-3'
+import { computed } from 'vue'
+import { useManuscriptEditor } from '@/composables/useManuscriptEditor'
+import { useEditorStore } from '@/stores/editor'
+import { useLayoutStore } from '@/stores/layout'
+import EditorToolbar from './EditorToolbar.vue'
 
-// Plain Markdown for now; the real editor arrives in M4. Same type and column as the reading view.
-const props = defineProps<{ body: string; readonly: boolean; titleId: string }>()
+const props = defineProps<{
+  body: string
+  readonly: boolean
+  titleId: string
+  /** Where the formatting bar is drawn: a place on the page, outside the text's own column. */
+  toolbarTarget: HTMLElement | null
+}>()
 const emit = defineEmits<{ edit: [body: string]; blur: [] }>()
-const area = ref<HTMLTextAreaElement | null>(null)
-useAutosize(area, () => props.body)
+const layout = useLayoutStore()
+const appearance = useEditorStore()
+
+// Named "Scene text" and by the scene's own title (it points at itself for the first part).
+const { editor, tick } = useManuscriptEditor({
+  body: () => props.body,
+  editable: () => !props.readonly,
+  onEdit: (body) => emit('edit', body),
+  attributes: () => ({
+    id: 'scene-text',
+    role: 'textbox',
+    'aria-multiline': 'true',
+    'aria-label': 'Scene text',
+    'aria-labelledby': `scene-text ${props.titleId}`,
+    ...(props.readonly ? { 'aria-readonly': 'true' } : {}),
+    spellcheck: 'true',
+  }),
+})
+editor.on('blur', () => emit('blur'))
+
+const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.toolbarTarget)
 </script>
 
 <template>
-  <!-- Named "Scene text" and by the scene's own title (it points at itself for the first part). -->
-  <textarea
-    id="scene-text"
-    ref="area"
-    :value="body"
-    :readonly="readonly"
-    aria-label="Scene text"
-    :aria-labelledby="`scene-text ${titleId}`"
-    placeholder="Start writing…"
-    spellcheck="true"
-    class="m-0 box-border block min-h-[40vh] w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-prose text-[18px] leading-[1.7] text-ink caret-gold-ink outline-none! [field-sizing:content] placeholder:text-ink-3 lg:text-[19px] lg:leading-[1.75]"
-    @input="emit('edit', ($event.target as HTMLTextAreaElement).value)"
-    @blur="emit('blur')"
-  />
+  <div
+    class="manuscript"
+    :data-font="appearance.settings.font"
+    :data-size="appearance.settings.size"
+    :data-leading="appearance.settings.leading"
+    :data-paragraphs="appearance.settings.paragraphs"
+  >
+    <EditorContent :editor="editor" />
+  </div>
+  <Teleport v-if="showToolbar && toolbarTarget" :to="toolbarTarget">
+    <EditorToolbar :editor="editor" :tick="tick" :compact="!layout.wide" />
+  </Teleport>
 </template>

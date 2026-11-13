@@ -89,6 +89,20 @@ describe('usePalette', () => {
     palette.togglePinHighlighted()
     expect(shortcuts.pinned).toEqual([])
   })
+
+  it('offers focus mode on the writing screen only, and turns it on', async () => {
+    const { palette, router } = await setup()
+    palette.query.value = 'focus'
+    expect(palette.groups.value).toEqual([]) // the router here has no writing screen
+    router.addRoute({ path: '/write', name: 'write', component: { render: () => null } })
+    await router.push('/write')
+    await flushPromises()
+    const item = palette.groups.value[0]!.items[0]!
+    expect(item.title).toBe('Focus mode')
+    palette.choose(item)
+    expect(useLayoutStore().focus).toBe(true)
+    expect(palette.groups.value[0]!.items[0]!.title).toBe('Leave focus mode')
+  })
 })
 
 describe('the Rename workspace command', () => {

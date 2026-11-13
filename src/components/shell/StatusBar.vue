@@ -69,6 +69,9 @@ const popoverOpen = computed({
     <span
       ><b class="font-medium text-ink-2">{{ fmt(ws.words.book) }}</b> book</span
     >
+    <span
+      ><b class="font-medium text-ink-2">{{ fmt(ws.words.session) }}</b> this session</span
+    >
     <span class="flex-1" />
     <span v-if="where">{{ where }}</span>
     <!-- Always in the page, so a change of its text is read out. Only what needs the author's eye is put in it. -->
