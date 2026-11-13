@@ -40,13 +40,19 @@ const CALLOUT_OPENING = /^\[!([\w-]+)\][ \t]*([^\n]*)(?:\n|$)/
 type Mark = NonNullable<JSONContent['marks']>[number]
 const VERBATIM: Mark = { type: 'verbatim' }
 
+/** The marks plus one more; `**x* y**` reads as two italics, which is one. */
+const withMark = (marks: Mark[], type: string): Mark[] =>
+  marks.some((m) => m.type === type) ? marks : [...marks, { type }]
+
 /** Inline tokens → text with marks. What is not understood is kept as written, marked `verbatim`. */
 function inline(tokens: Tok[] | undefined, marks: Mark[]): JSONContent[] {
   const out: JSONContent[] = []
   const text = (raw: string, extra: Mark[] = []) => {
     // A paragraph holds no blank line: `marked` can hand back one in an item's lazy lines
     // (`- a\n=\n[^1]: b`), and written out it would split the paragraph.
-    const value = raw.replace(/\n[ \t]*\n[\s]*/g, '\n')
+    let value = raw.replace(/\n[ \t]*\n[\s]*/g, '\n')
+    // After a hard break the next line's leading spaces, and a newline `marked` adds, are not text.
+    if (out.at(-1)?.type === 'hardBreak') value = value.replace(/^[ \t\n]+/, '')
     const all = [...marks, ...extra]
     if (value)
       out.push(
@@ -67,13 +73,13 @@ function inline(tokens: Tok[] | undefined, marks: Mark[]): JSONContent[] {
       case 'checkbox':
         break // a loose item's box sits in its first paragraph; the item already says it
       case 'strong':
-        out.push(...inline(t.tokens, [...marks, { type: 'bold' }]))
+        out.push(...inline(t.tokens, withMark(marks, 'bold')))
         break
       case 'em':
-        out.push(...inline(t.tokens, [...marks, { type: 'italic' }]))
+        out.push(...inline(t.tokens, withMark(marks, 'italic')))
         break
       case 'del':
-        out.push(...inline(t.tokens, [...marks, { type: 'strike' }]))
+        out.push(...inline(t.tokens, withMark(marks, 'strike')))
         break
       case 'br':
         out.push({ type: 'hardBreak' })
@@ -129,10 +135,17 @@ const rawBlock = (t: Tok): JSONContent => {
  */
 function inlineTokens(t: Tok): Tok[] {
   const box = t.tokens?.[0]?.type === 'checkbox' ? t.tokens[0].raw : ''
-  let text = t.text ?? t.raw.replace(/\n+$/, '')
+  const trim = (value: string) => value.replace(/\n+$/, '')
+  let text = trim(t.text ?? t.raw)
   if (box && text.startsWith(box)) text = text.slice(box.length)
   const kids = (t.tokens ?? []).filter((k) => k.type !== 'checkbox')
-  if (kids.length && kids.map((k) => k.raw).join('') === text) return kids
+  if (kids.length && trim(kids.map((k) => k.raw).join('')) === text) {
+    // A tight item's text keeps the newline that came before its nested list.
+    const last = kids[kids.length - 1]!
+    return last.type === 'text' && last.raw !== trim(last.raw)
+      ? [...kids.slice(0, -1), { ...last, raw: trim(last.raw) }]
+      : kids
+  }
   return Lexer.lexInline(text, OPTIONS) as unknown as Tok[]
 }
 
@@ -214,7 +227,17 @@ function list(t: Tok): JSONContent {
  */
 export function parseMarkdown(md: string): ParsedMarkdown {
   const crlf = md.includes('\r\n')
-  const tokens = lex(crlf ? md.replace(/\r\n/g, '\n') : md)
+  let tokens: Tok[]
+  try {
+    tokens = lex(crlf ? md.replace(/\r\n/g, '\n') : md)
+  } catch {
+    // `marked` itself can fail on some text: all of it is then one block, kept as written.
+    const text = md.replace(/(\r?\n)+$/, '')
+    return {
+      blocks: [{ json: { type: 'rawBlock', content: [{ type: 'text', text }] }, src: md }],
+      exact: true,
+    }
+  }
   const parsed: ParsedBlock[] = []
   let lead = ''
   for (const t of tokens) {
