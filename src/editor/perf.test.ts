@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { Editor } from '@tiptap/core'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { countWords } from '@/domain/prose'
 import { editorExtensions } from './extensions'
 import { bodyToDoc, docToBody } from './markdown/body'
@@ -15,6 +15,9 @@ const report = (label: string, ms: number) => {
 // Shared CI machines run this about ten times slower and pause for GC; the budgets there keep catching
 // a real slowdown (an order of magnitude) without failing on noise. Locally they stay tight.
 const SLACK = process.env.CI ? 8 : 1
+
+// A 20,000-word scene typed 300 times takes seconds on a slow machine: give the file room.
+vi.setConfig({ testTimeout: 120_000 })
 
 const time = <T>(fn: () => T): [T, number] => {
   const start = performance.now()
