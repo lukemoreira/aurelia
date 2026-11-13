@@ -55,9 +55,10 @@ const returnFocus = useReturnFocus(open)
           /></DialogClose>
         </header>
         <div class="overflow-auto px-5 py-2 text-[13px]"><slot /></div>
-        <footer v-if="$slots.footer" class="flex justify-end gap-2 px-5 pb-4 pt-3">
+        <!-- A div, not a footer: a footer in a dialog is a second page footer (landmark) to a screen reader. -->
+        <div v-if="$slots.footer" class="flex justify-end gap-2 px-5 pb-4 pt-3">
           <slot name="footer" />
-        </footer>
+        </div>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>

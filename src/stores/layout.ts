@@ -25,6 +25,7 @@ export const useLayoutStore = defineStore('layout', () => {
   const navSheet = ref(false)
   const inspectorSheet = ref(false)
   const paletteOpen = ref(false)
+  const backupOpen = ref(false)
 
   // Below 1024px the panels are sheets; a sheet left open has no place on a wide screen.
   watch(wide, (isWide) => {
@@ -54,6 +55,7 @@ export const useLayoutStore = defineStore('layout', () => {
     navSheet,
     inspectorSheet,
     paletteOpen,
+    backupOpen,
     toggleNavigator,
     toggleInspector,
     closeSheets,

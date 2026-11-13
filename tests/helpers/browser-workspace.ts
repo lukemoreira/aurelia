@@ -72,3 +72,15 @@ export async function firstScenePath(page: Page) {
   const files = await opfs.list(page)
   return files.find((f) => /\/scenes\/scn_\w+\.md$/.test(f))!
 }
+
+/** Open the Backup screen from the status bar. Off, with a server there, the chip goes straight to it; otherwise it opens the details first. */
+export async function openBackupScreen(page: Page) {
+  await statusBar(page)
+    .getByRole('button', { name: /browser|folder|Backup|Backed up|Backing/ })
+    .click()
+  const screen = page.getByRole('dialog', { name: 'Backup and versions' })
+  const more = page.getByRole('button', { name: 'Backup and versions…' })
+  await screen.or(more).waitFor()
+  if (await more.isVisible()) await more.click()
+  await expect(screen).toBeVisible()
+}

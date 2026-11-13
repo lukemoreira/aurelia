@@ -36,6 +36,13 @@ export function openedWhen(ms: number, now = Date.now()): string {
   return new Date(ms).toLocaleDateString('en', { month: 'short', day: 'numeric' })
 }
 
+/** On an http page the browser gives no file access at all: not a folder, not browser storage. */
+export const INSECURE_REASON =
+  'Open Aurelia at its https:// address. On http, the browser does not let it keep files.'
+export const insecurePage = () => window.isSecureContext === false
+export const NO_STORAGE_REASON =
+  'This browser cannot keep files for Aurelia. It may be a private window.'
+
 /** Everything the Welcome screen does: pick, create, reopen and reconnect. */
 export function useOpenWorkspace() {
   const router = useRouter()
@@ -80,6 +87,10 @@ export function useOpenWorkspace() {
 
   async function chooseFolder() {
     message.value = null
+    if (insecurePage()) {
+      message.value = { kind: 'info', text: INSECURE_REASON }
+      return
+    }
     if (!canPickFolder()) {
       message.value = {
         kind: 'info',
@@ -109,8 +120,12 @@ export function useOpenWorkspace() {
 
   function keepInBrowser() {
     message.value = null
+    if (insecurePage()) {
+      message.value = { kind: 'info', text: INSECURE_REASON }
+      return
+    }
     if (!canKeepInBrowser()) {
-      message.value = { kind: 'error', text: 'This browser cannot keep files for Aurelia.' }
+      message.value = { kind: 'error', text: NO_STORAGE_REASON }
       return
     }
     naming.value = 'browser'
@@ -173,6 +188,7 @@ export function useOpenWorkspace() {
     busy,
     naming,
     canPickFolder: canPickFolder(),
+    insecure: insecurePage(),
     chooseFolder,
     keepInBrowser,
     createNamed,

@@ -75,10 +75,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   /** Make a storage session the open workspace. The one before it is saved and let go. */
   function attach(next: WorkspaceSession) {
     detach()
+    // What is open stays open when the new workspace has it (a restored copy has the same IDs, and
+    // opens on the same address, so the route would never say so again).
+    const [book, scene] = [bookId.value, sceneId.value]
     session.value = next
     data.value = next.data
     view.value = next.view()
     bookId.value = sceneId.value = null
+    if (book && hasBook(book)) {
+      bookId.value = book
+      sceneId.value = scene && sceneFor(book, scene) === scene ? scene : null
+    }
     unsubscribe = next.subscribe(() => {
       data.value = next.data
       view.value = next.view()

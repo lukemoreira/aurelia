@@ -2,7 +2,9 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
+import BackupDialog from '@/components/backup/BackupDialog.vue'
 import Sheet from '@/components/ui/Sheet.vue'
+import { useBackup } from '@/composables/useBackup'
 import { MAIN_CONTENT_ID, panelAttr } from '@/composables/useFocusMain'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { useSessionWatch } from '@/composables/useSessionWatch'
@@ -26,6 +28,7 @@ const shortcuts = useShortcutsStore()
 const route = useRoute()
 
 useSessionWatch()
+useBackup()
 useKeyboardShortcuts([
   { code: 'KeyK', run: () => (layout.paletteOpen = !layout.paletteOpen) },
   { code: 'Backslash', run: layout.toggleNavigator },
@@ -91,5 +94,6 @@ watch(
       ><Inspector
     /></Sheet>
     <CommandPalette />
+    <BackupDialog />
   </div>
 </template>

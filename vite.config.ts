@@ -83,10 +83,16 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: 'index.html',
         // Cloudflare Access sign-in lands on this origin: it must reach the network, not the cache.
-        navigateFallbackDenylist: [/^\/cdn-cgi\//, /^\/signin$/],
+        navigateFallbackDenylist: [/^\/cdn-cgi\//, /^\/signin$/, /^\/dav\//],
       },
     }),
   ],
+  // The end-to-end run against the real storage container (tests/e2e/backup-real-store.spec.ts):
+  // `AURELIA_STORE_URL=http://localhost:8081 npm run e2e` sends /dav/ there, as the app's nginx does.
+  preview: process.env.AURELIA_STORE_URL
+    ? // `cors: false`: the dev server's CORS layer would answer OPTIONS itself, hiding the store's `DAV: 1`.
+      { cors: false, proxy: { '/dav': { target: process.env.AURELIA_STORE_URL } } }
+    : {},
   // No font is inlined as a data: URI: the policy allows fonts from this origin only.
   build: { assetsInlineLimit: 0 },
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },

@@ -235,6 +235,19 @@ Do not scaffold future features early.
   hashes. "Download a backup (.zip)" always available; "Only in this browser" shown
   until a backup exists.
 - Offered to real-folder users too (versions help everyone).
+- **Built so far (browser half, 2026-11-12): "Your server" only.** `RemoteStore` +
+  `WebDavStore` (`src/storage/remote/`, same-origin `/dav/`, `connect-src 'self'`); the
+  backup engine (`src/backup/`): uploads changed files a minute after typing stops and when
+  the tab is hidden, `backup.json` claimed with compare-and-write before any file goes up
+  (a 412 or a foreign device means stop and ask: *Keep both* / *Use the backup here*),
+  hourly versions and before the conflict choices with the retention function, what still
+  has to go kept in the device database (IndexedDB v2), retries with a wait, "sign in
+  again" on 401. Restore from Welcome and from the Backup screen always makes a NEW local
+  copy (a new workspace ID when this device already has that one), every file checked
+  against the manifest (versions: against the zip's CRC-32). Left: Google Drive, OneDrive,
+  Nextcloud, Dropbox; restoring over an open workspace; the "storage empty but remembered"
+  marker; the real storage container is not run by the end-to-end tests (an in-test WebDAV
+  follows its contract).
 - Exit: clear all site data, then restore — every file matches its hash; two browsers
   backing up one workspace never overwrite each other; an expired token keeps changes
   queued and shows "Reconnect"; a WebDAV server without CORS gives a clear setup
@@ -454,3 +467,20 @@ backup — ADR-0009.)
   compare-and-write saves with a recovery journal, conflict flow, external-change
   polling, conflicted copies, read-only for newer files, download a copy. Next: M2b
   backup and versions, then M3.
+- 2026-11-12 — M2b browser half built: backup to the author's own server (`/dav/`),
+  versions with retention, restore from Welcome and the Backup screen, status-bar chip
+  and banners. Also: Welcome says the real reason on an http page (no file access).
+  Next: wire the real storage container in the end-to-end run, then M3.
+- 2026-11-12 — M2b review fixes (browser half). Data safety: a restore whose workspace ID
+  this device still holds backup state for gets a new ID and starts with backup off (an
+  old copy can no longer be backed over `current/`); a failed final `backup.json` write
+  is found and closed by the next round (`claimOpen`); the engine waits for pending
+  saves (`flush`) before reading files or building a version; a version before a big
+  change is zipped before the 10 s race; a round re-reads stored state (a tab that took
+  over); "Keep both" folders carry a device-ID suffix; "Use the backup here" does not
+  prune the other device's versions; the device database says "close your other tabs"
+  instead of hanging on an upgrade, and lets go when another tab upgrades; a change that
+  arrives while a round is being refused no longer sets it off again. UX: no workspace
+  ID on screen, Close is secondary, focus moves to each restore step's heading, one
+  live region, gold is a border only, the status bar nudges "turn on backup" in warn
+  where a server exists, one `persistedWords`, h3 sections.

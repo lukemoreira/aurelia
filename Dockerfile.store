@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# aurelia-store: Aurelia's small storage server (WebDAV subset, ADR-0011).
+# Node 24 runs the TypeScript source directly (built-in type stripping): no build step.
+# Build from the repository root:  docker build -f Dockerfile.store -t aurelia-store .
+
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS deps
+WORKDIR /app
+COPY server/store/package.json server/store/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5
+WORKDIR /app
+ENV NODE_ENV=production AURELIA_STORE_ROOT=/data PORT=8081
+COPY --from=deps /app/node_modules ./node_modules
+COPY server/store/package.json ./
+COPY server/store/src ./src
+# 568 is the TrueNAS "apps" user. Temp files are written next to their target inside /data,
+# so a read-only root file system works.
+RUN mkdir /data && chown 568:568 /data
+USER 568:568
+VOLUME /data
+EXPOSE 8081
+CMD ["node", "src/main.ts"]

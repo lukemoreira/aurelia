@@ -106,7 +106,9 @@ test.describe('a workspace in this browser', () => {
     await expect(sceneText(page)).toBeVisible()
     await expect(page.getByText('Install Aurelia as an app')).toHaveCount(0)
     await page.getByRole('button', { name: 'Only in this browser' }).click()
-    await expect(page.getByText(/Protected from clean-up|Not protected/)).toBeVisible()
+    await expect(
+      page.getByText(/Kept by the browser|Not protected from clean-up|Not asked yet/),
+    ).toBeVisible()
     await expect(page.getByText('The browser holds the only copy')).toBeVisible()
   })
 
