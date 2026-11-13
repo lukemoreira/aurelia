@@ -12,6 +12,10 @@ import { bodyToDoc, docToBody } from './markdown/body'
 const report = (label: string, ms: number) => {
   if (process.env.PERF_REPORT) process.stderr.write(`perf ${label}: ${ms.toFixed(1)} ms\n`)
 }
+// Shared CI machines run this about ten times slower and pause for GC; the budgets there keep catching
+// a real slowdown (an order of magnitude) without failing on noise. Locally they stay tight.
+const SLACK = process.env.CI ? 8 : 1
+
 const time = <T>(fn: () => T): [T, number] => {
   const start = performance.now()
   const out = fn()
@@ -54,7 +58,7 @@ describe('a 150,000-word book', () => {
   it('reads every scene into the editor model in a few seconds, and writes each back unchanged', () => {
     const [docs, ms] = time(() => book.map(bodyToDoc))
     report('read 100 scenes (150k words)', ms)
-    expect(ms).toBeLessThan(3000)
+    expect(ms).toBeLessThan(3000 * SLACK)
     const editors = docs.slice(0, 5).map((doc, i) => {
       const ed = new Editor({ extensions: editorExtensions, content: doc })
       expect(docToBody(ed.state.doc)).toBe(book[i])
@@ -72,14 +76,14 @@ describe('a 150,000-word book', () => {
     }
     const mean = times.reduce((a, b) => a + b) / times.length
     report('open one 1,500-word scene (mean of 10)', mean)
-    expect(mean).toBeLessThan(200)
+    expect(mean).toBeLessThan(200 * SLACK)
   })
 
   it('has no lag typing in a very long scene: a keystroke costs the same as in a short one', () => {
     const long = scene(20_000)
     const [ed, mountMs] = time(() => open(long))
     report('open one 20,000-word scene', mountMs)
-    expect(mountMs).toBeLessThan(1500)
+    expect(mountMs).toBeLessThan(1500 * SLACK)
     ed.commands.focus('end')
     // What happens to every keystroke: the change, the text written out, the words counted.
     const keystroke = () => {
@@ -94,7 +98,7 @@ describe('a 150,000-word book', () => {
     const p95 = times[Math.floor(times.length * 0.95)]!
     report('keystroke in a 20,000-word scene (p95)', p95)
     report('keystroke in a 20,000-word scene (median)', times[150]!)
-    expect(p95).toBeLessThan(25)
+    expect(p95).toBeLessThan(25 * SLACK)
 
     const short = open(scene(300))
     short.commands.focus('end')
@@ -120,7 +124,7 @@ describe('a 150,000-word book', () => {
     )
     const ms = runs[2]!
     report('write out a 20,000-word scene after one edit', ms)
-    expect(ms).toBeLessThan(50)
+    expect(ms).toBeLessThan(50 * SLACK)
     ed.destroy()
   })
 })
