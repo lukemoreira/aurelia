@@ -130,6 +130,8 @@ performance tests run as plain functions.
   in `*` or `_` right before a mark's own `**` is the same case.
 - HTML entities (`&amp;`) are kept as the characters typed.
 - Link titles, reference links, autolinks and images are kept as written text, not as links.
+- A mark that begins right after a bare address with no space (`http://x.y**bold**`) is part
+  of the address, as GFM reads it; text there is written as it is read, never escaped.
 - A list item that holds a raw block (a table) is written with that block indented under it,
   which can change where a lazy continuation line belongs.
 
