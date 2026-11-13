@@ -38,11 +38,11 @@ const routes: RouteRecordRaw[] = [
 ]
 
 /** A workspace route needs a loaded workspace and a book that is in it. */
-function workspaceGuard(to: RouteLocationNormalized) {
+async function workspaceGuard(to: RouteLocationNormalized) {
   if (!to.meta.needsWorkspace) return true
   const ws = useWorkspaceStore()
   const bookId = String(to.params.bookId)
-  if (!ws.ensureLoaded() || !ws.hasBook(bookId)) return '/'
+  if (!(await ws.ensureLoaded()) || !ws.hasBook(bookId)) return '/'
   if (to.name !== 'write') return true
   const wanted = typeof to.params.sceneId === 'string' ? to.params.sceneId : undefined
   const sceneId = ws.sceneFor(bookId, wanted)

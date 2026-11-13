@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 // A Vue warning is a bug (a missing prop, a bad ref, a failed hydration): fail the test that

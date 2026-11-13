@@ -1,0 +1,73 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<script setup lang="ts">
+import Button from '@/components/ui/Button.vue'
+import Dialog from '@/components/ui/Dialog.vue'
+import type { SessionView } from '@/storage/session'
+
+defineProps<{ view: SessionView | null; busy: string; error: string }>()
+defineEmits<{ reconcile: [path: string, keep: 'original' | 'copy'] }>()
+const open = defineModel<boolean>('open', { default: false })
+const heading = 'm-0 text-xs font-semibold uppercase tracking-[.08em] text-ink-3'
+const path = 'break-all font-mono text-xs text-ink'
+</script>
+
+<template>
+  <Dialog
+    v-model:open="open"
+    size="lg"
+    title="Files to look at"
+    description="Aurelia never deletes these. A copy you do not keep is stored in .aurelia/conflicts."
+  >
+    <div v-if="view" class="flex flex-col gap-5">
+      <section v-if="view.copies.length" aria-labelledby="copies-title" class="flex flex-col gap-2">
+        <h3 id="copies-title" :class="heading">Two versions of one file</h3>
+        <ul class="m-0 flex list-none flex-col gap-2 p-0">
+          <li
+            v-for="c in view.copies"
+            :key="c.path"
+            class="flex flex-col gap-2 rounded-control border border-line p-3"
+          >
+            <p v-if="c.title !== c.original" class="m-0 font-medium text-ink">“{{ c.title }}”</p>
+            <p class="m-0 text-ink-2">
+              <span :class="path">{{ c.path }}</span><br />is a copy of
+              <span :class="path">{{ c.original }}</span>
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <Button
+                :disabled="busy === c.path || view.readOnly"
+                @click="$emit('reconcile', c.path, 'original')"
+                >Keep the original</Button
+              >
+              <Button
+                :disabled="busy === c.path || view.readOnly"
+                @click="$emit('reconcile', c.path, 'copy')"
+                >Keep this copy</Button
+              >
+            </div>
+          </li>
+        </ul>
+      </section>
+      <section
+        v-if="view.problems.length"
+        aria-labelledby="problems-title"
+        class="flex flex-col gap-2"
+      >
+        <h3 id="problems-title" :class="heading">Could not be read</h3>
+        <ul class="m-0 flex list-none flex-col gap-2 p-0">
+          <li
+            v-for="p in view.problems"
+            :key="p.path"
+            class="rounded-control border border-line p-3"
+          >
+            <p :class="[path, 'm-0']">{{ p.path }}</p>
+            <p class="m-0 mt-1 text-ink-2">{{ p.reason }}</p>
+          </li>
+        </ul>
+      </section>
+      <p v-if="!view.copies.length && !view.problems.length" class="m-0 text-ink-2">
+        Nothing left to look at.
+      </p>
+      <p v-if="error" role="alert" class="m-0 text-xs font-medium text-danger">{{ error }}</p>
+    </div>
+  </Dialog>
+</template>

@@ -25,6 +25,8 @@ withDefaults(defineProps<{ title: string; description?: string; size?: DialogSiz
   size: 'sm',
 })
 const open = defineModel<boolean>('open', { default: false })
+/** Focus moved into the dialog: `preventDefault()` to choose the control yourself. */
+defineEmits<{ openAutoFocus: [event: Event] }>()
 const returnFocus = useReturnFocus(open)
 </script>
 
@@ -38,6 +40,7 @@ const returnFocus = useReturnFocus(open)
           'fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-dialog border border-line bg-surface text-ink shadow-card',
           SIZES[size],
         ]"
+        @open-auto-focus="$emit('openAutoFocus', $event)"
         @close-auto-focus="returnFocus"
       >
         <header class="flex items-start gap-3 px-5 pb-2 pt-4">

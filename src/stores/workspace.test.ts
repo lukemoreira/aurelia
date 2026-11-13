@@ -12,10 +12,10 @@ const fresh = () => {
 beforeEach(() => localStorage.clear())
 
 describe('workspace store', () => {
-  it('has nothing loaded to begin with, and nothing to reopen', () => {
+  it('has nothing loaded to begin with, and nothing to reopen', async () => {
     const ws = fresh()
     expect(ws.loaded).toBe(false)
-    expect(ws.ensureLoaded()).toBe(false)
+    expect(await ws.ensureLoaded()).toBe(false)
   })
 
   it('opens the sample at Curfew Bells and selects it', () => {
@@ -61,7 +61,7 @@ describe('workspace store', () => {
 
     const second = fresh() // a new page load: empty memory, same device storage
     expect(second.loaded).toBe(false)
-    expect(second.ensureLoaded()).toBe(true)
+    expect(await second.ensureLoaded()).toBe(true)
     expect(second.startPath()).toBe(`/w/${SAMPLE_START.book}/${tide}`)
   })
 

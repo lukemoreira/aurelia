@@ -7,6 +7,7 @@ import IconButton from '@/components/ui/IconButton.vue'
 import Kbd from '@/components/ui/Kbd.vue'
 import Menu from '@/components/ui/Menu.vue'
 import Popover from '@/components/ui/Popover.vue'
+import StorageDetails from '@/components/workspace/StorageDetails.vue'
 import { buttonBase, iconSizeClass } from '@/components/ui/buttonStyles'
 import type { IconName } from '@/domain/ui-names'
 import { modLabel, searchLabel } from '@/composables/useKeyboardShortcuts'
@@ -117,14 +118,12 @@ const iconButton = [buttonBase, iconSizeClass.md, 'text-ink-2 hover:bg-raised ho
           type="button"
           class="flex h-8 shrink-0 items-center gap-[7px] rounded-control px-2.5 text-[12.5px] font-medium text-ink-2 hover:bg-raised hover:text-ink"
         >
-          <Icon name="folder" /><span class="max-xl:sr-only">Sample workspace</span>
+          <Icon name="folder" /><span class="max-xl:sr-only">{{
+            ws.view?.name ?? 'Sample workspace'
+          }}</span>
         </button>
       </template>
-      <p class="m-0 font-semibold">Sample workspace</p>
-      <p class="mb-0 mt-1 text-ink-2">
-        This copy lives in memory while the page is open. Saving to a folder or to this browser
-        comes in the next milestone.
-      </p>
+      <StorageDetails />
     </Popover>
 
     <Popover>

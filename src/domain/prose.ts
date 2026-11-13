@@ -37,3 +37,11 @@ export function proseBlocks(body: string): ProseBlock[] {
   }
   return blocks
 }
+
+/** Words in a scene's text. Scene-break lines (`* * *`) are not words. */
+export function countWords(body: string): number {
+  let n = 0
+  for (const line of body.split('\n'))
+    if (!SCENE_BREAK.test(line.trim())) n += line.match(/\S+/g)?.length ?? 0
+  return n
+}

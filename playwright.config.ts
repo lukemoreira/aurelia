@@ -8,7 +8,8 @@ export default defineConfig({
   use: { baseURL: 'http://localhost:4173' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run build && npm run preview',
+    // Production build first (a test checks it has no test hook), then the end-to-end build the browser tests run against.
+    command: 'npm run build && npm run build:e2e && npm run preview:e2e',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
