@@ -41,3 +41,17 @@ export async function requestPersistence(): Promise<boolean | null> {
 export async function isPersisted(): Promise<boolean | null> {
   return (await navigator.storage?.persisted?.()) ?? null
 }
+
+/** Whether browser storage already holds a workspace with this ID. */
+export const browserDirectoryExists = (id: string) =>
+  browserDirectory(id, false).then(
+    () => true,
+    () => false,
+  )
+
+/** Remove a browser-storage workspace that was never finished (a restore that failed half way). */
+export async function discardBrowserDirectory(id: string): Promise<void> {
+  const root = await navigator.storage.getDirectory()
+  const all = await root.getDirectoryHandle('workspaces')
+  await all.removeEntry(id, { recursive: true })
+}

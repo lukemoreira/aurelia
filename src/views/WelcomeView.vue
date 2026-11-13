@@ -1,16 +1,20 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import LogoMark from '@/components/shell/LogoMark.vue'
 import Icon from '@/components/ui/Icon.vue'
+import RestoreDialog from '@/components/backup/RestoreDialog.vue'
 import NewWorkspaceDialog from '@/components/welcome/NewWorkspaceDialog.vue'
-import { openedWhen, useOpenWorkspace } from '@/composables/useOpenWorkspace'
+import { INSECURE_REASON, openedWhen, useOpenWorkspace } from '@/composables/useOpenWorkspace'
+import { useRestore } from '@/composables/useRestore'
 import type { IconName } from '@/domain/ui-names'
 
 const open = useOpenWorkspace()
+const restore = useRestore()
+onMounted(() => void restore.probe())
 
 interface Option {
-  id: 'folder' | 'browser' | 'sample'
+  id: 'folder' | 'browser' | 'restore' | 'sample'
   title: string
   tag: string
   text: string
@@ -21,25 +25,44 @@ interface Option {
   run: () => void
 }
 const options = computed<Option[]>(() => {
-  const folder = open.canPickFolder
+  const folder = open.canPickFolder && !open.insecure
+  const blocked = open.insecure // neither a folder nor browser storage works on an http page
   return [
     {
       id: 'folder',
       title: 'Choose a folder',
-      tag: folder ? 'Recommended' : 'Needs Chrome or Edge',
+      tag: blocked ? 'Needs https' : folder ? 'Recommended' : 'Needs Chrome or Edge',
       recommended: folder,
       unavailable: !folder,
-      text: `Markdown files in a folder you pick. Put it inside Dropbox, OneDrive, iCloud or Syncthing and it syncs — no Aurelia account needed.${folder ? ' Chrome and Edge.' : ''}`,
+      text: blocked
+        ? 'Not possible on an http page.'
+        : `Markdown files in a folder you pick. Put it inside Dropbox, OneDrive, iCloud or Syncthing and it syncs — no Aurelia account needed.${folder ? ' Chrome and Edge.' : ''}`,
       run: open.chooseFolder,
     },
     {
       id: 'browser',
       title: 'Keep it in this browser',
-      tag: folder ? 'Only in this browser' : 'Recommended',
-      recommended: !folder,
-      text: 'Nothing to set up, and it works offline. The browser holds the only copy, so download a copy now and then.',
+      tag: blocked ? 'Needs https' : folder ? 'Only in this browser' : 'Recommended',
+      recommended: !folder && !blocked,
+      unavailable: blocked,
+      text: blocked
+        ? 'Not possible on an http page.'
+        : 'Nothing to set up, and it works offline. The browser holds the only copy, so download a copy now and then.',
       run: open.keepInBrowser,
     },
+    // Only where Aurelia runs next to the author's own storage server.
+    ...(restore.serverState === 'available' || restore.serverState === 'sign-in'
+      ? [
+          {
+            id: 'restore' as const,
+            title: 'Restore from a backup',
+            tag: 'Your server',
+            recommended: false,
+            text: 'Bring a workspace back from the backup on your own server — the latest copy or an earlier version.',
+            run: () => void restore.start(),
+          },
+        ]
+      : []),
     {
       id: 'sample',
       title: 'Open the sample universe',
@@ -109,6 +132,14 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
           Where should your writing live? You can move it later.
         </p>
       </div>
+
+      <p
+        v-if="open.insecure"
+        role="status"
+        class="m-0 max-w-[640px] rounded-control border border-warn-line bg-warn-soft px-3.5 py-2.5 text-[13px] text-ink"
+      >
+        {{ INSECURE_REASON }}
+      </p>
 
       <ul class="m-0 flex max-w-[640px] list-none flex-col gap-2.5 p-0">
         <li v-for="o in options" :key="o.id">
@@ -209,6 +240,7 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
         is yours.
       </p>
     </main>
+    <RestoreDialog :restore="restore" />
     <NewWorkspaceDialog
       :where="open.naming.value"
       :busy="open.busy.value"

@@ -18,6 +18,7 @@ permissions:
 
 env:
   IMAGE: ghcr.io/lukemoreira/aurelia
+  STORE_IMAGE: ghcr.io/lukemoreira/aurelia-store
 
 jobs:
   build:
@@ -33,7 +34,17 @@ jobs:
           tags: aurelia:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: Dockerfile.store
+          platforms: linux/amd64
+          load: true
+          tags: aurelia-store:test
+          cache-from: type=gha,scope=store
+          cache-to: type=gha,mode=max,scope=store
       - run: deploy/smoke-test.sh aurelia:test
+      - run: deploy/smoke-store.sh aurelia-store:test aurelia:test
 
   # Never runs for a pull request, so a pull request never gets write access to packages.
   publish:
@@ -61,6 +72,16 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.licenses=AGPL-3.0-or-later
+      - id: meta-store
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.STORE_IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
       # The layers come from the cache the build job filled, so this does not build twice.
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -70,3 +91,12 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: Dockerfile.store
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta-store.outputs.tags }}
+          labels: ${{ steps.meta-store.outputs.labels }}
+          cache-from: type=gha,scope=store

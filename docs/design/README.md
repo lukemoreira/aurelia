@@ -23,7 +23,7 @@ artboard, plus `canvas.json` for the layout. Build the app from these files.
 | `Phone` | Writing on a phone: navigator and scene panel open as sheets, 44 px targets |
 | `Names` | Names found automatically (ADR-0010): "Show names" highlight by type, a "Will?" suggestion popover, the Names tab with found names, open questions and new names to add |
 | `RenameEverywhere` | Rename a character: map each name form, preview every place (uncertain ones unticked), version saved first, one undo |
-| `Backup` | Backup and versions: browser protection status, copy to Google Drive / OneDrive / Nextcloud, version list with restore (ADR-0009) |
+| `Backup` | Backup and versions: browser protection status, copy to Google Drive / OneDrive / Nextcloud, version list with restore (ADR-0009). **Built so far:** the card for "Your server" only; Google Drive and OneDrive are one honest line ("come later"), never shown as working. Gold is a border only (the card when backup is on); a warning box inside it, as in the "ask" state, is then the only thing that stands out. `StatusBar` with `backup=none` is live: where a server exists and the workspace is only in this browser, the chip says "Only in this browser — turn on backup" in warn on warn-soft and opens this screen |
 | `Brand` | Logo, colour tokens for both themes, type, components, principles |
 | `TopBar`, `Navigator`, `StatusBar`, `CommandPalette` | Shared building blocks used by the screens |
 

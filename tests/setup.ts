@@ -8,6 +8,8 @@ import { afterEach, beforeEach, expect, vi } from 'vitest'
 let warnings: string[] = []
 beforeEach(() => {
   warnings = []
+  // No real network in tests: anything that asks the server (the backup probe) finds none.
+  vi.stubGlobal('fetch', () => Promise.reject(new TypeError('no network in tests')))
   const warn = console.warn.bind(console)
   vi.spyOn(console, 'warn').mockImplementation((...args: unknown[]) => {
     if (String(args[0]).includes('[Vue warn]')) warnings.push(args.map(String).join(' '))
@@ -16,5 +18,6 @@ beforeEach(() => {
 })
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   expect(warnings, 'Vue warnings').toEqual([])
 })

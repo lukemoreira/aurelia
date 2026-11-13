@@ -1,0 +1,5 @@
+# Only what Dockerfile.store copies. (BuildKit reads this file instead of .dockerignore.)
+*
+!server/store/package.json
+!server/store/package-lock.json
+!server/store/src

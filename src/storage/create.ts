@@ -19,7 +19,7 @@ export type FolderState =
   { state: 'workspace' } | { state: 'empty' } | { state: 'other'; names: string[] }
 
 // Files an operating system adds to a folder the author never made.
-const SYSTEM_FILES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini'])
+export const SYSTEM_FILES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini'])
 
 export async function inspectFolder(adapter: StorageAdapter): Promise<FolderState> {
   const names = (await adapter.list({ shallow: true })).filter((n) => !SYSTEM_FILES.has(n))

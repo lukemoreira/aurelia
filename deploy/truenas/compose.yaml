@@ -2,14 +2,31 @@
 # Aurelia on TrueNAS SCALE: Apps -> Discover Apps -> ⋮ -> Install via YAML.
 # Full steps: docs/self-hosting.md
 #
-# - Only Aurelia runs here. Your Cloudflare Tunnel (already on the NAS) sends visitors
-#   to http://<NAS IP>:30080. No port is opened on the router.
-# - Port 30080 is open on your home network only. It serves the app, never your books.
-#   If the port is taken, change the left number and the tunnel route.
+# Two containers:
+# - aurelia: the app (static files). Your Cloudflare Tunnel (already on the NAS) sends
+#   visitors to http://<NAS IP>:30080. No port is opened on the router.
+# - aurelia-store: the storage server. It writes your books into a dataset on the NAS.
+#   It has NO published port: the only way in is through the app's /dav/ address, and it
+#   refuses every request that has no valid Cloudflare Access login.
+#
+# Before you save, replace the three values marked CHANGE ME (see docs/self-hosting.md):
+# - CF_ACCESS_TEAM_DOMAIN: Cloudflare Zero Trust -> Settings -> Custom Pages -> team domain,
+#   for example myteam.cloudflareaccess.com
+# - CF_ACCESS_AUD: Zero Trust -> Access controls -> Applications -> Aurelia -> Edit ->
+#   Additional settings -> Application Audience (AUD) Tag
+# - The dataset path /mnt/MainPool/aurelia-books, if your pool or dataset has another name.
+#
+# Port 30080 is open on your home network only. It serves the app, and /dav/ answers 401 to
+# anyone without the Cloudflare login. If the port is taken, change the left number and the
+# tunnel route.
+#
+# To update both containers: Apps -> aurelia -> Edit -> Save. pull_policy: always makes
+# TrueNAS pull the newest images each time.
 
 services:
   aurelia:
     image: ghcr.io/lukemoreira/aurelia:latest
+    pull_policy: always
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -21,8 +38,43 @@ services:
     pids_limit: 100
     ports:
       - '30080:8080'
+    networks: [aurelia]
     healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/healthz']
       interval: 30s
       timeout: 5s
       retries: 3
+
+  aurelia-store:
+    image: ghcr.io/lukemoreira/aurelia-store:latest
+    pull_policy: always
+    restart: unless-stopped
+    # 568 is the TrueNAS "apps" user. The dataset's permissions must give it Modify.
+    user: '568:568'
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 192m
+    pids_limit: 100
+    environment:
+      # CHANGE ME: your Cloudflare team domain. The store gets the login keys from there.
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:?replace with your team domain, for example myteam.cloudflareaccess.com}
+      # CHANGE ME: the AUD tag of the Aurelia Access application.
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:?replace with the AUD tag of the Aurelia Access application}
+    volumes:
+      # CHANGE ME if your dataset has another path.
+      - /mnt/MainPool/aurelia-books:/data
+    # No "ports:" on purpose. Not "internal: true" either: the store must reach Cloudflare
+    # to fetch the public login keys.
+    networks: [aurelia]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8081/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  aurelia: {}

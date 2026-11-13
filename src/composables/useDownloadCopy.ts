@@ -3,6 +3,16 @@ import { ref } from 'vue'
 import { wordsFor } from '@/storage/errors'
 import { useWorkspaceStore } from '@/stores/workspace'
 
+/** Save a blob through the browser, as a download. */
+export function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = Object.assign(document.createElement('a'), { href: url, download: filename })
+  document.body.append(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
 /** "Download a copy (.zip)": every file of the open workspace, saved through the browser. */
 export function useDownloadCopy() {
   const ws = useWorkspaceStore()
@@ -16,15 +26,10 @@ export function useDownloadCopy() {
     error.value = ''
     try {
       const blob = await session.exportZip()
-      const url = URL.createObjectURL(blob)
-      const link = Object.assign(document.createElement('a'), {
-        href: url,
-        download: `${session.data.workspace.name.replace(/[\\/:*?"<>|]+/g, '-')} ${new Date().toLocaleDateString('en-CA')}.zip`,
-      })
-      document.body.append(link)
-      link.click()
-      link.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 10_000)
+      saveBlob(
+        blob,
+        `${session.data.workspace.name.replace(/[\\/:*?"<>|]+/g, '-')} ${new Date().toLocaleDateString('en-CA')}.zip`,
+      )
     } catch (e) {
       error.value = wordsFor(e, 'Aurelia could not make the copy.')
     } finally {

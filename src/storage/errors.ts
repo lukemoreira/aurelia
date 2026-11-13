@@ -16,6 +16,30 @@ export class StorageError extends Error {
 export const isPermissionError = (e: unknown) =>
   e instanceof StorageError && e.code === 'permission'
 
+/** What went wrong talking to a backup server, in the few kinds the screens tell apart. */
+export type RemoteErrorCode =
+  'precondition' | 'conflict' | 'unauthorized' | 'too-large' | 'offline' | 'server'
+
+export class RemoteError extends Error {
+  constructor(
+    readonly code: RemoteErrorCode,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'RemoteError'
+  }
+}
+
+const REMOTE_WORDS: Record<RemoteErrorCode, string> = {
+  precondition:
+    'Someone else changed the backup at the same moment, so Aurelia stopped and left it alone.',
+  conflict: 'Your server would not make the folder for the backup.',
+  unauthorized: 'Your server needs you to sign in again.',
+  'too-large': 'A file is too big for your server to take.',
+  offline: 'Aurelia could not reach your server. It will try again.',
+  server: 'Your server could not keep the backup just now. It will try again.',
+}
+
 const at = (path: string) => (path ? `“${path}”` : 'a file')
 
 /** Turn what the browser throws into a `StorageError` (a missing file is handled by callers). */
@@ -58,6 +82,10 @@ const OPEN_WORDS: Record<OpenErrorKind, string> = {
  */
 export function wordsFor(e: unknown, fallback = 'That did not work. Nothing was lost.'): string {
   if (e instanceof StorageError) return e.message
+  if (e instanceof RemoteError) {
+    console.warn('[remote]', e.code, e.message)
+    return REMOTE_WORDS[e.code]
+  }
   if (e instanceof OpenError) {
     console.warn('[open]', e.message)
     return OPEN_WORDS[e.kind]

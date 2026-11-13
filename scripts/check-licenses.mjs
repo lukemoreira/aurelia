@@ -81,8 +81,24 @@ function visit(name, from) {
 for (const dep of [...Object.keys(root.dependencies ?? {}), ...SHIPPED_BUILD_TIME])
   visit(dep, process.cwd())
 
+// The storage server (server/store) ships its production dependencies in its own image. Its lockfile
+// lists every package with its licence, so this needs no install. `dev` packages are not shipped.
+const storeLock = JSON.parse(readFileSync('server/store/package-lock.json', 'utf8'))
+let storeCount = 0
+for (const [path, pkg] of Object.entries(storeLock.packages ?? {})) {
+  if (path === '' || pkg.dev || pkg.devOptional) continue
+  storeCount++
+  const license = licenseOf(pkg)
+  if (!license || !isAllowed(license))
+    bad.push(
+      `${path.replace(/^node_modules\//, '')}@${pkg.version} (server/store): ${license ?? 'no licence'}`,
+    )
+}
+
 if (bad.length) {
   console.error(`Licences outside the allowlist:\n${bad.join('\n')}`)
   process.exit(1)
 }
-console.log(`Licences OK (${seen.size} packages shipped to users)`)
+console.log(
+  `Licences OK (${seen.size} packages shipped to users, ${storeCount} in the storage server)`,
+)

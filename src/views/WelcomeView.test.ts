@@ -55,4 +55,55 @@ describe('the Welcome screen', () => {
     await welcome()
     expect(document.body.textContent).not.toMatch(/cloud account|comes later/i)
   })
+
+  describe('on an http page, where the browser gives no file access', () => {
+    const REASON =
+      'Open Aurelia at its https:// address. On http, the browser does not let it keep files.'
+    const secure = (value: boolean | undefined) =>
+      Object.defineProperty(window, 'isSecureContext', { value, configurable: true })
+    afterEach(() => secure(true))
+
+    it('says the real reason once at the top, and recommends neither card', async () => {
+      secure(false)
+      window.showDirectoryPicker = async () => {
+        throw new DOMException('closed', 'AbortError')
+      }
+      await welcome()
+      expect(document.querySelectorAll('main [role="status"]')).toHaveLength(1)
+      expect(document.querySelector('main [role="status"]')?.textContent?.trim()).toBe(REASON)
+      expect(card('Choose a folder').textContent).toContain('Needs https')
+      expect(card('Choose a folder').textContent).not.toContain('Needs Chrome or Edge')
+      expect(card('Keep it in this browser').textContent).toContain('Needs https')
+      expect(isRecommended('Choose a folder')).toBe(false)
+      expect(isRecommended('Keep it in this browser')).toBe(false)
+      expect(document.querySelector('main ul .bg-gold-soft')).toBeNull() // no "Recommended" tag
+    })
+
+    it('uses that reason, not the generic error, when a card is pressed', async () => {
+      secure(false)
+      await welcome()
+      card('Keep it in this browser').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await flushPromises()
+      expect(document.body.textContent).toContain(REASON)
+      expect(document.body.textContent).not.toContain('cannot keep files')
+      card('Choose a folder').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await flushPromises()
+      expect(document.body.textContent).not.toContain('Needs Chrome or Edge. In this browser')
+    })
+  })
+
+  it('names the other common cause, a private window, when browser storage is missing on a secure page', async () => {
+    const real = navigator.storage
+    Object.defineProperty(navigator, 'storage', { value: undefined, configurable: true })
+    try {
+      await welcome()
+      card('Keep it in this browser').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await flushPromises()
+      expect(document.body.textContent).toContain(
+        'This browser cannot keep files for Aurelia. It may be a private window.',
+      )
+    } finally {
+      Object.defineProperty(navigator, 'storage', { value: real, configurable: true })
+    }
+  })
 })

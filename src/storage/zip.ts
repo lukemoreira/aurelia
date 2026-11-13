@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { StorageError } from './errors'
 
 export interface ZipFile {
   path: string
@@ -84,4 +85,42 @@ export function zipFiles(files: ZipFile[], now = new Date()): Blob {
   end.setUint32(12, centralSize, true)
   end.setUint32(16, offset, true)
   return new Blob([...parts, ...central, end.buffer], { type: 'application/zip' })
+}
+
+export interface ZipEntry {
+  path: string
+  data: Uint8Array<ArrayBuffer>
+  /** The stored CRC-32 matches the bytes: false means the file is damaged. */
+  crcOk: boolean
+}
+
+/** Read back a zip made by `zipFiles` (stored, not compressed). Anything else is refused. */
+export function readZip(buf: Uint8Array): ZipEntry[] {
+  const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+  const unreadable = () => new StorageError('unreadable', 'That version is not a zip Aurelia made.')
+  try {
+    let end = buf.length - 22
+    while (end >= 0 && view.getUint32(end, true) !== 0x06054b50) end--
+    if (end < 0) throw unreadable()
+    const count = view.getUint16(end + 10, true)
+    let at = view.getUint32(end + 16, true)
+    const out: ZipEntry[] = []
+    for (let i = 0; i < count; i++) {
+      if (view.getUint32(at, true) !== 0x02014b50 || view.getUint16(at + 10, true) !== 0)
+        throw unreadable()
+      const crc = view.getUint32(at + 16, true)
+      const size = view.getUint32(at + 20, true)
+      const nameLength = view.getUint16(at + 28, true)
+      const local = view.getUint32(at + 42, true)
+      const path = new TextDecoder().decode(buf.subarray(at + 46, at + 46 + nameLength))
+      const start = local + 30 + view.getUint16(local + 26, true) + view.getUint16(local + 28, true)
+      const data = buf.slice(start, start + size) as Uint8Array<ArrayBuffer>
+      if (data.length !== size) throw unreadable()
+      out.push({ path, data, crcOk: crc32(data) === crc })
+      at += 46 + nameLength
+    }
+    return out
+  } catch (e) {
+    throw e instanceof StorageError ? e : unreadable()
+  }
 }

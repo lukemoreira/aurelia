@@ -57,4 +57,11 @@ check sw /sw.js 200;               security_headers; has cache-control no-cache
 check manifest /manifest.webmanifest 200; has content-type manifest+json
 check post / 405 -X POST;          security_headers
 
+# No store runs here: /dav/ must answer 502 when asked (the app still booted), never 404 or a page.
+# The methods the store needs get through nginx; anything else is 405.
+for m in OPTIONS PUT PROPFIND GET; do
+  check "dav-$m" /dav/x 502 -X "$m"; security_headers; has cache-control no-store
+done
+check dav-post /dav/x 405 -X POST;   security_headers
+
 exit "$fail"

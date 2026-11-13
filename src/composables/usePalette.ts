@@ -89,6 +89,18 @@ export function usePalette() {
             },
           ]
         : []),
+      // Backup belongs to a real workspace; the sample has none.
+      ...(ws.view
+        ? [
+            {
+              id: 'action:backup',
+              title: 'Backup and versions',
+              sub: 'Storage',
+              icon: 'cloud' as const,
+              run: () => (layout.backupOpen = true),
+            },
+          ]
+        : []),
       {
         id: 'action:theme',
         title: dark ? 'Switch to the light theme' : 'Switch to the dark theme',

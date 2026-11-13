@@ -3,6 +3,8 @@ import { computed, ref, watch } from 'vue'
 import type { ConflictView } from '@/storage/session'
 import type { BannerKind } from '@/components/shell/Banner.vue'
 import { wordsFor } from '@/storage/errors'
+import { useBackupStore } from '@/stores/backup'
+import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useAppUpdate } from './useAppUpdate'
 import { useInstallHint } from './useInstallHint'
@@ -24,7 +26,9 @@ const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
 /** The banners above the writing, from the open workspace's state (States board), most urgent first. */
 export function useWorkspaceNotices() {
   const ws = useWorkspaceStore()
-  const { updateReady, reload } = useAppUpdate()
+  const backup = useBackupStore()
+  const layout = useLayoutStore()
+  const { updateReady, reload, signIn } = useAppUpdate()
   const install = useInstallHint()
   /** The conflict being compared, and whether the file list is open. */
   const comparing = ref<string>()
@@ -52,7 +56,11 @@ export function useWorkspaceNotices() {
     const path = comparing.value
     if (
       path &&
-      (await attempt('resolve', async () => void (await ws.session?.resolveConflict(path, choice))))
+      (await attempt('resolve', async () => {
+        // A version of the whole workspace first (when backup is on), so either choice can be undone.
+        await backup.beforeRisky(choice === 'mine' ? 'before-keep-mine' : 'before-use-file')
+        await ws.session?.resolveConflict(path, choice)
+      }))
     )
       comparing.value = undefined
   }
@@ -149,6 +157,28 @@ export function useWorkspaceNotices() {
         tag: 'Not loaded',
         action: 'See files',
         run: () => (filesOpen.value = true),
+      })
+
+    const b = backup.view
+    if (b?.enabled && b.status === 'ask')
+      out.push({
+        id: 'backup-ask',
+        kind: 'warn',
+        title: 'Another device already backs this workspace up',
+        text: 'Aurelia stopped, so nothing on your server is overwritten. Choose what to do.',
+        tag: 'Backup',
+        action: 'Choose',
+        run: () => (layout.backupOpen = true),
+      })
+    if (b?.enabled && b.status === 'paused')
+      out.push({
+        id: 'backup-paused',
+        kind: 'warn',
+        title: 'Backup paused — sign in again',
+        text: 'Your words are safe on this device and wait to be backed up once you are signed in.',
+        tag: 'Backup',
+        action: 'Sign in again',
+        run: signIn,
       })
 
     if (view.journalFailed)
