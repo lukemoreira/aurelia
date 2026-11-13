@@ -7,6 +7,7 @@ const calendar =
 
 export const icons: Record<IconName, string> = {
   'chevron-down': 'M6 9l6 6 6-6',
+  'chevron-up': 'M18 15l-6-6-6 6',
   'chevron-right': 'M9 6l6 6-6 6',
   'chevrons-up-down': 'M7 15l5 5 5-5M7 9l5-5 5 5',
   menu: 'M4 7h16M4 12h16M4 17h16',
@@ -62,4 +63,7 @@ export const icons: Record<IconName, string> = {
   write: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
   plan: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
   continuity: 'M3 12h4l3-8 4 16 3-8h4',
+  trash:
+    'M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6',
+  more: 'M5 12h.01M12 12h.01M19 12h.01',
 }

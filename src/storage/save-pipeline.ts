@@ -79,6 +79,8 @@ export class SavePipeline {
   writes = 0
   /** The journal could not even be listed (no IndexedDB): its old entries are untouched, unread. */
   private journalDown = false
+  /** Files an action is moving away: words typed into them wait here, and are never written to the old place. */
+  private held = new Set<string>()
   private files = new Map<string, FileState>()
   private debounceMs: number
   private maxWaitMs: number
@@ -135,6 +137,7 @@ export class SavePipeline {
   }
 
   private async save(path: string, s: FileState): Promise<void> {
+    if (this.held.has(path)) return
     if (this.deps.isReadOnly() || s.pending === undefined || s.status === 'conflict') return
     clearTimeout(s.timer)
     const content = s.pending
@@ -250,6 +253,36 @@ export class SavePipeline {
         ? [{ path, mine: s.pending, theirs: s.theirs.text }]
         : [],
     )
+  }
+
+  /** From now on nothing is written to these paths (words typed meanwhile are kept) until `release`. */
+  hold(paths: string[]) {
+    for (const p of paths) this.held.add(p)
+  }
+
+  release(paths: string[]) {
+    for (const p of paths) this.held.delete(p)
+  }
+
+  /** The words waiting for this file have been put somewhere safe: forget them, and the file. */
+  discard(path: string) {
+    const s = this.files.get(path)
+    this.known.delete(path)
+    if (!s) return
+    clearTimeout(s.timer)
+    s.pending = undefined
+    s.status = 'idle'
+    s.theirs = undefined
+    s.error = undefined
+    s.attempt = 0
+    s.firstQueuedAt = undefined
+    void this.journalClear(path, s)
+    this.deps.notify()
+  }
+
+  /** The newest text a file has not saved yet, if any. */
+  pendingText(path: string): string | undefined {
+    return this.files.get(path)?.pending
   }
 
   /** Paths with text the file does not have yet, and that text. */

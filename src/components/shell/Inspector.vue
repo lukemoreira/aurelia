@@ -3,12 +3,19 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import Tabs from '@/components/ui/Tabs.vue'
+import { useWorkspaceStore } from '@/stores/workspace'
+import ItemDetails from './ItemDetails.vue'
 import SceneInspector from './SceneInspector.vue'
 
 const route = useRoute()
+const ws = useWorkspaceStore()
 const tab = ref('scene')
 // Links, Notes and History arrive with the features they show; until then they are not offered.
-const TABS = [{ value: 'scene', label: 'Scene' }]
+const TABS = [
+  { value: 'scene', label: 'Scene' },
+  { value: 'chapter', label: 'Chapter' },
+  { value: 'book', label: 'Book' },
+]
 </script>
 
 <template>
@@ -21,6 +28,28 @@ const TABS = [{ value: 'scene', label: 'Scene' }]
       <h2 class="sr-only">Inspector</h2>
       <Tabs v-if="route.name === 'write'" v-model="tab" label="Inspector" :items="TABS">
         <template #scene><SceneInspector /></template>
+        <template #chapter>
+          <div class="flex flex-col gap-5">
+            <ItemDetails
+              v-if="ws.context?.chapter.chapter.id"
+              :id="ws.context.chapter.chapter.id"
+              kind="chapter"
+              heading="Chapter"
+            />
+            <p v-else class="m-0 text-[12.5px] text-ink-2">
+              This scene is not in a chapter yet. Move it to one from the navigator.
+            </p>
+            <ItemDetails
+              v-if="ws.context?.part"
+              :id="ws.context.part.id"
+              kind="part"
+              heading="Part"
+            />
+          </div>
+        </template>
+        <template #book
+          ><ItemDetails :id="ws.bookId ?? undefined" kind="book" heading="Book"
+        /></template>
       </Tabs>
       <div v-else class="px-1 py-6 text-center text-[12.5px]">
         <p class="m-0 font-semibold text-ink">Nothing to inspect here</p>

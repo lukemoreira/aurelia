@@ -38,13 +38,16 @@ describe('classify', () => {
     expect(classify('universes/unv_a1/books/bok_b2/records/places/plc_g7.md').kind).toBe('record')
   })
 
+  it('knows the derived outline of a book: read for its hash, never as content', () => {
+    expect(classify('universes/unv_a1/books/bok_b2/OUTLINE.md')).toEqual({
+      kind: 'outline',
+      universe: 'unv_a1',
+      book: 'bok_b2',
+    })
+  })
+
   it('leaves everything else alone', () => {
-    for (const p of [
-      'README.md',
-      'universes/unv_a1/media/med_x.png',
-      'universes/unv_a1/books/bok_b2/OUTLINE.md',
-      'notes/todo.md',
-    ])
+    for (const p of ['README.md', 'universes/unv_a1/media/med_x.png', 'notes/todo.md'])
       expect(classify(p).kind).toBe('other')
   })
 })

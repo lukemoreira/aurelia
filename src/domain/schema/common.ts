@@ -12,6 +12,9 @@ export const idOf = (...prefixes: IdPrefix[]) =>
     message: prefixes.length === 0 ? 'Not an ID' : `Not an ID of kind ${prefixes.join(' or ')}`,
   })
 
+// How far along a scene, chapter or part is.
+export const progressStatus = z.enum(['idea', 'outline', 'draft', 'revised', 'final'])
+
 // Fractional key that sorts within the parent, for example "a3".
 export const orderKey = z.string().regex(/^[0-9A-Za-z]+$/, 'Not an order key')
 

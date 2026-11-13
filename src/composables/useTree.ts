@@ -10,6 +10,8 @@ export interface TreeNode {
   meta?: string
   /** Shows a pin button on the row; this is the key the pin toggles. */
   pinKey?: string
+  /** The row can be picked up and dropped (the outline's scenes, chapters and parts). */
+  draggable?: boolean
   children?: TreeNode[]
 }
 

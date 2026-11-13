@@ -15,6 +15,8 @@ export class MemoryAdapter implements StorageAdapter {
   accessLost = false
   /** Called before every write; throw from it to fail that write. */
   beforeWrite?: (path: string, text: string) => void | Promise<void>
+  /** Called before every removal; throw from it to fail that removal. */
+  beforeRemove?: (path: string) => void | Promise<void>
 
   constructor(files: Record<string, string> = {}) {
     for (const [path, text] of Object.entries(files)) this.files.set(path, encode(text))
@@ -56,6 +58,7 @@ export class MemoryAdapter implements StorageAdapter {
 
   async remove(path: string): Promise<void> {
     this.check()
+    await this.beforeRemove?.(path)
     this.files.delete(path)
   }
 

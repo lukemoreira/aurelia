@@ -74,7 +74,7 @@ describe('choosing a folder', () => {
         .filter((p) => p !== '.DS_Store')
         .sort(),
     ).toEqual(expect.arrayContaining(['aurelia.json']))
-    expect(dir.paths().filter((p) => p.endsWith('.md'))).toHaveLength(3)
+    expect(dir.paths().filter((p) => p.endsWith('.md'))).toHaveLength(4)
     expect(document.querySelector('footer')?.textContent).toContain('In a folder')
   })
 

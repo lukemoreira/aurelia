@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { z } from 'zod'
-import { idOf, orderKey, schemaVersion } from './common'
+import { idOf, orderKey, progressStatus, schemaVersion } from './common'
 
 const outlineEntry = z.looseObject({
   chapter: idOf('chp'),
@@ -15,6 +15,7 @@ export const bookSchema = z.looseObject({
   id: idOf('bok'),
   mode: z.enum(['linear', 'branching']),
   status: z.string().optional(),
+  summary: z.string().optional(),
   start: idOf('scn').optional(),
   outline: z.array(outlineEntry).optional(),
   dismissedFindings: z.array(z.string()).optional(),
@@ -30,6 +31,8 @@ export const partSchema = z.looseObject({
   id: idOf('prt'),
   book: idOf('bok'),
   order: orderKey,
+  status: progressStatus.optional(),
+  summary: z.string().optional(),
 })
 
 // chapters/chp_….md frontmatter — points to its part, or straight to the book.
@@ -40,6 +43,8 @@ export const chapterSchema = z.looseObject({
   book: idOf('bok'),
   part: idOf('prt').optional(),
   order: orderKey,
+  status: progressStatus.optional(),
+  summary: z.string().optional(),
 })
 
 export type Part = z.infer<typeof partSchema>

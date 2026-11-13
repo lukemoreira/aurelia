@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import type { ConflictView } from '@/storage/session'
 import type { BannerKind } from '@/components/shell/Banner.vue'
 import { wordsFor } from '@/storage/errors'
+import { chooseDuplicate } from '@/storage/outline-actions'
 import { useBackupStore } from '@/stores/backup'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -67,6 +68,15 @@ export function useWorkspaceNotices() {
   /** The author's choice for a conflicted copy. */
   const reconcile = (path: string, keep: 'original' | 'copy') =>
     attempt(path, async () => void (await ws.session?.reconcileCopy(path, keep)))
+
+  /** The author keeps one of two files that share an ID; the other is set aside, never deleted. */
+  const keepFile = (id: string, path: string) =>
+    attempt(path, async () => {
+      if (!ws.session) return
+      // A version of the whole workspace first (when backup is on), so the choice can be undone.
+      await backup.beforeRisky('before-keep-one-file')
+      await chooseDuplicate(ws.session, id, path)
+    })
 
   const banners = computed<BannerSpec[]>(() => {
     const view = ws.view
@@ -135,6 +145,17 @@ export function useWorkspaceNotices() {
         tag: 'Two versions',
         action: 'Compare versions',
         run: () => (comparing.value = c.path),
+      })
+
+    if (view.duplicates.length)
+      out.push({
+        id: 'duplicates',
+        kind: 'warn',
+        title: `${view.duplicates.length} ${plural(view.duplicates.length, 'item has', 'items have')} two files`,
+        text: 'Both are kept, and one of each pair is shown. Choose which to keep; the other is set aside, never deleted.',
+        tag: 'Same ID',
+        action: 'Choose',
+        run: () => (filesOpen.value = true),
       })
 
     if (view.copies.length)
@@ -227,5 +248,5 @@ export function useWorkspaceNotices() {
     if (live.value) last = live.value
     return last?.path === comparing.value ? last : undefined
   })
-  return { banners, comparing, conflict, filesOpen, busy, error, resolve, reconcile }
+  return { banners, comparing, conflict, filesOpen, busy, error, resolve, reconcile, keepFile }
 }

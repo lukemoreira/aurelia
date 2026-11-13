@@ -4,6 +4,10 @@ import { watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import BackupDialog from '@/components/backup/BackupDialog.vue'
 import Sheet from '@/components/ui/Sheet.vue'
+import ActionToast from '@/components/outline/ActionToast.vue'
+import MoveSceneDialog from '@/components/outline/MoveSceneDialog.vue'
+import NameDialog from '@/components/outline/NameDialog.vue'
+import TrashDialog from '@/components/outline/TrashDialog.vue'
 import RenameWorkspaceDialog from '@/components/workspace/RenameWorkspaceDialog.vue'
 import Button from '@/components/ui/Button.vue'
 import Icon from '@/components/ui/Icon.vue'
@@ -82,7 +86,7 @@ watch(
         </Navigator>
       </div>
 
-      <main class="flex min-w-0 flex-1 flex-col bg-canvas">
+      <main class="relative flex min-w-0 flex-1 flex-col bg-canvas">
         <Breadcrumb v-if="layout.wide && !layout.focus" />
         <WorkspaceNotices />
         <!-- Focusable so the keyboard can scroll the text. -->
@@ -93,10 +97,11 @@ watch(
         >
           <RouterView />
         </div>
+        <ActionToast />
       </main>
 
       <div
-        v-if="layout.wide && !layout.inspector.collapsed && !layout.focus"
+        v-if="layout.wide && !layout.inspector.collapsed && !layout.focus && route.name === 'write'"
         v-bind="panelAttr('inspector')"
         class="shrink-0"
         :style="{ width: `${layout.inspector.width}px` }"
@@ -124,5 +129,8 @@ watch(
     <CommandPalette />
     <BackupDialog />
     <RenameWorkspaceDialog />
+    <NameDialog />
+    <MoveSceneDialog />
+    <TrashDialog />
   </div>
 </template>

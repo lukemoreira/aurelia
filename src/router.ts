@@ -29,7 +29,12 @@ const routes: RouteRecordRaw[] = [
     children: [
       placeholder('plan', 'Plan', 'The outline and corkboard arrive in v0.2.'),
       placeholder('continuity', 'Continuity', 'Continuity checks arrive in v0.2.'),
-      placeholder('world', 'World', 'Character and place sheets arrive in v0.3.'),
+      {
+        path: 'world',
+        name: 'world',
+        component: () => import('./views/WorldView.vue'),
+        meta: { title: 'World' },
+      },
       placeholder('map', 'Story map', 'The story map arrives in v0.2.'),
       { path: ':sceneId?', name: 'write', component: () => import('./views/WriteView.vue') },
     ],

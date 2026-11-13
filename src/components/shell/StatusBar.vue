@@ -16,7 +16,9 @@ const detailsOpen = ref(false)
 const fmt = (n: number) => n.toLocaleString('en-US')
 const where = computed(() => {
   const ctx = ws.context
-  return ctx ? `Ch. ${ctx.chapter.number} · Scene ${ctx.index} of ${ctx.chapter.scenes.length}` : ''
+  return ctx
+    ? `${ctx.chapter.number === 0 ? 'Unfiled' : `Ch. ${ctx.chapter.number}`} · Scene ${ctx.index} of ${ctx.chapter.scenes.length}`
+    : ''
 })
 // Routine progress is silent; anything the author should act on is announced.
 const attention = computed(() => !!ws.view && needsAttention(ws.view))

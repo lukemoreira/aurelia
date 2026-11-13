@@ -45,6 +45,26 @@ export function bookOutline(data: WorkspaceData, bookId: string): OutlinePart[] 
 export const outlineScenes = (outline: OutlinePart[]): SceneDoc[] =>
   outline.flatMap((p) => p.chapters.flatMap((c) => c.scenes))
 
+/**
+ * Scenes in a book's folder whose chapter is not in the workspace (deleted, not synced yet, or a
+ * hand edit): shown as "Unfiled" so nothing is hidden, and filed by moving them to a chapter.
+ */
+export function bookUnfiled(data: WorkspaceData, bookId: string): SceneDoc[] {
+  const chapters = new Set(data.chapters.map((c) => c.id))
+  return data.scenes
+    .filter((s) => s.book === bookId && !chapters.has(s.meta.chapter))
+    .sort((a, b) => byOrder(a.meta, b.meta))
+}
+
+/** The outline's scenes in reading order, then the unfiled ones: every scene a book has. */
+export const bookScenes = (data: WorkspaceData, bookId: string): SceneDoc[] => [
+  ...outlineScenes(bookOutline(data, bookId)),
+  ...bookUnfiled(data, bookId),
+]
+
+/** Stands in for the chapter of an unfiled scene. Its ID is empty, which no chapter has. */
+export const UNFILED = 'Unfiled'
+
 interface SceneContext {
   scene: SceneDoc
   book: Book
@@ -56,6 +76,19 @@ interface SceneContext {
 
 export function sceneContext(data: WorkspaceData, sceneId: string): SceneContext | undefined {
   const scene = data.scenes.find((s) => s.meta.id === sceneId)
+  const unfiled = scene?.book ? bookUnfiled(data, scene.book) : []
+  const home = data.books.find((b) => b.id === scene?.book)
+  if (scene && home && unfiled.includes(scene)) {
+    const fake = { title: UNFILED, schemaVersion: 1, id: '', book: home.id, order: '' }
+    const scenes = unfiled
+    const words = scenes.reduce((n, s) => n + s.words, 0)
+    return {
+      scene,
+      book: home,
+      chapter: { chapter: fake, number: 0, scenes, words },
+      index: scenes.indexOf(scene) + 1,
+    }
+  }
   const chapter = data.chapters.find((c) => c.id === scene?.meta.chapter)
   const book = data.books.find((b) => b.id === chapter?.book)
   if (!scene || !chapter || !book) return undefined
@@ -98,4 +131,4 @@ const WORDS = [
 ]
 /** "Chapter Seven · Scene 2" for the eyebrow above a scene title. */
 export const sceneEyebrow = (chapterNumber: number, sceneIndex: number) =>
-  `Chapter ${WORDS[chapterNumber] ?? chapterNumber} · Scene ${sceneIndex}`
+  `${chapterNumber === 0 ? UNFILED : `Chapter ${WORDS[chapterNumber] ?? chapterNumber}`} · Scene ${sceneIndex}`

@@ -37,6 +37,8 @@ MyWorkspace/
   .aurelia/
     snapshots/                         snapshot files (portable, optional to sync)
     backups/<fromVersion>/             copies made before a migration (rule 5)
+    trash/<stamp>/                     deleted items, at their workspace paths, with a manifest.json
+    conflicts/<stamp>/                 the file not kept when two versions or two IDs met
 ```
 
 Device-only state (search index, panel layout, recovery journal, sync state, media
@@ -82,6 +84,10 @@ thumbnails) lives in the browser's IndexedDB, **not** in the folder.
 10. **Writes are compare-and-write.** Before a file is written, its stat and hash are
     compared with the last read. If they differ, nothing is written and the conflict
     flow opens (PLANS M2).
+11. **Nothing is deleted.** Deleting an item moves its files to `.aurelia/trash/<stamp>/<path>`
+    (copy, check the copy, then remove), after writing `manifest.json` there; putting it back
+    moves them to the same paths and never writes over a file that has taken the place. The
+    trash is backed up like any other file.
 
 ## Example scene
 

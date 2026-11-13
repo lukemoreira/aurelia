@@ -11,6 +11,9 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { altLabel, focusLabel, modLabel } from './useKeyboardShortcuts'
 import { useNavigation } from './useNavigation'
 import { useNewScene } from './useNewScene'
+import { useOutlineEdits } from './useOutlineEdits'
+import { useRecordEdits } from './useRecordEdits'
+import { useEditsStore } from '@/stores/edits'
 import { useRenameReason } from './useRenameWorkspace'
 import { useTheme } from './useTheme'
 
@@ -54,6 +57,9 @@ export function usePalette() {
   const router = useRouter()
   const { resolved, setTheme } = useTheme()
   const renameReason = useRenameReason()
+  const edit = useOutlineEdits()
+  const records = useRecordEdits()
+  const edits = useEditsStore()
 
   const query = ref('')
   const highlighted = ref<string>()
@@ -76,6 +82,45 @@ export function usePalette() {
     run: () => void nav.openEntry(e),
   })
 
+  /** What the author can add or undo from anywhere. The ones that ask for a name open a dialog once the palette is closed. */
+  function editActions(): PaletteItem[] {
+    const dialog = (id: string, title: string, sub: string, run: () => void): PaletteItem => ({
+      id: `action:${id}`,
+      title,
+      sub,
+      icon: 'plus',
+      afterClose: true,
+      run,
+    })
+    return [
+      dialog('new-book', 'New book…', 'Outline', () => edit.newBook()),
+      {
+        id: 'action:new-part',
+        title: 'New part',
+        sub: `Outline · ${ws.book?.title ?? ''}`,
+        icon: 'part',
+        run: () => void edit.newPart(),
+      },
+      {
+        id: 'action:new-chapter',
+        title: 'New chapter',
+        sub: `Outline · ${ws.book?.title ?? ''}`,
+        icon: 'chapter',
+        run: () => void edit.newChapter(),
+      },
+      dialog('new-character', 'New character…', 'World', () => records.newRecord('character')),
+      dialog('new-place', 'New place…', 'World', () => records.newRecord('place')),
+      {
+        id: 'action:trash',
+        title: 'Recently deleted…',
+        sub: 'Outline',
+        icon: 'trash',
+        afterClose: true,
+        run: () => (edits.trashOpen = true),
+      },
+    ]
+  }
+
   const actions = computed<PaletteItem[]>(() => {
     const dark = resolved.value === 'dark'
     const navShown = layout.wide ? !layout.nav.collapsed : layout.navSheet
@@ -95,6 +140,8 @@ export function usePalette() {
             },
           ]
         : []),
+      // Outline editing and records: a real workspace that can be written to.
+      ...(edit.canEdit.value ? editActions() : []),
       // Backup belongs to a real workspace; the sample has none.
       ...(ws.view
         ? [
