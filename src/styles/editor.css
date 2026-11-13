@@ -1,0 +1,262 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/*
+ * The manuscript: the scene's text as the writing screen draws it (design: Main, WriteDark).
+ * What the author may change (font, size, line height, paragraph spacing) arrives as data-*
+ * attributes on `.manuscript`; every colour is a token, so both themes follow.
+ */
+
+.manuscript {
+  font-family: var(--font-prose);
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+@media (min-width: 1024px) {
+  .manuscript {
+    font-size: 19px;
+    line-height: 1.75;
+  }
+}
+.manuscript[data-font='sans'] {
+  font-family: var(--font-ui);
+}
+.manuscript[data-font='mono'] {
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
+.manuscript[data-size='small'] {
+  font-size: 16px;
+}
+.manuscript[data-size='large'] {
+  font-size: 21px;
+}
+.manuscript[data-size='larger'] {
+  font-size: 24px;
+}
+.manuscript[data-leading='tight'] {
+  line-height: 1.5;
+}
+.manuscript[data-leading='normal'] {
+  line-height: 1.75;
+}
+.manuscript[data-leading='roomy'] {
+  line-height: 2.05;
+}
+
+.manuscript .ProseMirror {
+  min-height: 40vh;
+  outline: none;
+  caret-color: var(--gold-ink);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* Paragraphs: no gap and an indent (as a book sets them), or a gap and no indent. */
+.manuscript .ProseMirror p {
+  margin: 0;
+}
+.manuscript[data-paragraphs='indent'] .ProseMirror > p + p {
+  text-indent: 1.6em;
+}
+.manuscript[data-paragraphs='space'] .ProseMirror p + p {
+  margin-top: 0.75em;
+}
+.manuscript[data-paragraphs='wide'] .ProseMirror p + p {
+  margin-top: 1.3em;
+}
+
+.manuscript .ProseMirror > :is([data-level], ul, ol, blockquote, pre, [data-callout]) {
+  margin-block: 0.9em;
+}
+/* In-text headings sit below the scene's own title: the page's <h1> is drawn at 26-32 px. */
+.manuscript .ProseMirror [data-level] {
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  font-size: 1em;
+}
+.manuscript .ProseMirror [data-level='1'] {
+  font-size: 1.3em;
+}
+.manuscript .ProseMirror [data-level='2'] {
+  font-size: 1.15em;
+}
+.manuscript .ProseMirror [data-level='3'] {
+  font-size: 1.05em;
+}
+
+.manuscript .ProseMirror .lead-in {
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+}
+
+.manuscript .ProseMirror a {
+  color: var(--gold-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: text;
+}
+
+/* Text kept as written (inline code, an image, a tag): drawn, never rendered. */
+.manuscript .ProseMirror [data-verbatim] {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--raised);
+  border-radius: 4px;
+  padding: 0.05em 0.25em;
+}
+
+/* Lists. */
+.manuscript .ProseMirror :is(ul, ol) {
+  padding-left: 1.5em;
+}
+.manuscript .ProseMirror ul {
+  list-style: disc;
+}
+.manuscript .ProseMirror ol {
+  list-style: decimal;
+}
+.manuscript .ProseMirror li > :is(ul, ol) {
+  margin-block: 0;
+}
+.manuscript .ProseMirror li p {
+  text-indent: 0;
+}
+.manuscript .ProseMirror ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.2em;
+}
+.manuscript .ProseMirror ul[data-type='taskList'] li {
+  display: flex;
+  gap: 0.6em;
+  align-items: flex-start;
+}
+.manuscript .ProseMirror ul[data-type='taskList'] li > label {
+  flex: none;
+  padding-top: 0.5em;
+  user-select: none;
+}
+.manuscript .ProseMirror ul[data-type='taskList'] li > label input {
+  width: 1em;
+  height: 1em;
+  margin: 0;
+  accent-color: var(--gold);
+}
+.manuscript .ProseMirror ul[data-type='taskList'] li > div {
+  flex: 1;
+  min-width: 0;
+}
+.manuscript .ProseMirror ul[data-type='taskList'] li[data-checked='true'] > div {
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-3);
+}
+
+/* A quote and a callout. */
+.manuscript .ProseMirror blockquote {
+  border-left: 3px solid var(--gold-line);
+  padding-left: 1em;
+  color: var(--ink-2);
+}
+.manuscript .ProseMirror blockquote p {
+  text-indent: 0;
+}
+.manuscript .ProseMirror [data-callout] {
+  --callout: var(--gold-ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--callout);
+  border-radius: 8px;
+  padding: 0.7em 1em;
+  font-size: 0.94em;
+}
+.manuscript .ProseMirror [data-callout]::before {
+  content: attr(data-title);
+  display: block;
+  margin-bottom: 0.3em;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--callout);
+}
+.manuscript .ProseMirror [data-callout] p {
+  text-indent: 0;
+}
+.manuscript .ProseMirror [data-callout='note'],
+.manuscript .ProseMirror [data-callout='info'] {
+  --callout: var(--info);
+}
+.manuscript .ProseMirror [data-callout='tip'],
+.manuscript .ProseMirror [data-callout='success'] {
+  --callout: var(--ok);
+}
+.manuscript .ProseMirror [data-callout='warning'],
+.manuscript .ProseMirror [data-callout='caution'] {
+  --callout: var(--warn);
+}
+.manuscript .ProseMirror [data-callout='danger'],
+.manuscript .ProseMirror [data-callout='error'] {
+  --callout: var(--danger);
+}
+
+/* A scene break: three stars, drawn. */
+.manuscript .ProseMirror [data-scene-break] {
+  margin: 22px 0;
+  text-align: center;
+  color: var(--gold-ink);
+  letter-spacing: 0.6em;
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+.manuscript .ProseMirror [data-scene-break]::before {
+  content: '* * *';
+}
+.manuscript .ProseMirror [data-scene-break].ProseMirror-selectednode {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* A block kept as Markdown, exactly as written: a table, a footnote, a code block, HTML. */
+.manuscript .ProseMirror pre[data-raw-block] {
+  font-family: inherit;
+  font-size: 0.92em;
+  line-height: 1.6;
+  text-indent: 0;
+  white-space: pre-wrap;
+  color: var(--ink-2);
+  border-left: 2px solid var(--line-2);
+  padding-left: 0.9em;
+}
+.manuscript .ProseMirror pre[data-raw-block]::before {
+  content: 'Kept as written';
+  display: block;
+  margin-bottom: 0.2em;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* What is selected: gold, as the caret is (the soft gold is too faint on the dark canvas). */
+.manuscript .ProseMirror ::selection {
+  background: var(--gold-line);
+  color: var(--ink);
+}
+
+/* The hint on an empty scene. */
+.manuscript .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--ink-3);
+}
+
+/* The gap between the caret and the gap-cursor line is drawn in ink, as focus is. */
+.manuscript .ProseMirror .ProseMirror-gapcursor::after {
+  border-top-color: var(--ink);
+}

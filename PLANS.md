@@ -14,7 +14,7 @@ plan comes from is in [`docs/spec/aurelia-product-specification.html`](docs/spec
 | Topic | Decision | Record |
 |---|---|---|
 | Frontend | Vue 3 (`<script setup lang="ts">`), Pinia, Vue Router, Tailwind CSS v4, Vite | [ADR-0001](docs/adr/0001-frontend-stack.md) |
-| Editor | Tiptap 3 (ProseMirror), open-source extensions only. Markdown converter picked in the M4 spike (ADR-0007) | [ADR-0001](docs/adr/0001-frontend-stack.md) |
+| Editor | Tiptap 3 (ProseMirror), open-source extensions only. Markdown: `marked` with our own converter (the M4 spike, ADR-0007) | [ADR-0001](docs/adr/0001-frontend-stack.md) |
 | License | AGPL-3.0-or-later | [ADR-0005](docs/adr/0005-license.md) |
 | Branching | Choices between scenes are in **v1**, not later | [ADR-0004](docs/adr/0004-branching-scenes.md) |
 | Design | Design quality is a top priority. Every screen is designed before it is built | [docs/design/](docs/design/) |
@@ -293,6 +293,23 @@ Do not scaffold future features early.
   Test: renaming "Elena" never touches "Elenath" or "elena@example.com".
 - Exit: golden-file round-trip tests for every dialect feature M4 edits, plus tests that
   tables and footnotes survive as raw text; a 150k-word book stays fast.
+- **Done (2026-11-12), the editor itself.** `src/editor/`: Tiptap 3 on `marked`
+  (ADR-0007, measured), with the dialect's own nodes (callout, scene break, raw block for
+  what is not edited yet, `verbatim` text, one `<u>` mark). Each block remembers the
+  Markdown it was read from, so opening writes nothing and an edit rewrites only its own
+  block (golden files in `tests/golden/`, a fuzz of typed text, byte-identical for every
+  file). Toolbar per `Main` (Reka toolbar: roving focus, pressed states, a short bar along
+  the bottom on a phone), Markdown typing, a link box, focus mode (F11, Escape, palette),
+  editor settings per device (font, size, line height, paragraph spacing), a "this
+  session" word count beside scene, chapter and book. The sample opens in the same editor,
+  read-only. Saves still go through `session.editScene`; an outside change replaces the
+  text in place and keeps the caret, and cannot be undone into the old text. Measured:
+  150k words into the model in ~50 ms, a keystroke in a 20,000-word scene ~3 ms.
+  **Left for M4 part 2, after M3:** wiki-link autocomplete and entity embed cards (they
+  need the index; `[[…]]` and `![[…]]` are kept as typed and written back unescaped),
+  names in the editor and Rename everywhere (ADR-0010), stable block IDs as attributes
+  (`^blk-…` is kept as text). Also left: editing a callout's title (shown and kept), and
+  the Markdown source mode, tables and footnotes (M5).
 
 **M4b · Sync through your server** ([ADR-0009 amendment](docs/adr/0009-browser-storage-and-backup.md)) — owner: "Yes, sync after editor"
 - Two-way sync of a workspace between devices through a WebDAV target (your own server
@@ -491,3 +508,7 @@ backup — ADR-0009.)
   device's recent list follows once saved. The backup folder keeps its first name (it is found
   by ID); `backup.json` carries the current name (now optional, older manifests still load), and
   the Backup screen and restore list show it. One `checkWorkspaceName` for create and rename.
+- 2026-11-12 — M4 Manuscript editor built (the part that does not need M3): Tiptap 3 with a
+  measured Markdown converter (ADR-0007), byte-identical open and edit-only-the-block saves,
+  toolbar, Markdown typing, focus mode, editor settings, live word counts. Next: M3, then
+  the names, links and rename part of M4.

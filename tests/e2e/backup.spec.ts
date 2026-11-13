@@ -151,7 +151,7 @@ test.describe('backup to your server', () => {
       .toBe(true)
 
     const fresh = await browser.newContext({
-      baseURL: 'http://localhost:4173',
+      baseURL: `http://localhost:${process.env.E2E_PORT ?? 4173}`,
       serviceWorkers: 'block',
       viewport: { width: 1440, height: 900 },
     })
@@ -171,7 +171,7 @@ test.describe('backup to your server', () => {
     await restore.getByRole('button', { name: /Latest backup/ }).click()
     await other.screenshot({ path: `${shots}/restore-destination.png` })
     await restore.getByRole('button', { name: /Keep it in this browser/ }).click()
-    await expect(sceneText(other)).toHaveValue('Words that must come back.')
+    await expect(sceneText(other)).toHaveText('Words that must come back.')
     await expect(statusBar(other)).toContainText('Only in this browser') // a new copy: backup there is off until turned on
     await fresh.close()
   })
@@ -194,7 +194,7 @@ test.describe('backup to your server', () => {
     await versionRow.getByRole('button', { name: 'Restore this version' }).click()
     const restore = page.getByRole('dialog', { name: 'Restore from a backup' })
     await restore.getByRole('button', { name: /Keep it in this browser/ }).click()
-    await expect(sceneText(page)).toHaveValue('')
+    await expect(sceneText(page)).toHaveText('')
     // The first workspace is still there, with its words, as a second entry on Welcome.
     await page.goto('/')
     await expect(page.getByRole('button', { name: /My Writing/ })).toHaveCount(2)
@@ -271,7 +271,7 @@ test.describe('backup to your server', () => {
     await dialog(page).getByRole('button', { name: 'Use the backup here' }).click()
     const restore = page.getByRole('dialog', { name: 'Restore from a backup' })
     await restore.getByRole('button', { name: /Keep it in this browser/ }).click()
-    await expect(sceneText(page)).toHaveValue('On the server already.')
+    await expect(sceneText(page)).toHaveText('On the server already.')
     expect(dav.paths(`${folder}/versions/`).some((p) => p.endsWith('_before-use-backup.zip'))).toBe(
       true,
     )

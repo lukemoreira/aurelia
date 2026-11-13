@@ -8,7 +8,7 @@ import type { ViewName } from '@/router'
 import { useLayoutStore } from '@/stores/layout'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { altLabel, modLabel } from './useKeyboardShortcuts'
+import { altLabel, focusLabel, modLabel } from './useKeyboardShortcuts'
 import { useNavigation } from './useNavigation'
 import { useNewScene } from './useNewScene'
 import { useRenameReason } from './useRenameWorkspace'
@@ -128,6 +128,19 @@ export function usePalette() {
         icon: dark ? 'sun' : 'moon',
         run: () => setTheme(dark ? 'light' : 'dark'),
       },
+      // Focus mode belongs to the scene on screen.
+      ...(ws.context && router.currentRoute.value.name === 'write'
+        ? [
+            {
+              id: 'action:focus',
+              title: layout.focus ? 'Leave focus mode' : 'Focus mode',
+              sub: 'Layout',
+              icon: 'focus' as const,
+              hint: focusLabel,
+              run: layout.toggleFocus,
+            },
+          ]
+        : []),
       {
         id: 'action:navigator',
         title: `${navShown ? 'Hide' : 'Show'} the navigator`,

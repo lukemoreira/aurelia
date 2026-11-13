@@ -3,6 +3,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import IconButton from '@/components/ui/IconButton.vue'
+import { focusLabel, isMac } from '@/composables/useKeyboardShortcuts'
 import { useNavigation } from '@/composables/useNavigation'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -70,6 +71,14 @@ const crumbs = computed<Crumb[]>(() => {
         </template>
       </ol>
     </nav>
+    <IconButton
+      v-if="route.name === 'write'"
+      icon="focus"
+      label="Focus mode"
+      :title="`Focus mode (${focusLabel})`"
+      :aria-keyshortcuts="isMac ? 'Meta+Shift+F' : 'Control+Shift+F'"
+      @click="layout.toggleFocus"
+    />
     <IconButton
       icon="panel-right"
       :label="layout.inspector.collapsed ? 'Show inspector' : 'Hide inspector'"

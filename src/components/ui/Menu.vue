@@ -23,7 +23,12 @@ export interface MenuItem {
   separated?: boolean
 }
 
-defineProps<{ items: MenuItem[]; align?: 'start' | 'center' | 'end' }>()
+defineProps<{
+  items: MenuItem[]
+  align?: 'start' | 'center' | 'end'
+  /** Where focus goes when the menu closes, instead of back to its button (the text being written). */
+  returnFocusTo?: () => void
+}>()
 const emit = defineEmits<{ select: [id: string] }>()
 </script>
 
@@ -36,6 +41,13 @@ const emit = defineEmits<{ select: [id: string] }>()
         :align="align ?? 'start'"
         :side-offset="6"
         class="z-50 min-w-48 rounded-card border border-line bg-surface p-1 shadow-card"
+        @close-auto-focus="
+          (e: Event) => {
+            if (!returnFocusTo) return
+            e.preventDefault()
+            returnFocusTo()
+          }
+        "
       >
         <template v-for="item in items" :key="item.id">
           <DropdownMenuSeparator v-if="item.separated" class="my-1 h-px bg-line" />

@@ -23,12 +23,12 @@ test.describe('a workspace in this browser', () => {
     await sceneText(page).fill('The bells had already started.')
     await waitSaved(page)
     await page.reload()
-    await expect(sceneText(page)).toHaveValue('The bells had already started.')
+    await expect(sceneText(page)).toHaveText('The bells had already started.')
     await expect(statusBar(page)).toContainText('5 scene')
     // The file on disk is a Markdown file with its details at the top and the words after.
     const file = await opfs.read(page, await firstScenePath(page))
     expect(file).toMatch(/^---\ntitle: "Untitled scene"\nschemaVersion: 1\nid: "scn_\w+"/)
-    expect(file.endsWith('\n\nThe bells had already started.')).toBe(true)
+    expect(file.endsWith('\n\nThe bells had already started.\n')).toBe(true)
   })
 
   test('opens again with no network', async ({ page, context }) => {
@@ -37,10 +37,10 @@ test.describe('a workspace in this browser', () => {
     await waitSaved(page)
     await page.evaluate(() => navigator.serviceWorker.ready)
     await page.reload() // now the page is controlled by the service worker
-    await expect(sceneText(page)).toHaveValue('Written on the train, no signal.')
+    await expect(sceneText(page)).toHaveText('Written on the train, no signal.')
     await context.setOffline(true)
     await page.reload()
-    await expect(sceneText(page)).toHaveValue('Written on the train, no signal.')
+    await expect(sceneText(page)).toHaveText('Written on the train, no signal.')
     await context.setOffline(false)
   })
 
@@ -73,13 +73,13 @@ test.describe('a workspace in this browser', () => {
     await next.goto('/')
     await expect(next.getByRole('heading', { level: 1, name: 'Welcome' })).toBeVisible()
     await next.getByRole('button', { name: /My Writing/ }).click()
-    await expect(sceneText(next)).toHaveValue('These words must not be lost.')
+    await expect(sceneText(next)).toHaveText('These words must not be lost.')
     await expect(banner(next, 'Saved what was still waiting')).toBeVisible()
     await waitSaved(next)
     expect(await opfs.read(next, path)).toContain('These words must not be lost.')
     // Done once: the next start has nothing to recover.
     await next.reload()
-    await expect(sceneText(next)).toHaveValue('These words must not be lost.')
+    await expect(sceneText(next)).toHaveText('These words must not be lost.')
     await expect(next.getByText('Saved what was still waiting')).toHaveCount(0)
   })
 
@@ -91,7 +91,7 @@ test.describe('a workspace in this browser', () => {
     await sceneText(page).fill('Written through the worker.')
     await waitSaved(page)
     await page.reload()
-    await expect(sceneText(page)).toHaveValue('Written through the worker.')
+    await expect(sceneText(page)).toHaveText('Written through the worker.')
   })
 
   test('asks the browser to keep it, shows the answer, and suggests installing once', async ({
@@ -130,18 +130,18 @@ test.describe('a workspace in this browser', () => {
     await sceneText(page).fill('Scene one.')
     await page.getByRole('button', { name: 'New scene in this chapter' }).click()
     await expect(page.getByRole('heading', { level: 1, name: 'Untitled scene 2' })).toBeVisible()
-    await expect(sceneText(page)).toHaveValue('')
+    await expect(sceneText(page)).toHaveText('')
     await sceneText(page).fill('Scene two.')
     await waitSaved(page)
     const files = await opfs.list(page)
     expect(files.filter((f) => /\/scenes\/scn_\w+\.md$/.test(f))).toHaveLength(2)
     await page.reload()
-    await expect(sceneText(page)).toHaveValue('Scene two.')
+    await expect(sceneText(page)).toHaveText('Scene two.')
     await page
       .getByRole('navigation', { name: 'Workspace' })
       .getByText('Untitled scene', { exact: true })
       .click()
-    await expect(sceneText(page)).toHaveValue('Scene one.')
+    await expect(sceneText(page)).toHaveText('Scene one.')
   })
 
   test('downloads a zip with every file in the workspace', async ({ page }) => {
@@ -168,7 +168,7 @@ test.describe('changes made outside Aurelia', () => {
     const path = await firstScenePath(page)
     const file = await opfs.read(page, path)
     await opfs.write(page, path, file.replace('Mine.', 'Changed by another app.'))
-    await expect(sceneText(page)).toHaveValue('Changed by another app.', { timeout: 8000 })
+    await expect(sceneText(page)).toHaveText('Changed by another app.', { timeout: 8000 })
     await expect(banner(page, 'Reloaded after a change outside Aurelia')).toBeVisible()
   })
 
@@ -186,7 +186,7 @@ test.describe('changes made outside Aurelia', () => {
     const conflictBanner = banner(page, 'changed outside Aurelia while it was open here')
     await expect(conflictBanner).toBeVisible({ timeout: 8000 })
     await expect(statusBar(page)).toContainText('Changed outside Aurelia')
-    await expect(sceneText(page)).toHaveValue('Mine, and not saved yet.')
+    await expect(sceneText(page)).toHaveText('Mine, and not saved yet.')
     expect(await opfs.read(page, path)).toContain('Theirs, from another device.') // not overwritten
 
     await conflictBanner.getByRole('button', { name: 'Compare versions' }).click()
@@ -247,8 +247,8 @@ test.describe('changes made outside Aurelia', () => {
     const newer = (await opfs.read(page, path)).replace('schemaVersion: 1', 'schemaVersion: 2')
     await opfs.write(page, path, newer)
     await page.reload()
-    await expect(sceneText(page)).toHaveAttribute('readonly', '')
-    await expect(sceneText(page)).toHaveValue('Written by an older version.')
+    await expect(sceneText(page)).toHaveAttribute('aria-readonly', 'true')
+    await expect(sceneText(page)).toHaveText('Written by an older version.')
     await expect(statusBar(page)).toContainText('Read-only')
     await expect(page.getByText('saved by a newer version of Aurelia')).toBeVisible()
     await expect(page.getByRole('button', { name: 'New scene in this chapter' })).toHaveCount(0)
@@ -326,15 +326,15 @@ test.describe('one workspace in two tabs', () => {
     const second = await context.newPage()
     await second.goto('/')
     await second.getByRole('button', { name: /My Writing/ }).click()
-    await expect(sceneText(second)).toHaveValue('Words from the first tab.')
+    await expect(sceneText(second)).toHaveText('Words from the first tab.')
     await expect(banner(second, 'This workspace is open in another tab')).toContainText(
       'Close that tab to write here.',
     )
-    await expect(sceneText(second)).toHaveAttribute('readonly', '')
+    await expect(sceneText(second)).toHaveAttribute('aria-readonly', 'true')
     await expect(second.getByText('newer version')).toHaveCount(0)
     await page.close() // the first tab lets go
     await expect(banner(second, 'This workspace is open in another tab')).toHaveCount(0)
-    await expect(sceneText(second)).not.toHaveAttribute('readonly', '')
+    await expect(sceneText(second)).not.toHaveAttribute('aria-readonly', 'true')
     await sceneText(second).fill('Words from the second tab.')
     await waitSaved(second)
     expect(await opfs.read(second, await firstScenePath(second))).toContain(

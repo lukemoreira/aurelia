@@ -2,6 +2,7 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { IDBFactory } from 'fake-indexeddb'
 import { createPinia, setActivePinia } from 'pinia'
+import type { Editor } from '@tiptap/core'
 import { watch } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
@@ -40,8 +41,10 @@ async function start(path = '/') {
 }
 const button = (label: string) =>
   [...document.querySelectorAll('button')].find((b) => b.textContent?.includes(label))!
-const textarea = () =>
-  document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Scene text"]')
+const sceneText = () =>
+  document.querySelector<HTMLElement & { editor: Editor }>(
+    '[role="textbox"][aria-label="Scene text"]',
+  )
 
 /** Pick `dir` as the folder in the (stubbed) picker and press "Choose a folder". */
 async function chooseFolder(dir: FakeDirectory) {
@@ -63,7 +66,7 @@ describe('choosing a folder', () => {
     input.dispatchEvent(new Event('input'))
     await flushPromises()
     document.querySelector<HTMLFormElement>('#new-workspace')!.requestSubmit()
-    await vi.waitFor(() => expect(textarea()).not.toBeNull(), { timeout: 5000 })
+    await vi.waitFor(() => expect(sceneText()).not.toBeNull(), { timeout: 5000 })
     expect(router.currentRoute.value.path).toMatch(/^\/w\/bok_\w+\/scn_\w+$/)
     expect(
       dir
@@ -91,7 +94,7 @@ describe('choosing a folder', () => {
     const dir = new FakeDirectory('Existing')
     await createWorkspace(new HandleAdapter(dir.asHandle(), 'folder', 'x'), 'Already Here')
     const { ws } = await chooseFolder(dir)
-    await vi.waitFor(() => expect(textarea()).not.toBeNull(), { timeout: 5000 })
+    await vi.waitFor(() => expect(sceneText()).not.toBeNull(), { timeout: 5000 })
     expect(ws.data?.workspace.name).toBe('Already Here')
     expect(document.body.textContent).not.toContain('Name your workspace')
   })
@@ -121,10 +124,11 @@ async function open(adapter: StorageAdapter = new MemoryAdapter()) {
   return { ...view, session, adapter }
 }
 const footer = () => document.querySelector('footer')!.textContent ?? ''
+/** Type into the scene as a person does: a change made in the editor, which then tells the workspace. */
 const type = async (text: string) => {
-  const area = textarea()!
-  area.value = text
-  area.dispatchEvent(new Event('input'))
+  const { editor } = sceneText()!
+  const end = editor.state.doc.firstChild!.nodeSize - 1
+  editor.view.dispatch(editor.state.tr.insertText(text, 1, end))
   await flushPromises()
 }
 
@@ -140,7 +144,20 @@ describe('a real workspace on screen', () => {
     await flushPromises()
     expect(footer()).toContain('Saved')
     const scene = (await adapter.list()).find((p) => p.includes('/scenes/'))!
-    expect((await adapter.read(scene))!.text.endsWith('Three little words')).toBe(true)
+    expect((await adapter.read(scene))!.text.endsWith('Three little words\n')).toBe(true)
+  })
+
+  it('counts the words written this session: cutting some does not take any back', async () => {
+    const { ws } = await open()
+    expect(ws.words.session).toBe(0)
+    await type('Three little words')
+    expect(ws.words.session).toBe(3)
+    await type('One')
+    expect([ws.words.scene, ws.words.session]).toEqual([1, 3])
+    await type('One two')
+    expect([ws.words.scene, ws.words.session]).toEqual([2, 4])
+    expect(footer()).toContain('4')
+    expect(footer()).toContain('this session')
   })
 
   it('offers a new scene in the command palette, and adds one', async () => {
@@ -165,7 +182,7 @@ describe('a real workspace on screen', () => {
     await flushPromises()
     expect(footer()).toContain('Changed outside Aurelia')
     expect(document.body.textContent).toContain('changed outside Aurelia while it was open here')
-    expect(textarea()!.value).toBe('mine')
+    expect(sceneText()!.textContent).toBe('mine')
     button('Compare versions').click()
     await flushPromises()
     expect(document.body.textContent).toContain('Your version')
@@ -184,7 +201,7 @@ describe('a real workspace on screen', () => {
     expect(document.body.textContent).toContain('Aurelia can’t reach the folder “Writing”')
     expect(footer()).toContain('Folder not connected')
     await type('written while disconnected')
-    expect(textarea()!.value).toBe('written while disconnected')
+    expect(sceneText()!.textContent).toBe('written while disconnected')
     button('Reconnect folder').click() // the author's OK
     await vi.waitFor(() => expect(footer()).not.toContain('Folder not connected'))
     await ws.flush()
@@ -192,7 +209,7 @@ describe('a real workspace on screen', () => {
     expect(footer()).toContain('Saved')
     const scene = dir.paths().find((p) => p.includes('/scenes/'))!
     const file = await new HandleAdapter(dir.asHandle(), 'folder', '').read(scene)
-    expect(file!.text.endsWith('written while disconnected')).toBe(true)
+    expect(file!.text.endsWith('written while disconnected\n')).toBe(true)
   })
 
   it('shows a read-only workspace as read-only, with the update banner and no way to add or type', async () => {
@@ -210,7 +227,7 @@ describe('a real workspace on screen', () => {
     view.ws.attach(session)
     await view.router.push(view.ws.startPath())
     await flushPromises()
-    expect(textarea()!.readOnly).toBe(true)
+    expect(sceneText()!.getAttribute('aria-readonly')).toBe('true')
     expect(footer()).toContain('Read-only')
     expect(document.body.textContent).toContain('saved by a newer version of Aurelia')
     expect(button('New scene in this chapter')).toBeUndefined()
@@ -288,7 +305,7 @@ describe('what the screens promise and say', () => {
     expect(document.body.textContent).toContain('This workspace is open in another tab')
     expect(document.body.textContent).toContain('Close that tab to write here.')
     expect(document.body.textContent).not.toContain('newer version')
-    expect(textarea()!.readOnly).toBe(true)
+    expect(sceneText()!.getAttribute('aria-readonly')).toBe('true')
     expect(button('New scene in this chapter')).toBeUndefined()
   })
 
@@ -303,18 +320,17 @@ describe('what the screens promise and say', () => {
     await view.router.push(view.ws.startPath())
     await flushPromises()
     expect(document.body.textContent).toContain('can’t keep its safety copy')
-    expect(textarea()).not.toBeNull()
+    expect(sceneText()).not.toBeNull()
   })
 
   it('names the writing surface by its scene and draws only a gold caret, no ring', async () => {
     await open()
-    const area = textarea()!
+    const area = sceneText()!
     expect(area.getAttribute('aria-labelledby')).toBe('scene-text scene-title')
     expect(document.getElementById('scene-title')?.tagName).toBe('H1')
     expect(document.getElementById('scene-title')?.textContent).toContain('Untitled scene')
-    expect(area.className).toContain('caret-gold-ink')
-    expect(area.className).toContain('outline-none!')
-    expect(area.className).not.toMatch(/-mx-|-my-|px-3|rounded/)
+    // The caret and the absence of a frame are drawn by editor.css (see editor-css.test.ts).
+    expect(area.closest('.manuscript')).not.toBeNull()
   })
 
   it('focuses the name field when the name dialog opens', async () => {
@@ -401,7 +417,7 @@ describe('opening the workspace that is already open', () => {
     const dir = new FakeDirectory('Writing')
     await createWorkspace(new HandleAdapter(dir.asHandle(), 'folder', 'x'), 'Twice')
     const { ws, router } = await chooseFolder(dir)
-    await vi.waitFor(() => expect(textarea()).not.toBeNull(), { timeout: 5000 })
+    await vi.waitFor(() => expect(sceneText()).not.toBeNull(), { timeout: 5000 })
     const first = ws.session
     const seen: boolean[] = []
     watch(
@@ -459,7 +475,7 @@ describe('the two dialogs', () => {
     expect(document.querySelector('[role="dialog"]')!.textContent).toContain('has two versions')
     gate.release()
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
-    expect(textarea()!.value).toBe('theirs')
+    expect(sceneText()!.textContent).toBe('theirs')
   })
 
   it('moves focus into the conflict dialog, and Escape closes it and gives focus back', async () => {

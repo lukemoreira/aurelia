@@ -54,10 +54,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const saveState = computed(
     () => `${data.value?.workspace.name ?? 'Workspace'} · ${saveLabel.value}`,
   )
+  /** Words added since this workspace was opened here: what is written counts, what is cut does not take it back. */
+  const sessionWords = ref(0)
   const words = computed(() => ({
     scene: scene.value?.words ?? 0,
     chapter: context.value?.chapter.words ?? 0,
     book: data.value && bookId.value ? bookWords(data.value, bookId.value) : 0,
+    session: sessionWords.value,
   }))
 
   /** Replace the workspace. What is open stays open while it still exists; else the caller goes to `startPath()`. */
@@ -71,6 +74,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function loadSample() {
     detach()
     load(saltmarchSample())
+    sessionWords.value = 0
     source.value = 'sample'
   }
 
@@ -81,6 +85,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     // opens on the same address, so the route would never say so again).
     const [book, scene] = [bookId.value, sceneId.value]
     session.value = next
+    sessionWords.value = 0
     data.value = next.data
     view.value = next.view()
     bookId.value = sceneId.value = null
@@ -145,7 +150,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   /** Typing in a scene: the screen updates now, the file follows through the save pipeline. */
   function editScene(id: string, body: string) {
+    const wordsOf = () => data.value?.scenes.find((s) => s.meta.id === id)?.words ?? 0
+    const before = wordsOf()
     void session.value?.editScene(id, body)
+    sessionWords.value += Math.max(0, wordsOf() - before)
   }
   /** A new scene at the end of a chapter; returns its ID. */
   async function addScene(chapterId: string): Promise<string | undefined> {

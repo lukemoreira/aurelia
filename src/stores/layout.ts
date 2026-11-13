@@ -29,6 +29,8 @@ export const useLayoutStore = defineStore('layout', () => {
   const paletteThen = ref<(() => void) | null>(null)
   const backupOpen = ref(false)
   const renameOpen = ref(false)
+  /** Focus mode: the panels, the bars and the counts go, and the text stays. Not kept: every visit starts normal. */
+  const focus = ref(false)
 
   // Below 1024px the panels are sheets; a sheet left open has no place on a wide screen.
   watch(wide, (isWide) => {
@@ -49,6 +51,7 @@ export const useLayoutStore = defineStore('layout', () => {
       inspector.toggle()
     }
   }
+  const toggleFocus = () => (focus.value = !focus.value)
   const closeSheets = () => (navSheet.value = inspectorSheet.value = false)
 
   return {
@@ -61,6 +64,8 @@ export const useLayoutStore = defineStore('layout', () => {
     paletteThen,
     backupOpen,
     renameOpen,
+    focus,
+    toggleFocus,
     toggleNavigator,
     toggleInspector,
     closeSheets,

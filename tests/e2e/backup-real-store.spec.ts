@@ -28,7 +28,7 @@ test('backup and restore round-trip through the real storage container', async (
   await expect(dialog.getByRole('listitem').filter({ hasText: 'Saved every hour' })).toHaveCount(1)
 
   const fresh = await browser.newContext({
-    baseURL: 'http://localhost:4173',
+    baseURL: `http://localhost:${process.env.E2E_PORT ?? 4173}`,
     serviceWorkers: 'block',
   })
   const other = await fresh.newPage()
@@ -41,6 +41,6 @@ test('backup and restore round-trip through the real storage container', async (
     .click()
   await restore.getByRole('button', { name: /Latest backup/ }).click()
   await restore.getByRole('button', { name: /Keep it in this browser/ }).click()
-  await expect(sceneText(other)).toHaveValue('Through the real store.')
+  await expect(sceneText(other)).toHaveText('Through the real store.')
   await fresh.close()
 })

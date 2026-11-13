@@ -32,7 +32,7 @@ describe('workspace store', () => {
     ws.select(SAMPLE_START.book, SAMPLE_START.scene)
     expect(ws.scene?.meta.title).toBe('Curfew Bells')
     expect(ws.universe?.title).toBe('Saltmarch')
-    expect(ws.words).toEqual({ scene: 1240, chapter: 3140, book: 12340 })
+    expect(ws.words).toEqual({ scene: 1240, chapter: 3140, book: 12340, session: 0 })
   })
 
   it('moves between books and brings back the last scene of each', () => {

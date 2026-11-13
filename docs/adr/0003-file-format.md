@@ -148,7 +148,7 @@ CommonMark + GFM tables, task lists and strikethrough, plus:
 | Callout | `> [!note] Title` (GitHub/Obsidian style) |
 | Footnote | `[^1]` |
 | Underline | `<u>text</u>` |
-| Block ID | `^blk-a1b2c3` at the end of a block |
+| Block ID | `^blk-a1b2c3` at the end of a block (kept as typed; see [ADR-0007](0007-markdown-converter.md)) |
 
 On save, `[[Name]]` links are stored as `[[id:…\|Name]]` so they survive renames.
 
