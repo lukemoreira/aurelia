@@ -10,6 +10,7 @@ import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { altLabel, modLabel } from './useKeyboardShortcuts'
 import { useNavigation } from './useNavigation'
+import { useNewScene } from './useNewScene'
 import { useTheme } from './useTheme'
 
 export interface PaletteItem {
@@ -44,6 +45,7 @@ export function usePalette() {
   const layout = useLayoutStore()
   const shortcuts = useShortcutsStore()
   const nav = useNavigation()
+  const newScene = useNewScene()
   const router = useRouter()
   const { resolved, setTheme } = useTheme()
 
@@ -73,7 +75,20 @@ export function usePalette() {
     const navShown = layout.wide ? !layout.nav.collapsed : layout.navSheet
     const inspectorShown = layout.wide ? !layout.inspector.collapsed : layout.inspectorSheet
     const book = ws.book
+    const chapter = ws.context?.chapter.chapter
     return [
+      // Only in a real workspace that can be written to; the sample is a read-only tour.
+      ...(chapter && ws.view && !ws.view.readOnly
+        ? [
+            {
+              id: 'action:new-scene',
+              title: 'New scene in this chapter',
+              sub: `Write · ${chapter.title}`,
+              icon: 'plus' as const,
+              run: () => void newScene(),
+            },
+          ]
+        : []),
       {
         id: 'action:theme',
         title: dark ? 'Switch to the light theme' : 'Switch to the dark theme',

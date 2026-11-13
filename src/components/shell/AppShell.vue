@@ -5,6 +5,7 @@ import { RouterView, useRoute } from 'vue-router'
 import Sheet from '@/components/ui/Sheet.vue'
 import { MAIN_CONTENT_ID, panelAttr } from '@/composables/useFocusMain'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
+import { useSessionWatch } from '@/composables/useSessionWatch'
 import { entryKey } from '@/index/palette-entries'
 import { useLayoutStore } from '@/stores/layout'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -17,12 +18,14 @@ import PanelHandle from './PanelHandle.vue'
 import StatusBar from './StatusBar.vue'
 import TopBar from './TopBar.vue'
 import TopBarCompact from './TopBarCompact.vue'
+import WorkspaceNotices from './WorkspaceNotices.vue'
 
 const ws = useWorkspaceStore()
 const layout = useLayoutStore()
 const shortcuts = useShortcutsStore()
 const route = useRoute()
 
+useSessionWatch()
 useKeyboardShortcuts([
   { code: 'KeyK', run: () => (layout.paletteOpen = !layout.paletteOpen) },
   { code: 'Backslash', run: layout.toggleNavigator },
@@ -62,6 +65,7 @@ watch(
 
       <main class="flex min-w-0 flex-1 flex-col bg-canvas">
         <Breadcrumb v-if="layout.wide" />
+        <WorkspaceNotices />
         <!-- Focusable so the keyboard can scroll the text. -->
         <div :id="MAIN_CONTENT_ID" tabindex="0" class="min-h-0 flex-1 overflow-y-auto">
           <RouterView />

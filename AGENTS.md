@@ -9,7 +9,10 @@ they are.
 1. **Never lose an author's words.** Autosave, recovery journal, snapshots. A conflict
    keeps both versions. A migration backs up first. Unknown data is kept, never dropped.
    **Every save is compare-and-write:** stat + hash the target, and if it differs from
-   the last-read hash, do not write — open the conflict flow. An app never writes a file
+   the last-read hash, do not write — open the conflict flow. This is read-then-write, not
+   atomic: the File System Access API has no compare-and-swap, so a change another app makes
+   between our read and our swap-in can be overwritten. The window is one write; snapshots
+   and the sync tool's own history are the backstop. An app never writes a file
    whose `schemaVersion` is higher than it knows.
 2. **Local-first.** Writing, planning, worldbuilding and search work offline with no
    account. Cloud and AI are optional add-ons.

@@ -49,23 +49,40 @@ test.describe('welcome and opening the sample', () => {
     await expect(page.getByRole('banner')).toContainText('not saved')
   })
 
-  test('the folder and browser options are marked coming soon and say so when pressed', async ({
+  test('offers a folder where the browser can pick one, and says what it needs where it cannot', async ({
     page,
   }) => {
     await page.goto('/')
     const folder = page.getByRole('button', { name: /Choose a folder/ })
-    await expect(folder).toHaveAttribute('aria-disabled', 'true')
-    await expect(folder).toContainText('Coming soon')
-    await expect(page.getByRole('button', { name: /Keep it in this browser/ })).toHaveAttribute(
-      'aria-disabled',
-      'true',
+    await expect(folder).not.toHaveAttribute('aria-disabled', /.*/) // Chromium has the picker
+    await expect(folder).toContainText('Recommended') // the one gold card
+    await expect(folder).toHaveClass(/border-gold/)
+    await expect(page.getByRole('button', { name: /Keep it in this browser/ })).not.toHaveClass(
+      /border-gold/,
     )
-    const sample = page.getByRole('button', { name: /Open the sample universe/ })
-    await expect(sample).not.toHaveAttribute('aria-disabled', /.*/)
-    await expect(sample).toContainText('Not saved')
-    await folder.click({ force: true }) // aria-disabled: Playwright would wait for it to enable
-    await expect(page.getByRole('status')).toContainText('Saving is not built yet')
+
+    await page.addInitScript(
+      () => delete (window as { showDirectoryPicker?: unknown }).showDirectoryPicker,
+    )
+    await page.goto('/')
+    const unavailable = page.getByRole('button', { name: /Choose a folder/ })
+    await expect(unavailable).toHaveAttribute('aria-disabled', 'true')
+    await expect(unavailable).toContainText('Needs Chrome or Edge')
+    await unavailable.click({ force: true }) // aria-disabled: Playwright would wait for it to enable
+    await expect(page.getByRole('status')).toContainText('needs Chrome or Edge')
     await expect(page).toHaveURL(/\/$/)
+  })
+
+  test('browser storage says the browser holds the only copy, and promises no cloud copy yet', async ({
+    page,
+  }) => {
+    await page.goto('/')
+    const browser = page.getByRole('button', { name: /Keep it in this browser/ })
+    await expect(browser).toContainText('Only in this browser')
+    await expect(browser).toContainText('holds the only copy')
+    await expect(page.locator('body')).not.toContainText(/aurelia copies it/i)
+    const sample = page.getByRole('button', { name: /Open the sample universe/ })
+    await expect(sample).toContainText('Not saved')
   })
 
   test('a workspace address with nothing open goes back to the welcome screen', async ({

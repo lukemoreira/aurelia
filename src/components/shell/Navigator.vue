@@ -151,7 +151,9 @@ const heading =
 
     <div class="flex items-center gap-2 border-t border-line px-3.5 py-2.5 text-xs text-ink-3">
       <Icon name="folder" :size="14" />
-      <span class="min-w-0 flex-1 truncate">{{ ws.saveState }}</span>
+      <!-- The status first and whole; the name is what gives way. -->
+      <span class="shrink-0 font-medium text-ink-2">{{ ws.saveLabel }}</span>
+      <span class="min-w-0 flex-1 truncate">· {{ ws.data?.workspace.name }}</span>
     </div>
     <slot />
   </nav>

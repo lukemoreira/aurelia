@@ -1,46 +1,55 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 import LogoMark from '@/components/shell/LogoMark.vue'
 import Icon from '@/components/ui/Icon.vue'
+import NewWorkspaceDialog from '@/components/welcome/NewWorkspaceDialog.vue'
+import { openedWhen, useOpenWorkspace } from '@/composables/useOpenWorkspace'
 import type { IconName } from '@/domain/ui-names'
-import { useWorkspaceStore } from '@/stores/workspace'
 
-const router = useRouter()
-const ws = useWorkspaceStore()
-const note = ref('')
+const open = useOpenWorkspace()
 
 interface Option {
   id: 'folder' | 'browser' | 'sample'
   title: string
   tag: string
   text: string
-  /** Not built yet: shown, but not offered as an action. */
-  soon?: boolean
+  /** The one card with the gold border: where a folder can be picked, that; else the browser. */
+  recommended: boolean
+  /** Not possible in this browser: shown, but pressing it only explains. */
+  unavailable?: boolean
+  run: () => void
 }
-const OPTIONS: Option[] = [
-  {
-    id: 'folder',
-    title: 'Choose a folder',
-    tag: 'Coming soon',
-    soon: true,
-    text: 'Markdown files in a folder you pick. Put it inside Dropbox, OneDrive, iCloud or Syncthing and it syncs — no Aurelia account needed. Chrome and Edge.',
-  },
-  {
-    id: 'browser',
-    title: 'Keep it in this browser',
-    tag: 'Coming soon',
-    soon: true,
-    text: 'Nothing to set up. Best for Safari and Firefox. Aurelia copies it to your Google Drive, OneDrive or Nextcloud, with versions, so the browser is never the only copy.',
-  },
-  {
-    id: 'sample',
-    title: 'Open the sample universe',
-    tag: 'Not saved',
-    text: 'Explore Saltmarch — a novel, its sequel and a branching game book — plus a standalone history.',
-  },
-]
+const options = computed<Option[]>(() => {
+  const folder = open.canPickFolder
+  return [
+    {
+      id: 'folder',
+      title: 'Choose a folder',
+      tag: folder ? 'Recommended' : 'Needs Chrome or Edge',
+      recommended: folder,
+      unavailable: !folder,
+      text: `Markdown files in a folder you pick. Put it inside Dropbox, OneDrive, iCloud or Syncthing and it syncs — no Aurelia account needed.${folder ? ' Chrome and Edge.' : ''}`,
+      run: open.chooseFolder,
+    },
+    {
+      id: 'browser',
+      title: 'Keep it in this browser',
+      tag: folder ? 'Only in this browser' : 'Recommended',
+      recommended: !folder,
+      text: 'Nothing to set up, and it works offline. The browser holds the only copy, so download a copy now and then.',
+      run: open.keepInBrowser,
+    },
+    {
+      id: 'sample',
+      title: 'Open the sample universe',
+      tag: 'Not saved',
+      recommended: false,
+      text: 'Explore Saltmarch — a novel, its sequel and a branching game book — plus a standalone history.',
+      run: open.openSample,
+    },
+  ]
+})
 const POINTS: { icon: IconName; lead: string; text: string }[] = [
   {
     icon: 'folder',
@@ -54,15 +63,6 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
     text: 'Who knows what, who is where, and what never got paid off.',
   },
 ]
-
-function choose(option: Option) {
-  if (option.soon) {
-    note.value = 'Saving is not built yet. For now, open the sample universe to look around.'
-    return
-  }
-  ws.loadSample()
-  void router.push(ws.startPath())
-}
 </script>
 
 <template>
@@ -111,27 +111,28 @@ function choose(option: Option) {
       </div>
 
       <ul class="m-0 flex max-w-[640px] list-none flex-col gap-2.5 p-0">
-        <li v-for="o in OPTIONS" :key="o.id">
-          <!-- A card that is not built yet says so and is aria-disabled: still focusable, so it can explain. -->
+        <li v-for="o in options" :key="o.id">
+          <!-- A card that cannot work here says so and is aria-disabled: still focusable, so it can explain. -->
           <button
             type="button"
-            :aria-disabled="o.soon ? 'true' : undefined"
+            :aria-disabled="o.unavailable ? 'true' : undefined"
+            :disabled="open.busy.value"
             :class="[
               'flex w-full flex-col gap-[3px] rounded-card px-[18px] py-4 text-left',
-              o.soon
-                ? 'cursor-default border border-dashed border-line bg-transparent'
-                : 'border-2 border-gold bg-surface shadow-sm hover:border-gold',
+              o.recommended && 'border-2 border-gold bg-surface shadow-card',
+              !o.recommended && !o.unavailable && 'border border-line bg-surface hover:bg-raised',
+              o.unavailable && 'cursor-default border border-dashed border-line bg-transparent',
             ]"
-            @click="choose(o)"
+            @click="o.run()"
           >
             <span class="flex flex-wrap items-center gap-2">
-              <span :class="['text-[15px] font-semibold', o.soon && 'text-ink-2']">{{
+              <span :class="['text-[15px] font-semibold', o.unavailable && 'text-ink-2']">{{
                 o.title
               }}</span>
               <span
                 :class="[
                   'rounded-full px-2 py-px text-[11px] font-semibold',
-                  o.soon ? 'bg-raised text-ink-2' : 'bg-gold-soft text-gold-ink',
+                  o.recommended ? 'bg-gold-soft text-gold-ink' : 'bg-raised text-ink-2',
                 ]"
                 >{{ o.tag }}</span
               >
@@ -142,17 +143,77 @@ function choose(option: Option) {
       </ul>
 
       <p
-        v-if="note"
-        role="status"
-        class="m-0 max-w-[640px] rounded-control border border-info-line bg-info-soft px-3.5 py-2.5 text-[13px] text-ink"
+        v-if="open.message.value"
+        :role="open.message.value.kind === 'error' ? 'alert' : 'status'"
+        :class="[
+          'm-0 max-w-[640px] rounded-control border px-3.5 py-2.5 text-[13px] text-ink',
+          open.message.value.kind === 'error'
+            ? 'border-danger-line bg-danger-soft'
+            : 'border-info-line bg-info-soft',
+        ]"
       >
-        {{ note }}
+        {{ open.message.value.text }}
       </p>
+
+      <section
+        v-if="open.rows.value.length"
+        aria-labelledby="recent-title"
+        class="flex max-w-[640px] flex-col gap-2 border-t border-line pt-5"
+      >
+        <h2
+          id="recent-title"
+          class="m-0 mb-1 text-[11px] font-semibold uppercase tracking-[.1em] text-ink-3"
+        >
+          Recent
+        </h2>
+        <button
+          v-for="row in open.rows.value"
+          :key="row.recent.key"
+          type="button"
+          :disabled="open.busy.value"
+          :class="[
+            'flex w-full items-center gap-3 rounded-[10px] border px-3 py-2.5 text-left text-ink',
+            row.needsAccess
+              ? 'border-warn-line bg-warn-soft'
+              : 'border-line bg-surface hover:bg-raised',
+          ]"
+          @click="open.openRecent(row)"
+        >
+          <span
+            aria-hidden="true"
+            :class="[
+              'flex size-[34px] shrink-0 items-center justify-center rounded-control bg-gold-soft font-prose text-base font-medium text-gold-ink',
+              row.needsAccess && '!bg-surface !text-warn',
+            ]"
+            >{{ row.recent.name.slice(0, 1).toUpperCase() }}</span
+          >
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="truncate text-sm font-semibold">{{ row.recent.name }}</span>
+            <span class="text-[12.5px] text-ink-2">
+              {{ row.recent.label }} ·
+              {{
+                row.needsAccess
+                  ? 'the browser needs your OK to open this folder again'
+                  : `opened ${openedWhen(row.recent.lastOpened)}`
+              }}
+            </span>
+          </span>
+          <span class="text-[12.5px] font-medium text-gold-ink">{{
+            row.needsAccess ? 'Reconnect folder' : 'Open'
+          }}</span>
+        </button>
+      </section>
 
       <p class="mt-auto text-xs text-ink-3">
         Free and open source under the AGPL. The license covers the software — everything you write
         is yours.
       </p>
     </main>
+    <NewWorkspaceDialog
+      :where="open.naming.value"
+      :busy="open.busy.value"
+      @create="open.createNamed"
+      @cancel="open.naming.value = null"
+    />
   </div>
 </template>

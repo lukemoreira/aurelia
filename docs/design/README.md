@@ -41,6 +41,7 @@ board. In the app they become CSS variables in `src/styles/tokens.css` (M0).
 
 - **Plain words, never code names.** Change kinds show as "Relationship", "Learns",
   "Gains item", "Set-up"… The raw names (`relation`, `knows`) never reach the UI.
+- **One exception to plain words:** the Files dialog's "could not be read" line leads with plain words, then keeps the parser's line or field, because an author who edits files by hand needs it.
 - **Findings are "Error / Warning / Note"**, always as a word, never colour alone.
 - **Presence map and progression bars are real tables** in the app (`<table>` with row and
   column headers, text in every cell for screen readers). The "Table view" button shows

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 import { saltmarchSample, SAMPLE_START } from '@/sample/saltmarch'
-import { proseBlocks } from './prose'
+import { countWords, proseBlocks } from './prose'
 
 describe('proseBlocks', () => {
   it('indents every paragraph but the first and the one after a scene break', () => {
@@ -41,5 +41,14 @@ describe('proseBlocks', () => {
 
   it('ignores blank input', () => {
     expect(proseBlocks('  \n\n  ')).toEqual([])
+  })
+})
+
+describe('countWords', () => {
+  it('counts words across paragraphs and ignores scene breaks', () => {
+    expect(countWords('')).toBe(0)
+    expect(countWords('One two  three\n\nfour')).toBe(4)
+    expect(countWords('Before.\n\n* * *\n\nAfter it.')).toBe(3)
+    expect(countWords('[[id:chr_x|Elena]] waited — then left.')).toBe(5)
   })
 })

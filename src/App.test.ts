@@ -41,13 +41,12 @@ describe('App', () => {
     expect(router.currentRoute.value.path).toBe(`/w/${SAMPLE_START.book}/${SAMPLE_START.scene}`)
   })
 
-  it('marks the folder and browser options as coming soon, and says so when pressed', async () => {
+  it('says plainly that a folder needs Chrome or Edge where the picker does not exist', async () => {
     const { app } = await start('/')
-    await app
-      .findAll('button')
-      .find((b) => b.text().includes('Choose a folder'))!
-      .trigger('click')
-    expect(app.get('[role="status"]').text()).toContain('Saving is not built yet')
+    const folder = app.findAll('button').find((b) => b.text().includes('Choose a folder'))!
+    expect(folder.attributes('aria-disabled')).toBe('true')
+    await folder.trigger('click')
+    expect(app.get('[role="status"]').text()).toContain('needs Chrome or Edge')
   })
 })
 

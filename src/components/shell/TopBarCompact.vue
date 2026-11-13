@@ -33,9 +33,12 @@ const button = [buttonBase, 'size-11 rounded-[10px] text-ink-2 hover:bg-raised']
     </button>
     <div class="flex min-w-0 flex-1 flex-col leading-tight">
       <span class="truncate text-[15px] font-semibold">{{ title }}</span>
-      <span v-if="route.name === 'write'" class="truncate text-xs text-ink-3">{{
-        ws.saveState
-      }}</span>
+      <!-- "✓ Saved · 1,240 words" (Phone board): the status first and whole, the count gives way. -->
+      <span v-if="route.name === 'write'" class="flex items-center gap-1.5 text-xs text-ink-3">
+        <Icon v-if="ws.saveLabel === 'Saved'" name="check" :size="12" class="shrink-0 text-ok" />
+        <span class="shrink-0">{{ ws.saveLabel }}</span>
+        <span class="min-w-0 truncate">· {{ ws.words.scene.toLocaleString('en-US') }} words</span>
+      </span>
     </div>
     <button
       type="button"

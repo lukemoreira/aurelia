@@ -2,7 +2,7 @@
   "name": "aurelia",
   "version": "0.0.0",
   "private": true,
-  "description": "Aurelia — a local-first writing app for novels, histories and game writing.",
+  "description": "Aurelia \u2014 a local-first writing app for novels, histories and game writing.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "engines": {
@@ -21,7 +21,9 @@
     "spdx": "node scripts/check-spdx.mjs",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run spdx && npm run licenses",
     "format:check": "prettier --check .",
-    "icons": "node scripts/make-icons.mjs"
+    "icons": "node scripts/make-icons.mjs",
+    "build:e2e": "vue-tsc --noEmit && vite build --mode e2e --outDir dist-e2e",
+    "preview:e2e": "vite preview --outDir dist-e2e --port 4173"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -32,6 +34,7 @@
     "vue": "^3.5.45",
     "vue-router": "^5.5.0",
     "workbox-window": "^7.4.1",
+    "yaml": "^2.9.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -45,6 +48,7 @@
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.12.1",
+    "fake-indexeddb": "^6.2.8",
     "globals": "^17.14.0",
     "happy-dom": "^21.0.4",
     "prettier": "^3.10.1",

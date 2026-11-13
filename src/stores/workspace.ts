@@ -6,13 +6,17 @@ import { bookOutline, bookWords, outlineScenes, sceneContext } from '@/domain/ou
 import { validateWorkspaceData, type WorkspaceData } from '@/domain/workspace-data'
 import { buildEntries } from '@/index/palette-entries'
 import { saltmarchSample } from '@/sample/saltmarch'
+import { openSession, recents, reopen, workspaceIdOf } from '@/storage/app'
+import type { StorageAdapter } from '@/storage/adapter'
+import type { SessionView, WorkspaceSession } from '@/storage/session'
+import { saveWords } from '@/storage/status'
 
 const isRecordOfStrings = (v: unknown): v is Record<string, string> =>
   typeof v === 'object' && v !== null && Object.values(v).every((x) => typeof x === 'string')
 
 /**
- * The loaded workspace and what is selected in it. In memory only: the storage layer (M2)
- * will call `load()` with what it reads from a folder or the browser.
+ * The loaded workspace and what is selected in it. A real workspace comes from a storage
+ * session (`attach`), which keeps `data` true to the files; the sample is in memory only.
  */
 export const useWorkspaceStore = defineStore('workspace', () => {
   const data = shallowRef<WorkspaceData | null>(null)
@@ -22,6 +26,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const lastScene = usePersisted<Record<string, string>>('last-scene', {}, isRecordOfStrings)
   const lastBook = usePersisted('last-book', '', isString)
   const source = usePersisted('workspace-source', '', isString)
+
+  // The open storage session, and its plain-words state. Both null for the sample.
+  const session = shallowRef<WorkspaceSession | null>(null)
+  const view = shallowRef<SessionView | null>(null)
+  let unsubscribe: (() => void) | undefined
 
   const loaded = computed(() => data.value !== null)
   const book = computed(() => data.value?.books.find((b) => b.id === bookId.value))
@@ -39,7 +48,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const entries = computed(() => (data.value ? buildEntries(data.value) : []))
   const entryByKey = computed(() => new Map(entries.value.map((e) => [e.key, e])))
   /** What the footer, the status bar and the phone header say about saving. */
-  const saveState = computed(() => `${data.value?.workspace.name ?? 'Workspace'} · not saved`)
+  const saveLabel = computed(() => (view.value ? saveWords(view.value) : 'not saved'))
+  const saveState = computed(
+    () => `${data.value?.workspace.name ?? 'Workspace'} · ${saveLabel.value}`,
+  )
   const words = computed(() => ({
     scene: scene.value?.words ?? 0,
     chapter: context.value?.chapter.words ?? 0,
@@ -55,14 +67,82 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!stillOpen) bookId.value = sceneId.value = null
   }
   function loadSample() {
+    detach()
     load(saltmarchSample())
     source.value = 'sample'
   }
+
+  /** Make a storage session the open workspace. The one before it is saved and let go. */
+  function attach(next: WorkspaceSession) {
+    detach()
+    session.value = next
+    data.value = next.data
+    view.value = next.view()
+    bookId.value = sceneId.value = null
+    unsubscribe = next.subscribe(() => {
+      data.value = next.data
+      view.value = next.view()
+    })
+    source.value = `recent:${next.data.workspace.id}`
+  }
+  /** Let the open session go: its words are saved, then its lock is released. */
+  function detach(): Promise<void> {
+    const old = session.value
+    unsubscribe?.()
+    unsubscribe = undefined
+    session.value = view.value = null
+    return old ? old.flush().finally(() => old.dispose()) : Promise.resolve()
+  }
+
+  /**
+   * Open a workspace and attach it. The same workspace in this tab lets go first, so the new
+   * session finds its lock free instead of reading as "open in another tab".
+   */
+  async function open(adapter: StorageAdapter) {
+    const old = session.value
+    const same = !!old && (await workspaceIdOf(adapter)) === old.data.workspace.id
+    if (same) await detach()
+    try {
+      attach(await openSession(adapter))
+    } catch (e) {
+      if (same) data.value = bookId.value = sceneId.value = null // nothing is left to type into
+      throw e
+    }
+  }
+
+  let reopening: Promise<boolean> | undefined
+  /** After a reload: open the recent workspace that was open. False when it needs the author (permission). */
+  function reopenLast(key: string): Promise<boolean> {
+    return (reopening ??= (async () => {
+      const recent = await recents.get(key)
+      const found = recent && (await reopen(recent))
+      if (!found || !('adapter' in found)) return false
+      try {
+        await open(found.adapter)
+        return true
+      } catch {
+        return false
+      }
+    })().finally(() => (reopening = undefined)))
+  }
+
   /** Reopen what was open before a reload. True when a workspace is loaded. */
-  function ensureLoaded(): boolean {
-    if (!data.value && source.value === 'sample') loadSample()
+  async function ensureLoaded(): Promise<boolean> {
+    if (data.value) return true
+    if (source.value === 'sample') loadSample()
+    else if (source.value.startsWith('recent:')) await reopenLast(source.value.slice(7))
     return data.value !== null
   }
+
+  /** Typing in a scene: the screen updates now, the file follows through the save pipeline. */
+  function editScene(id: string, body: string) {
+    void session.value?.editScene(id, body)
+  }
+  /** A new scene at the end of a chapter; returns its ID. */
+  async function addScene(chapterId: string): Promise<string | undefined> {
+    return session.value?.createScene(chapterId)
+  }
+  const flush = () => session.value?.flush()
 
   const hasBook = (id: string) => data.value?.books.some((b) => b.id === id) ?? false
 
@@ -86,7 +166,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   /** Where to land when a workspace has just been opened. */
   function startPath(): string {
     const start = data.value?.startAt
-    const book = hasBook(lastBook.value) ? lastBook.value : start?.book
+    const book = hasBook(lastBook.value)
+      ? lastBook.value
+      : (start?.book ?? data.value?.books[0]?.id)
     const scene = book
       ? sceneFor(book, undefined, book === start?.book ? start.scene : undefined)
       : undefined
@@ -105,11 +187,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scene,
     entries,
     entryByKey,
+    session,
+    view,
+    saveLabel,
     saveState,
     words,
     load,
     loadSample,
+    attach,
+    open,
     ensureLoaded,
+    editScene,
+    addScene,
+    flush,
     hasBook,
     sceneFor,
     select,

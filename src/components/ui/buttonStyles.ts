@@ -10,7 +10,7 @@ export const buttonBase =
 export const variantClass: Record<ButtonVariant, string> = {
   primary: 'bg-gold font-semibold text-on-gold hover:brightness-95',
   secondary: 'border border-line-2 bg-surface font-medium text-ink hover:bg-raised',
-  quiet: 'bg-transparent font-medium text-gold-ink hover:bg-gold-soft',
+  quiet: 'bg-transparent font-medium text-ink-2 hover:bg-raised hover:text-ink',
   danger: 'bg-danger font-semibold text-on-accent hover:brightness-95',
 }
 

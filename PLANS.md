@@ -173,6 +173,48 @@ Do not scaffold future features early.
   An external change while the file is open is detected and never overwritten.
 - PWA updates are prompt-only: nothing reloads while the author writes. A new version
   waits behind an "Update available — Reload" toast (`useAppUpdate`).
+- **Done (2026-11-12).** `src/storage/`: `StorageAdapter` (list, read with a SHA-256 of the
+  bytes on disk, write, remove, access) with an in-memory adapter and one
+  `HandleAdapter` for both a real folder (File System Access, handles kept in IndexedDB
+  for "recent") and browser storage (OPFS, one directory per workspace). Writes use
+  `createWritable()` (swap file, replaced on close); where it is missing (older Safari,
+  OPFS only) a small worker writes through a sync access handle, which edits in place —
+  safe only because the journal holds the new text until the write is confirmed. One
+  save pipeline (`save-pipeline.ts`): journal in IndexedDB first, compare-and-write
+  (read + hash the file, refuse if it is not what we last read), journal cleared after
+  the write, ~1 s debounce with a 5 s cap, retry with backoff, "blocked" when the browser
+  takes the folder permission back. Startup recovery finishes a write the file has not
+  seen, drops one that did land, and opens the conflict flow with both texts otherwise.
+  Conflict choices never lose either side: the version not chosen is written as
+  `<name> (Aurelia copy).<ext>` first (numbered if taken), and that name is found like any
+  conflicted copy. `session.ts` holds the open workspace: polls the open scene's file
+  every 2.5 s (paused when hidden), checks every file when the window is focused,
+  reloads what changed outside, finds conflicted copies (Dropbox, Nextcloud, Syncthing,
+  Aurelia's own) and reconciles them — the file not kept goes to `.aurelia/conflicts/`,
+  never deleted. A workspace with any file of a newer `schemaVersion` opens read-only
+  through `guardWrites`, which refuses every write at the adapter. Files that cannot be
+  read, and two files with one ID, are shown by path and never written. Scene bodies are
+  edited as plain Markdown; only the body changes — the head (frontmatter, comments, key
+  order, line endings) is written back byte for byte, and `words` is counted from the
+  text, never stored. "New scene" (button and palette) adds a scene with a fractional
+  `order`. `navigator.storage.persist()` is asked on the first save of a browser
+  workspace and the answer is shown; a one-time install tip; "Download a copy (.zip)"
+  (stored zip, `zip.ts`, no dependency) for every real workspace. New dependency: `yaml`
+  (ISC) and `fake-indexeddb` (dev). Tests: the adapter contract (`contract.ts`) runs on
+  the memory adapter, on `HandleAdapter` over a fake directory handle in Vitest, and in
+  Chromium on OPFS and on an OPFS handle standing in for a folder (through a hook that
+  exists only in `vite build --mode e2e`; a test fails if the production build has it).
+  Left for later: a scene's title and details cannot be edited yet (M3/M4); `OUTLINE.md`
+  and `book.json`'s outline cache are not rewritten when a scene is added (the
+  scene files win); a folder picked in a browser that has `showDirectoryPicker` cannot be
+  clicked in Playwright, so the folder flow is tested with a fake handle, and has not
+  been tried by hand in Edge or on a synced folder; the recovery journal is not shown to
+  the author beyond the notes and banners.
+- **Review fixes (2026-11-12).** A workspace read that a save finished during is read
+  again, never shown (`SavePipeline.writes`). One tab writes a workspace: the first holds
+  a Web Lock (`aurelia-workspace:<id>`), a second opens read-only and takes over, re-reading
+  the files, when the first lets go. Compare-and-write is read-then-write, not atomic
+  (AGENTS.md says so). Errors reach the screen only through `wordsFor` (`errors.ts`).
 
 **M2b · Backup and versions** ([ADR-0009](docs/adr/0009-browser-storage-and-backup.md))
 - `RemoteStore` interface; adapters for **Google Drive** (`drive.file`), **OneDrive**
@@ -408,3 +450,7 @@ backup — ADR-0009.)
 - 2026-11-12 — Owner decisions: the owner's own server (a mounted volume behind a storage
   container) becomes an M2b backup target, and two-way sync moves up to **M4b**, right
   after the editor (ADR-0009 amendment). Next: M2 local project storage.
+- 2026-11-12 — M2 Local project storage built: folder and browser (OPFS) workspaces,
+  compare-and-write saves with a recovery journal, conflict flow, external-change
+  polling, conflicted copies, read-only for newer files, download a copy. Next: M2b
+  backup and versions, then M3.
