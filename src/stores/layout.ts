@@ -55,6 +55,13 @@ export const useLayoutStore = defineStore('layout', () => {
       inspector.toggle()
     }
   }
+  /** The writing page asked for the inspector's choices (its "Edit choices"): they take the keyboard once they are on screen. */
+  const choicesWanted = ref(false)
+  function askChoices() {
+    if (!wide.value) inspectorSheet.value = true
+    else if (inspector.collapsed.value) inspector.toggle()
+    choicesWanted.value = true
+  }
   const toggleFocus = () => (focus.value = !focus.value)
   const closeSheets = () => (navSheet.value = inspectorSheet.value = false)
 
@@ -70,6 +77,8 @@ export const useLayoutStore = defineStore('layout', () => {
     renameOpen,
     focus,
     toggleFocus,
+    choicesWanted,
+    askChoices,
     filesOpen,
     comparing,
     toggleNavigator,

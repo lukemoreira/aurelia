@@ -12,6 +12,7 @@ import { useRecordEdits } from '@/composables/useRecordEdits'
 import { NEW_RECORD_TYPES, RECORD_INFO } from '@/domain/record-types'
 import type { RecordType } from '@/domain/schema/record'
 import { useEditsStore } from '@/stores/edits'
+import { usePlanStore } from '@/stores/plan'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
 import NavigatorHeading from './NavigatorHeading.vue'
@@ -24,6 +25,12 @@ const { filter, books, standalone, library, expanded } = useNavigatorTree()
 const edit = useOutlineEdits()
 const records = useRecordEdits()
 const edits = useEditsStore()
+const plan = usePlanStore()
+/** The row that is lit: the scene open, or in the Plan view what is selected there (a scene, chapter or part). */
+const lit = computed(() => {
+  const picked = route.name === 'plan' ? plan.selected : null
+  return picked && !picked.startsWith('arc_') ? picked : (ws.sceneId ?? undefined)
+})
 
 /** What "+" next to Books offers: books, parts, chapters, scenes, and the way back to deleted things. */
 const bookItems = computed<MenuItem[]>(() => {
@@ -166,7 +173,7 @@ const rowMenu = (node: { id: string }) => edit.rowMenu(node.id)
           v-model:expanded="expanded"
           label="Books"
           :items="books"
-          :model-value="ws.sceneId ?? undefined"
+          :model-value="lit"
           :pinned="shortcuts.pinned"
           :menu="rowMenu"
           :drop-target="edit.dropTarget"

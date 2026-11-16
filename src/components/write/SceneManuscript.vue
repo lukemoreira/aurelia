@@ -9,6 +9,7 @@ import { sceneEyebrow } from '@/domain/outline'
 import { sceneDetails } from '@/domain/scene-details'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
+import SceneChoices from './SceneChoices.vue'
 import SceneEditor from './SceneEditor.vue'
 
 const ws = useWorkspaceStore()
@@ -59,6 +60,7 @@ const keyboard = useKeyboardInset()
         @edit="ws.editScene(ctx.scene.meta.id, $event)"
         @blur="ws.flush()"
       />
+      <SceneChoices />
       <div v-if="canEdit" class="mt-10 font-ui">
         <Button variant="quiet" @click="newScene"
           ><Icon name="plus" />New scene in this chapter</Button

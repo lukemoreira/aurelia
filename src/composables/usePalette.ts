@@ -5,6 +5,8 @@ import type { IconName } from '@/domain/ui-names'
 import type { Entry } from '@/index/palette-entries'
 import { rankByTitle } from '@/index/palette-search'
 import type { ViewName } from '@/router'
+import { wordsFor } from '@/storage/errors'
+import { setBookMode } from '@/storage/story-actions'
 import { useLayoutStore } from '@/stores/layout'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -60,6 +62,18 @@ export function usePalette() {
   const edit = useOutlineEdits()
   const records = useRecordEdits()
   const edits = useEditsStore()
+
+  /** Switch the open book to a branching story, and go to its map. */
+  async function makeBranching() {
+    const bookId = ws.bookId
+    if (!ws.session || !bookId) return
+    try {
+      await setBookMode(ws.session, bookId, 'branching')
+      await nav.openView('map')
+    } catch (e) {
+      edits.toast = { text: wordsFor(e, 'That did not work. Nothing was lost.'), error: true }
+    }
+  }
 
   const query = ref('')
   const highlighted = ref<string>()
@@ -142,6 +156,18 @@ export function usePalette() {
         : []),
       // Outline editing and records: a real workspace that can be written to.
       ...(edit.canEdit.value ? editActions() : []),
+      // A straight book has no Story map tab: this is the way to it from anywhere.
+      ...(book && book.mode !== 'branching' && edit.canEdit.value
+        ? [
+            {
+              id: 'action:make-branching',
+              title: 'Make this a branching story',
+              sub: `Book · ${book.title}`,
+              icon: 'branch' as const,
+              run: () => void makeBranching(),
+            },
+          ]
+        : []),
       // Backup belongs to a real workspace; the sample has none.
       ...(ws.view
         ? [

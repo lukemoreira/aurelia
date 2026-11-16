@@ -1,8 +1,9 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Tabs from '@/components/ui/Tabs.vue'
+import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 import ItemDetails from './ItemDetails.vue'
 import SceneInspector from './SceneInspector.vue'
@@ -10,6 +11,13 @@ import SceneInspector from './SceneInspector.vue'
 const route = useRoute()
 const ws = useWorkspaceStore()
 const tab = ref('scene')
+const layout = useLayoutStore()
+// "Edit choices" on the writing page: the choices are on the Scene tab.
+watch(
+  () => layout.choicesWanted,
+  (wanted) => wanted && (tab.value = 'scene'),
+  { immediate: true },
+)
 // Links, Notes and History arrive with the features they show; until then they are not offered.
 const TABS = [
   { value: 'scene', label: 'Scene' },

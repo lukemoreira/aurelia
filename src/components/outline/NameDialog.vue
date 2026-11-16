@@ -5,9 +5,10 @@ import Button from '@/components/ui/Button.vue'
 import Dialog from '@/components/ui/Dialog.vue'
 import Field from '@/components/ui/Field.vue'
 import Input from '@/components/ui/Input.vue'
+import Switch from '@/components/ui/Switch.vue'
 import { useNameDialog } from '@/composables/useNameDialog'
 
-const { ask, open, name, error, failure, ready, busy, save } = useNameDialog()
+const { ask, open, name, branching, error, failure, ready, busy, save } = useNameDialog()
 const form = ref<HTMLFormElement | null>(null)
 
 /** The name is what the author is here to give: focus it, with an old name selected. */
@@ -30,6 +31,11 @@ function focusName(event: Event) {
       <Field label="Name" :error="error || failure">
         <Input v-model="name" autocomplete="off" />
       </Field>
+      <Switch
+        v-if="ask?.offerBranching"
+        v-model="branching"
+        label="A branching story (choices and a story map)"
+      />
     </form>
     <template #footer>
       <Button @click="open = false">Cancel</Button>

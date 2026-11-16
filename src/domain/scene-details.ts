@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { sceneContext } from './outline'
+import { sceneContext, sceneLabels } from './outline'
 import type { Scene } from './schema/scene'
 import type { WorkspaceData } from './workspace-data'
 
@@ -98,4 +98,28 @@ export function sceneDetails(data: WorkspaceData, sceneId: string): SceneDetails
     })),
     choices: (meta.choices ?? []).map((c) => c.label),
   }
+}
+
+export interface ChoiceLine {
+  id: string
+  label: string
+  /** Where it leads, as the story map names it: "1.2 · The Chapel". Absent when the scene is gone. */
+  to?: string
+}
+
+/** A scene's choices as lines to read ("Follow the lights → 1.2 · The Chapel"), for the end of the page. */
+export function choiceLines(data: WorkspaceData, sceneId: string): ChoiceLine[] {
+  const scene = data.scenes.find((s) => s.meta.id === sceneId)
+  const ctx = sceneContext(data, sceneId)
+  if (!scene || !ctx) return []
+  const refs = sceneLabels(data, ctx.book.id)
+  return (scene.meta.choices ?? []).map((c) => {
+    const target = data.scenes.find((s) => s.meta.id === c.target)
+    const here = target && refs.has(target.meta.id)
+    return {
+      id: c.id,
+      label: c.label,
+      ...(here ? { to: `${refs.get(target.meta.id)} · ${target.meta.title}` } : {}),
+    }
+  })
 }

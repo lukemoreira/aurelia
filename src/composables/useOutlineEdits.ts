@@ -90,9 +90,11 @@ function createOutlineEdits() {
       title: inUniverse ? `New book in ${ws.universe?.title}` : 'New book',
       confirm: 'Create book',
       initial: '',
-      run: async (title) => {
+      offerBranching: true,
+      run: async (title, branching) => {
         const made = await addBook(session, {
           title,
+          ...(branching ? { mode: 'branching' as const } : {}),
           ...(inUniverse ? { universeId: inUniverse } : {}),
         })
         await router.push(scenePath(made.book, made.scene))

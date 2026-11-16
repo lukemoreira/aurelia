@@ -27,7 +27,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('./components/shell/AppShell.vue'),
     meta: { needsWorkspace: true },
     children: [
-      placeholder('plan', 'Plan', 'The outline and corkboard arrive in v0.2.'),
+      {
+        path: 'plan',
+        name: 'plan',
+        component: () => import('./views/PlanView.vue'),
+        meta: { title: 'Plan' },
+      },
       placeholder('continuity', 'Continuity', 'Continuity checks arrive in v0.2.'),
       {
         path: 'world',
@@ -35,7 +40,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('./views/WorldView.vue'),
         meta: { title: 'World' },
       },
-      placeholder('map', 'Story map', 'The story map arrives in v0.2.'),
+      {
+        path: 'map',
+        name: 'map',
+        component: () => import('./views/MapView.vue'),
+        meta: { title: 'Story map' },
+      },
       { path: ':sceneId?', name: 'write', component: () => import('./views/WriteView.vue') },
     ],
   },

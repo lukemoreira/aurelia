@@ -177,7 +177,7 @@ export async function addPart(s: WorkspaceSession, bookId: string, rawTitle = ''
  */
 export async function addBook(
   s: WorkspaceSession,
-  opts: { title: string; universeId?: string },
+  opts: { title: string; universeId?: string; mode?: 'linear' | 'branching' },
 ): Promise<{ book: string; scene: string }> {
   let made = { book: '', scene: '' }
   await s.exclusive(async () => {
@@ -194,7 +194,7 @@ export async function addBook(
     const files = [
       {
         path: bookPath(unv, book),
-        text: json({ title, schemaVersion: V, id: book, mode: 'linear', outline: [] }),
+        text: json({ title, schemaVersion: V, id: book, mode: opts.mode ?? 'linear', outline: [] }),
       },
       {
         path: chapterPath(unv, book, chapter),

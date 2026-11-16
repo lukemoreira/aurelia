@@ -9,6 +9,8 @@ import { newHead } from './frontmatter'
 import { recordPath } from './paths'
 import type { WorkspaceSession } from './session'
 
+const ARC_COLOURS = ['ember', 'tide', 'moss', 'plum'] as const
+
 /**
  * A new record, shared by the universe or (with `bookId`) private to one book. One file; nothing
  * else points at it, so there is no list to keep in step.
@@ -29,6 +31,11 @@ export function addRecord(
       for (let tries = 0; s.pathOf(id) && tries < 10; tries++) id = newId(info.prefix)
       if (s.pathOf(id)) throw new StorageError('other', 'Aurelia could not make a new ID.')
       const scope = opts.bookId ? `book:${opts.bookId}` : 'universe'
+      // An arc starts with a colour, the next of the palette, so the plan's cards tell arcs apart at once.
+      const arcs = s.data.records.filter(
+        (r) => r.meta.type === 'arc' && r.universe === opts.universeId,
+      )
+      const color = opts.type === 'arc' ? ARC_COLOURS[arcs.length % ARC_COLOURS.length] : undefined
       await s.create([
         {
           path: recordPath(opts.universeId, scope, info.folder, id),
@@ -38,6 +45,7 @@ export function addRecord(
             id,
             type: opts.type,
             scope,
+            ...(color ? { color } : {}),
           }),
         },
       ])

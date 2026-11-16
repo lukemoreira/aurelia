@@ -50,6 +50,10 @@ async function rename(page: Page, label: string, to: string) {
 async function addFromPlus(page: Page, item: string) {
   await page.getByRole('button', { name: 'Add to the book' }).click()
   await page.getByRole('menuitem', { name: item }).click()
+  // The menu hands focus back to its button once it has closed, a moment after the new row is on
+  // screen. A key pressed on that row in between lands on the button instead (the flake this
+  // wait removes): so wait for the hand-back, which is the thing that happens.
+  await expect(page.getByRole('button', { name: 'Add to the book' })).toBeFocused()
 }
 
 for (const scheme of ['light', 'dark'] as const) {

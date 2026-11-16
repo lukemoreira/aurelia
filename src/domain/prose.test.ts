@@ -1,6 +1,31 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { countWords } from './prose'
+import { countWords, readableParagraphs } from './prose'
+
+describe('readableParagraphs', () => {
+  it('splits on blank lines, shows link names and drops Markdown’s marks', () => {
+    expect(
+      readableParagraphs(
+        'She met [[id:chr_8f3k2m9q1x|Tomas]] and [[Elena Vasquez|Elena]], a **bold** and *quiet* pair.\n\nThe [[Lantern Gate]] closed. ^blk-a1b2c3',
+      ),
+    ).toEqual(['She met Tomas and Elena, a bold and quiet pair.', 'The Lantern Gate closed.'])
+  })
+
+  it('a scene break is one mark, and nothing is HTML', () => {
+    expect(readableParagraphs('One.\n\n* * *\n\nTwo <u>under</u> <script>x</script>.')).toEqual([
+      'One.',
+      '⁂',
+      'Two under <script>x</script>.', // shown as text, never run
+    ])
+    expect(readableParagraphs('')).toEqual([])
+  })
+
+  it('leaves a lone star and an escaped one alone', () => {
+    expect(readableParagraphs('a * b and 2 * 3 and \\*literal\\*')).toEqual([
+      'a * b and 2 * 3 and *literal*',
+    ])
+  })
+})
 
 describe('countWords', () => {
   it('counts words across paragraphs and ignores scene breaks', () => {

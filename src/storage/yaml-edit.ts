@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import YAML, { isMap, isScalar, visit } from 'yaml'
+import YAML, { isMap, isScalar, isSeq, visit } from 'yaml'
 import { splitDocument } from './frontmatter'
 
 /** Keys to set in a file's frontmatter. A value of `undefined` takes the key away. */
@@ -87,7 +87,69 @@ export function patchFrontmatter(text: string, patch: YamlPatch): string {
   for (const s of splices.sort((a, b) => b.from - a.from))
     yaml = yaml.slice(0, s.from) + s.text + yaml.slice(s.to)
   yaml += added
+  return frame(parts, yaml)
+}
+
+/** The file with `yaml` (ending in a line break) as its frontmatter: the fences and the body as they were. */
+function frame(parts: NonNullable<ReturnType<typeof splitDocument>>, yaml: string): string {
   const start = parts.head.indexOf('\n') + 1 // after the opening fence
   const tail = parts.yaml ? parts.head.slice(start + parts.yaml.length) : parts.head.slice(start)
   return `${parts.head.slice(0, start)}${yaml}${parts.yaml ? tail.replace(/^\r?\n/, '') : tail}${parts.body}`
+}
+
+/** One change to one item of a list of small objects with IDs (a scene's `choices`). */
+export type ListEdit =
+  | { op: 'update'; id: string; fields: Record<string, unknown> }
+  | { op: 'remove'; id: string }
+  | { op: 'add'; item: Record<string, unknown> }
+
+/** An item as the text of one flow map: `{ id: "x", label: "y" }`. */
+function itemText(item: Record<string, unknown>): string {
+  const doc = new YAML.Document([item])
+  visit(doc, {
+    Scalar: (k, n) => {
+      if (k !== 'key' && typeof n.value === 'string') n.type = 'QUOTE_DOUBLE'
+    },
+    Seq: (_, seq) => {
+      for (const it of seq.items) if (isMap(it)) it.flow = true
+    },
+  })
+  return doc.toString({ lineWidth: 0 }).replace(/^- /, '').trimEnd()
+}
+
+/**
+ * Change one item of a block list in the frontmatter, and nothing else: the comments and the
+ * spacing of the other items, and every other key, stay byte for byte. Undefined when it cannot
+ * be done that way (no such list, a flow list, the last item going, an item that is not there):
+ * the caller then sets the whole key, which is always right but rewrites the list.
+ */
+export function patchListItem(text: string, key: string, edit: ListEdit): string | undefined {
+  const parts = splitDocument(text)
+  if (!parts) return undefined
+  const eol = parts.head.includes('\r\n') ? '\r\n' : '\n'
+  const source = parts.yaml ? parts.yaml + eol : ''
+  const doc = YAML.parseDocument(source)
+  const map = doc.contents
+  if (doc.errors[0] || !isMap(map) || map.flow) return undefined
+  const seq = map.items.find((p) => isScalar(p.key) && p.key.value === key)?.value
+  if (!seq || !isSeq(seq) || seq.flow || !seq.items.length || !seq.items.every((i) => isMap(i)))
+    return undefined
+  const items = seq.items as YAML.YAMLMap[]
+  const at = edit.op === 'add' ? items.length - 1 : items.findIndex((i) => i.get('id') === edit.id)
+  const item = items[at]
+  if (!item?.range) return undefined
+  const lineStart = source.lastIndexOf('\n', item.range[0] - 1) + 1
+  const lineEnd = source.indexOf('\n', item.range[1]) + 1
+  let yaml: string
+  if (edit.op === 'update') {
+    const merged = { ...(item.toJSON() as object), ...edit.fields }
+    yaml = source.slice(0, item.range[0]) + itemText(merged) + source.slice(item.range[1])
+  } else if (edit.op === 'remove') {
+    if (items.length < 2) return undefined
+    yaml = source.slice(0, lineStart) + source.slice(lineEnd)
+  } else {
+    const prefix = source.slice(lineStart, item.range[0]) // "  - ": the list's own indentation
+    yaml = source.slice(0, lineEnd) + prefix + itemText(edit.item) + eol + source.slice(lineEnd)
+  }
+  return yaml === source ? text : frame(parts, yaml)
 }

@@ -58,6 +58,7 @@ function addBook(book: string, chapterSpecs: ChapterSpec[], partTitles: string[]
           chapter: id,
           order: ord(j),
           status,
+          summary,
           ...(pov ? { pov } : {}),
         },
         body: placeholder(summary),
@@ -155,10 +156,22 @@ addBook(bok.saltash, [
   },
   {
     title: 'The Shore',
-    scenes: [['Low Tide Road', 'draft', 900, 'The causeway shows for an hour.']],
+    scenes: [
+      ['Low Tide Road', 'draft', 900, 'The causeway shows for an hour.'],
+      ['The Drowned Bell', 'idea', 0, 'A bell rings under the water.'],
+      ['The Hermit’s Cove', 'idea', 0, 'A boat is pulled up where no one comes.'],
+    ],
   },
   { title: 'The Salt Chapel', scenes: [['The Chapel Door', 'outline', 0, 'It is not locked.']] },
   { title: 'Smugglers’ Stair', scenes: [['Two Hundred Steps', 'idea', 0, 'The stair goes down.']] },
+  {
+    title: 'Endings',
+    scenes: [
+      ['The Lantern Lit', 'idea', 0, 'The lamp is lit, and someone answers it.'],
+      ['Taken by the Tide', 'idea', 0, 'The water comes in faster than you can climb.'],
+      ['The Long Wait', 'idea', 0, 'Nobody comes, and you learn to live on the shingle.'],
+    ],
+  },
 ])
 addBook(bok.winter, [
   {
@@ -186,15 +199,60 @@ curfew.meta = {
     { kind: 'knows', who: chr.tomas, value: 'Elena is alive' },
   ],
 }
-const ashore = scenes.find((s) => s.meta.title === 'Washed Ashore')!
-const lights = scenes.find((s) => s.meta.title === 'Follow the Lights')!
-const wreck = scenes.find((s) => s.meta.title === 'Hide in the Wreck')!
-ashore.meta = {
-  ...ashore.meta,
-  choices: [
-    { id: sampleId('chc', 'lights'), label: 'Follow the lights', target: lights.meta.id },
-    { id: sampleId('chc', 'wreck'), label: 'Hide in the wreck', target: wreck.meta.id },
-  ],
+const byTitle = (title: string) => scenes.find((s) => s.meta.title === title)!
+const ashore = byTitle('Washed Ashore')
+
+// Salt & Ash's choices, [from, label, to]. The Hermit’s Cove has no way in and The Drowned Bell
+// no way out, so the story map shows a Warning of each; the rest can be played to three endings.
+const choiceSpecs: [string, string, string][] = [
+  ['Washed Ashore', 'Follow the lights', 'Follow the Lights'],
+  ['Washed Ashore', 'Hide in the wreck', 'Hide in the Wreck'],
+  ['Follow the Lights', 'Take the causeway', 'Low Tide Road'],
+  ['Follow the Lights', 'Climb the cliff path', 'Two Hundred Steps'],
+  ['Hide in the Wreck', 'Wait for dark', 'Low Tide Road'],
+  ['Hide in the Wreck', 'Break for the chapel', 'The Chapel Door'],
+  ['Hide in the Wreck', 'Stay hidden', 'The Long Wait'],
+  ['Low Tide Road', 'Keep to the road', 'The Chapel Door'],
+  ['Low Tide Road', 'Wade out to the bell', 'The Drowned Bell'],
+  ['The Chapel Door', 'Pray', 'The Lantern Lit'],
+  ['The Chapel Door', 'Ring the bell', 'Two Hundred Steps'],
+  ['The Chapel Door', 'Turn back', 'Low Tide Road'],
+  ['Two Hundred Steps', 'Run', 'Taken by the Tide'],
+  ['Two Hundred Steps', 'Go down slowly', 'The Lantern Lit'],
+  ['The Hermit’s Cove', 'Swim out', 'Taken by the Tide'],
+]
+for (const [from, label, to] of choiceSpecs) {
+  const scene = byTitle(from)
+  scene.meta = {
+    ...scene.meta,
+    choices: [
+      ...(scene.meta.choices ?? []),
+      { id: sampleId('chc', `${from}:${label}`), label, target: byTitle(to).meta.id },
+    ],
+  }
+}
+for (const ending of ['The Lantern Lit', 'Taken by the Tide', 'The Long Wait'])
+  byTitle(ending).meta = { ...byTitle(ending).meta, ending: true }
+
+// The arcs scenes advance: the Plan view colours by them, and an arc runs across the books.
+const advances: Record<string, string[]> = {
+  'Salt in the Ledger': [arc.debt],
+  'The Chandler’s Daughter': [arc.letters],
+  'Low Water': [arc.tide],
+  Ropewalk: [arc.letters],
+  'Tar and Twine': [arc.debt],
+  'The Customs House': [arc.tide],
+  'Tide Bell': [arc.tide],
+  'The Warden’s Price': [arc.debt],
+  'Mirela’s Window': [arc.letters],
+  'First Light': [arc.tide, arc.letters],
+  'Washed Ashore': [arc.tide],
+  'Low Tide Road': [arc.tide],
+  'Taken by the Tide': [arc.tide],
+}
+for (const [title, arcs] of Object.entries(advances)) {
+  const scene = byTitle(title)
+  scene.meta = { ...scene.meta, arcs: Array.from(new Set([...(scene.meta.arcs ?? []), ...arcs])) }
 }
 
 const universes: Universe[] = [

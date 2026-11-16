@@ -10,6 +10,7 @@ export function useNameDialog() {
   const name = ref('')
   const busy = ref(false)
   const failure = ref('')
+  const branching = ref(false)
 
   const open = computed({
     get: () => !!edits.ask,
@@ -22,6 +23,7 @@ export function useNameDialog() {
     (ask) => {
       if (!ask) return
       name.value = ask.initial
+      branching.value = false
       failure.value = ''
     },
   )
@@ -36,7 +38,7 @@ export function useNameDialog() {
     busy.value = true
     failure.value = ''
     try {
-      await ask.run(checked.value.title)
+      await ask.run(checked.value.title, branching.value)
       edits.ask = null
     } catch (e) {
       failure.value = wordsFor(e, 'That did not work. Nothing was lost.')
@@ -45,5 +47,15 @@ export function useNameDialog() {
     }
   }
 
-  return { ask: computed(() => edits.ask), open, name, error, failure, ready, busy, save }
+  return {
+    ask: computed(() => edits.ask),
+    open,
+    name,
+    branching,
+    error,
+    failure,
+    ready,
+    busy,
+    save,
+  }
 }

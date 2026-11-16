@@ -47,7 +47,7 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
           <Avatar :name="d.pov.name" :color="colour(d.pov.color)" :size="24" />{{ d.pov.name }}
         </dd>
       </template>
-      <template v-if="d.location">
+      <template v-if="d.location && !editable">
         <dt class="text-ink-3">Location</dt>
         <dd class="m-0 flex items-center gap-2">
           <Icon name="place" :size="15" class="text-ink-3" />{{ d.location }}
@@ -74,7 +74,7 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
     </dl>
 
     <div
-      v-if="d.objective || d.conflict || d.outcome"
+      v-if="!editable && (d.objective || d.conflict || d.outcome)"
       class="flex flex-col gap-2.5 border-t border-line pt-3.5"
     >
       <div
@@ -92,7 +92,7 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
       </div>
     </div>
 
-    <div v-if="d.people.length || d.arcs.length" :class="section">
+    <div v-if="d.people.length || (d.arcs.length && !editable)" :class="section">
       <h3 v-if="d.people.length" :class="label">In this scene</h3>
       <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0">
         <li
@@ -111,7 +111,7 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
         </li>
       </ul>
       <ul
-        v-if="d.arcs.length"
+        v-if="d.arcs.length && !editable"
         aria-label="Arcs"
         class="m-0 mt-0.5 flex list-none flex-wrap gap-1.5 p-0"
       >
@@ -141,7 +141,7 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
       </dl>
     </div>
 
-    <div :class="[section, 'flex-row items-center']">
+    <div v-if="!editable" :class="[section, 'flex-row items-center']">
       <h3 :class="label">Choices</h3>
       <span class="flex-1 text-ink-3">{{
         d.choices.length ? d.choices.join(' · ') : 'None — leads straight on'

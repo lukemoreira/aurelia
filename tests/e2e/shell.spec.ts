@@ -567,9 +567,9 @@ for (const scheme of ['light', 'dark'] as const) {
       await openSample(page)
       await page
         .getByRole('navigation', { name: 'Views' })
-        .getByRole('link', { name: 'Plan' })
+        .getByRole('link', { name: 'Continuity' })
         .click()
-      await expect(page.getByText('The outline and corkboard arrive in v0.2.')).toBeVisible()
+      await expect(page.getByText('Continuity checks arrive in v0.2.')).toBeVisible()
       expect(await allViolations(page)).toEqual([])
     })
   })
