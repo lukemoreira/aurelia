@@ -1,39 +1,90 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { EditorContent } from '@tiptap/vue-3'
-import { computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useLinkEnv } from '@/composables/useLinkEnv'
 import { useManuscriptEditor } from '@/composables/useManuscriptEditor'
+import { createLinks, focusFound, focusName, refreshLinks } from '@/editor/links'
 import { useEditorStore } from '@/stores/editor'
 import { useLayoutStore } from '@/stores/layout'
+import { useReviewStore } from '@/stores/review'
+import { useWorkspaceStore } from '@/stores/workspace'
 import EditorToolbar from './EditorToolbar.vue'
+import LinkCard from './LinkCard.vue'
+import LinkPicker from './LinkPicker.vue'
 
-const props = defineProps<{
-  body: string
-  readonly: boolean
-  titleId: string
-  /** Where the formatting bar is drawn: a place on the page, outside the text's own column. */
-  toolbarTarget: HTMLElement | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    body: string
+    readonly: boolean
+    titleId: string
+    /** Where the formatting bar is drawn: a place on the page, outside the text's own column. */
+    toolbarTarget: HTMLElement | null
+    /** The scene or record this text belongs to: with it, links and names work. */
+    docId?: string
+    /** Names found in the text (scenes). Off for a record's notes, where only links count. */
+    names?: boolean
+    /** What a screen reader calls the text. */
+    label?: string
+    inputId?: string
+    /** `notes`: a record's notes, drawn as notes and not as the page of a book. */
+    variant?: 'scene' | 'notes'
+  }>(),
+  { docId: undefined, names: true, label: 'Scene text', inputId: 'scene-text', variant: 'scene' },
+)
 const emit = defineEmits<{ edit: [body: string]; blur: [] }>()
 const layout = useLayoutStore()
 const appearance = useEditorStore()
+const ws = useWorkspaceStore()
+
+const link = useLinkEnv(() => props.docId, { names: props.names })
+const card = ref<InstanceType<typeof LinkCard> | null>(null)
+link.onCardFocus(() => card.value?.focus() ?? false)
 
 // Named "Scene text" and by the scene's own title (it points at itself for the first part).
 const { editor, tick } = useManuscriptEditor({
   body: () => props.body,
   editable: () => !props.readonly,
   onEdit: (body) => emit('edit', body),
+  extensions: props.docId ? [createLinks(link.env)] : [],
   attributes: () => ({
-    id: 'scene-text',
+    id: props.inputId,
     role: 'textbox',
     'aria-multiline': 'true',
-    'aria-label': 'Scene text',
-    'aria-labelledby': `scene-text ${props.titleId}`,
+    'aria-label': props.label,
+    'aria-labelledby': `${props.inputId} ${props.titleId}`,
     ...(props.readonly ? { 'aria-readonly': 'true' } : {}),
     spellcheck: 'true',
   }),
 })
 editor.on('blur', () => emit('blur'))
+
+// A name, a title or an answer changed outside the editor: draw the text again.
+watch(
+  () => ws.structureVersion,
+  () => props.docId && refreshLinks(editor.view),
+)
+
+// "Review" in the Names tab: take the caret to the first place a name is asked about.
+const review = useReviewStore()
+watch(
+  () => review.name,
+  (name) => {
+    if (!name || !props.docId) return
+    focusName(editor.view, name)
+    review.name = null
+  },
+)
+
+// A search result opened at its words: select them once this file's text is on screen.
+function showFound() {
+  const found = review.found
+  if (!found || found.id !== props.docId) return
+  focusFound(editor.view, found.term)
+  review.found = null
+}
+watch(() => review.found, showFound)
+onMounted(showFound)
 
 const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.toolbarTarget)
 </script>
@@ -45,10 +96,22 @@ const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.t
     :data-size="appearance.settings.size"
     :data-leading="appearance.settings.leading"
     :data-paragraphs="appearance.settings.paragraphs"
+    :data-variant="variant"
+    :data-names="appearance.showNames ? 'on' : 'off'"
   >
     <EditorContent :editor="editor" />
   </div>
   <Teleport v-if="showToolbar && toolbarTarget" :to="toolbarTarget">
     <EditorToolbar :editor="editor" :tick="tick" :compact="!layout.wide" />
   </Teleport>
+  <LinkCard
+    v-if="link.card.value"
+    ref="card"
+    :card="link.card.value"
+    @hold="link.holdCard()"
+    @leave="link.leaveCard()"
+    @close="link.closeCard()"
+  />
+  <LinkPicker v-if="link.picker.value" :picker="link.picker.value" />
+  <span role="status" class="sr-only">{{ link.announcement.value }}</span>
 </template>

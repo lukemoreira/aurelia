@@ -22,8 +22,7 @@ const MATCH = [
   <fieldset class="m-0 flex min-w-0 flex-col gap-2 border-0 p-0">
     <legend class="mb-1.5 p-0 text-[13px] font-medium text-ink">Other names</legend>
     <p class="m-0 text-xs text-ink-3">
-      Other names this goes by: a nickname, a title, a surname. Finding them in your text comes
-      later.
+      Other names this goes by: a nickname, a title, a surname. Aurelia finds them in your text.
     </p>
     <ul v-if="aliases.length" class="m-0 flex list-none flex-col gap-2 p-0">
       <li

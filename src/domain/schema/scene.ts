@@ -40,6 +40,8 @@ export const sceneSchema = z.looseObject({
     .looseObject({ add: z.array(idOf('chr')).optional(), remove: z.array(idOf('chr')).optional() })
     .optional(),
   arcs: z.array(idOf('arc')).optional(),
+  // ADR-0010: places the author answered "not a name" (see index/names.ts for the key).
+  ignoreNames: z.array(z.string()).optional(),
   target: z.number().int().nonnegative().optional(),
   flashback: z.boolean().optional(),
   ending: z.boolean().optional(),

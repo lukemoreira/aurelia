@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { isString, usePersisted } from '@/composables/usePersisted'
 import { bookOutline, bookScenes, bookWords, sceneContext } from '@/domain/outline'
 import { validateWorkspaceData, type WorkspaceData } from '@/domain/workspace-data'
 import { buildEntries } from '@/index/palette-entries'
+import { WorkspaceIndex } from '@/index/workspace-index'
 import { saltmarchSample } from '@/sample/saltmarch'
 import { openSession, recents, reopen, workspaceIdOf } from '@/storage/app'
 import type { StorageAdapter } from '@/storage/adapter'
@@ -33,6 +34,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const session = shallowRef<WorkspaceSession | null>(null)
   const view = shallowRef<SessionView | null>(null)
   let unsubscribe: (() => void) | undefined
+
+  /**
+   * What links to what and who is named where (src/index). Kept up to date the moment `data`
+   * changes, so a screen that reads it never sees the text of one moment and the links of another;
+   * a keystroke re-reads only the file typed in. `indexVersion` ticks so a screen can look again.
+   */
+  const index = new WorkspaceIndex()
+  const indexVersion = ref(0)
+  /** Ticks when a name, a title or an answer changes (not when a scene is typed in): what is drawn from names looks again. */
+  const structureVersion = ref(0)
+  watch(
+    data,
+    (next) => {
+      if (!next) return
+      index.sync(next)
+      indexVersion.value++
+      structureVersion.value = index.version
+    },
+    { flush: 'sync' },
+  )
 
   const loaded = computed(() => data.value !== null)
   const book = computed(() => data.value?.books.find((b) => b.id === bookId.value))
@@ -218,6 +239,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     scene,
     entries,
     entryByKey,
+    index,
+    indexVersion,
+    structureVersion,
     session,
     view,
     saveLabel,

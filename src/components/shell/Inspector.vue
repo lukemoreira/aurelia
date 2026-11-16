@@ -6,6 +6,8 @@ import Tabs from '@/components/ui/Tabs.vue'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 import ItemDetails from './ItemDetails.vue'
+import LinksList from './LinksList.vue'
+import NamesTab from './NamesTab.vue'
 import SceneInspector from './SceneInspector.vue'
 
 const route = useRoute()
@@ -18,9 +20,11 @@ watch(
   (wanted) => wanted && (tab.value = 'scene'),
   { immediate: true },
 )
-// Links, Notes and History arrive with the features they show; until then they are not offered.
+// Notes and History arrive with the features they show; until then they are not offered.
 const TABS = [
   { value: 'scene', label: 'Scene' },
+  { value: 'names', label: 'Names' },
+  { value: 'links', label: 'Links' },
   { value: 'chapter', label: 'Chapter' },
   { value: 'book', label: 'Book' },
 ]
@@ -36,6 +40,8 @@ const TABS = [
       <h2 class="sr-only">Inspector</h2>
       <Tabs v-if="route.name === 'write'" v-model="tab" label="Inspector" :items="TABS">
         <template #scene><SceneInspector /></template>
+        <template #names><NamesTab /></template>
+        <template #links><LinksList v-if="ws.sceneId" :id="ws.sceneId" /></template>
         <template #chapter>
           <div class="flex flex-col gap-5">
             <ItemDetails

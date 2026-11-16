@@ -128,11 +128,17 @@ function createOutlineEdits() {
     const session = ws.session
     const data = ws.data
     if (!session || !data) return
+    const record = data.records.find((r) => r.meta.id === id)
+    // A record's name is written in the text too: once it is saved, the author is offered the change there.
+    const before = record && { title: record.meta.title, aliases: record.meta.aliases ?? [] }
     edits.ask = {
       title: `Rename ${kindWord(data, id)}`,
       confirm: 'Save',
       initial: titleOf(data, id),
-      run: (name) => renameItem(session, id, name),
+      run: async (name) => {
+        await renameItem(session, id, name)
+        if (before) edits.renameOffer = { recordId: id, before }
+      },
     }
   }
 

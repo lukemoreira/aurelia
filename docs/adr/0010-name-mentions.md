@@ -98,3 +98,34 @@ Renaming a record opens **"Change the name in your text too?"**:
 - Tests: golden cases for possessives, capitals, longest match, shared names, sentence
   starts, explicit links and ignored places; a rename test that changes "Elena" but not
   "Elenath" or "elena@example.com".
+
+## As built (M3b)
+
+- **Detection** is `src/index/names.ts`: a first-word lookup (not Aho–Corasick; measured well under the
+  budget) with the longest name tried first. A name that is also a common word is asked about at a
+  sentence start (a short built-in list of names that are ordinary words; it grows by editing the list).
+- **"Not a name" keys.** `Will:2` is the second whole-word "Will" in the scene. A block is not
+  given an ID just to answer a question (an answer is never a write into the manuscript), so the
+  `blk-…:Will:1` form in the example above is not used. The count is of the word wherever it
+  stands (in a link, in italics, in a list), so the editor, which reads the text on screen, and the
+  index, which reads the file, number the same places, and a place turned into a link keeps its
+  number. An answer hides only a name Aurelia was asking about: words added since can move a number
+  onto a different, real name, and that one stays, and Rename everywhere lists it as uncertain
+  rather than certain. An answer that no longer fits can only make a question come back.
+- **Words.** A letter with its accents, or a digit, is part of a word; an underscore is not
+  (`_Elena_` is Elena in italics). Web addresses, Markdown link addresses and email addresses are
+  not read for names.
+- **Notes** of a record are read for links only; names are looked for in scenes.
+- **Rename everywhere** runs after the record's own rename (the title is its own step, and "Only
+  rename the record" is the other answer). A name is renamed only where the record is seen from
+  (a book's own record not in another book), and not in raw HTML, tables or fences, which are kept
+  as written. The old names come from the record as it was; a link by name
+  (`[[Elena Vasquez]]`) is matched on the old names, a link by ID changes only its label. The record's
+  other names follow the changed forms in the same run. Before writing: a version is asked for first
+  (in sync mode that is a round that may bring in changes from another device, so the files are
+  compared after it), and a copy of every changed file is always kept in
+  `.aurelia/safety/<stamp>/`; the run says "a version was saved too" only when it truly reached the
+  server. Each file is compared once more just before it is written (compare-and-write through the
+  session); a change from another device is deferred while the run is going; a refusal stops the
+  run and reports how far it got; one Undo restores every file and the other names, leaving (and
+  naming) a file typed in since.

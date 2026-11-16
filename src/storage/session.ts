@@ -549,6 +549,12 @@ export class WorkspaceSession {
     if (this.readOnly || this.settling)
       throw new StorageError('read-only', 'This workspace is read-only, so nothing was changed.')
     const out = new Map<string, 'applied' | 'deferred'>()
+    // A several-file action (Rename everywhere) has read these files and is about to write them: a
+    // change from another device must not land in between. It is offered again at the next round.
+    if (this.acting > 0) {
+      for (const c of changes) out.set(c.path, 'deferred')
+      return out
+    }
     for (const c of changes) out.set(c.path, await this.pipeline.receive(c.path, c.text, c.expect))
     if ([...out.values()].includes('applied'))
       await this.refresh().catch((e: unknown) => this.onError(e)) // the files changed; a failed re-read is the next check's

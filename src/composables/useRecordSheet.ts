@@ -26,13 +26,11 @@ export function useRecordSheet(idOf: () => string | undefined) {
 
   const draft = reactive({
     summary: '',
-    notes: '',
     fields: {} as Partial<Record<BasicKey, string>>,
     aliases: [] as Alias[],
   })
   const sync = {
     summary: () => (draft.summary = record.value?.summary ?? ''),
-    notes: () => (draft.notes = record.value?.body ?? ''),
     fields: () =>
       (draft.fields = Object.fromEntries(
         (info.value?.fields ?? []).map((f) => [
@@ -52,7 +50,6 @@ export function useRecordSheet(idOf: () => string | undefined) {
   const known = () => record.value?.meta
   const now = { immediate: true }
   watch([idOf, () => record.value?.summary], sync.summary, now)
-  watch([idOf, () => record.value?.body], sync.notes, now)
   watch([idOf, () => JSON.stringify(known()?.aliases)], sync.aliases, now)
   watch(
     [idOf, () => info.value?.fields.map((f) => known()?.[f.key]).join('\u0000')],
@@ -84,9 +81,9 @@ export function useRecordSheet(idOf: () => string | undefined) {
     void saveAliases()
   }
   /** Typing in the notes goes to the file as the scene's text does: now on screen, soon on disk. */
-  function typeNotes() {
+  function typeNotes(body: string) {
     const id = idOf()
-    if (id) void ws.session?.editNotes(id, draft.notes).catch((e) => (error.value = wordsFor(e)))
+    if (id) void ws.session?.editNotes(id, body).catch((e) => (error.value = wordsFor(e)))
   }
 
   const scope = computed(() => {

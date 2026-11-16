@@ -27,6 +27,7 @@ const scope = z
 
 // ADR-0010: another name a record goes by in the text, and whether it is tagged by itself.
 export const MATCH_MODES = ['auto', 'ask', 'never'] as const
+export type MatchMode = (typeof MATCH_MODES)[number]
 const alias = z.looseObject({ text: z.string(), match: z.enum(MATCH_MODES).optional() })
 
 // A generic record's frontmatter (characters, places, items, lore, …).

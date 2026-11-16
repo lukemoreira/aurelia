@@ -10,7 +10,10 @@ import Textarea from '@/components/ui/Textarea.vue'
 import { initialsOf } from '@/components/ui/initials'
 import { useOutlineEdits } from '@/composables/useOutlineEdits'
 import { useRecordSheet } from '@/composables/useRecordSheet'
+import LinksList from '@/components/shell/LinksList.vue'
+import SceneEditor from '@/components/write/SceneEditor.vue'
 import AliasEditor from './AliasEditor.vue'
+import RecordNames from './RecordNames.vue'
 
 /** A record's sheet: the Profile of the character design, for every kind of record. */
 const props = defineProps<{ id: string }>()
@@ -36,7 +39,10 @@ const edit = useOutlineEdits()
         <span class="text-[11px] font-semibold uppercase tracking-[.12em] text-gold-ink">{{
           s.info.value?.label
         }}</span>
-        <h1 class="m-0 font-prose text-[34px] font-medium leading-[1.1] tracking-[-.01em]">
+        <h1
+          id="record-title"
+          class="m-0 font-prose text-[34px] font-medium leading-[1.1] tracking-[-.01em]"
+        >
           {{ s.record.value.meta.title }}
         </h1>
         <p v-if="s.record.value.summary" class="m-0 font-prose text-[15px] italic text-ink-2">
@@ -90,18 +96,40 @@ const edit = useOutlineEdits()
         @add="s.addAlias()"
         @remove="s.removeAlias"
       />
-      <Field label="Notes" description="Anything you want to remember. Plain text for now.">
-        <Textarea
-          v-model="s.draft.notes"
-          rows="8"
-          :disabled="s.readOnly.value"
-          @input="s.typeNotes()"
-          @blur="s.flush()"
-        />
-      </Field>
+      <RecordNames :id="id" />
+      <div class="flex flex-col gap-1.5">
+        <span class="text-[13px] font-medium text-ink">Notes</span>
+        <div
+          class="min-h-[9rem] rounded-control border border-field bg-surface px-3 py-2 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink"
+        >
+          <!-- The notes are written in the same editor as a scene: [[ links to a character, a place or a scene. -->
+          <SceneEditor
+            :key="id"
+            :doc-id="id"
+            :body="s.record.value.body ?? ''"
+            title-id="record-title"
+            input-id="record-notes"
+            label="Notes"
+            :names="false"
+            variant="notes"
+            :readonly="s.readOnly.value"
+            :toolbar-target="null"
+            @edit="s.typeNotes($event)"
+            @blur="s.flush()"
+          />
+        </div>
+        <p class="text-xs text-ink-3">
+          Anything you want to remember. Type [[ to link to a character, a place or a scene.
+        </p>
+      </div>
       <p v-if="s.error.value" role="alert" class="m-0 text-xs font-medium text-danger">
         {{ s.error.value }}
       </p>
+    </section>
+
+    <section aria-label="Links" class="flex flex-col gap-3 border-t border-line pt-5">
+      <h2 class="m-0 text-[15px] font-semibold text-ink">Links</h2>
+      <LinksList :id="id" />
     </section>
   </article>
 </template>

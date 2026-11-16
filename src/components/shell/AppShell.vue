@@ -7,6 +7,7 @@ import Sheet from '@/components/ui/Sheet.vue'
 import ActionToast from '@/components/outline/ActionToast.vue'
 import MoveSceneDialog from '@/components/outline/MoveSceneDialog.vue'
 import NameDialog from '@/components/outline/NameDialog.vue'
+import RenameEverywhereDialog from '@/components/world/RenameEverywhereDialog.vue'
 import TrashDialog from '@/components/outline/TrashDialog.vue'
 import RenameWorkspaceDialog from '@/components/workspace/RenameWorkspaceDialog.vue'
 import Button from '@/components/ui/Button.vue'
@@ -130,6 +131,7 @@ watch(
     <BackupDialog />
     <RenameWorkspaceDialog />
     <NameDialog />
+    <RenameEverywhereDialog />
     <MoveSceneDialog />
     <TrashDialog />
   </div>
