@@ -76,6 +76,8 @@ export function useRecordSheet(idOf: () => string | undefined) {
   const saveSummary = () => save({ summary: text(draft.summary) })
   const saveField = (key: BasicKey) => save({ [key]: text(draft.fields[key] ?? '') })
   const saveAliases = () => save({ aliases: aliasesPatch(draft.aliases) })
+  /** An arc's (or a character's) colour: one of the tokens, or none. */
+  const saveColour = (colour: string | undefined) => save({ color: colour })
   const addAlias = () => draft.aliases.push({ text: '', match: 'auto' })
   const removeAlias = (i: number) => {
     draft.aliases.splice(i, 1)
@@ -110,6 +112,7 @@ export function useRecordSheet(idOf: () => string | undefined) {
     saveSummary,
     saveField,
     saveAliases,
+    saveColour,
     addAlias,
     removeAlias,
     typeNotes,

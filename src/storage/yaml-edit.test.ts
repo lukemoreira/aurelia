@@ -57,6 +57,32 @@ describe('patchFrontmatter', () => {
     )
   })
 
+  it('writes the planning fields (objective, arcs, ending, choices) and touches nothing else', () => {
+    const edited = patchFrontmatter(SCENE, {
+      objective: 'Get through the gate.',
+      arcs: ['arc_9t3r6y1u0e', 'arc_2b7x9r4k1m'],
+      ending: true,
+      choices: [
+        { id: 'chc_5g2h8j3k1l', label: 'Pay the warden’s price', target: 'scn_0q9w8e7r6t' },
+        { id: 'chc_7z6x5c4v3b', label: 'Climb', target: 'scn_1a2s3d4f5g', note: 'the old way' },
+      ],
+    })
+    expect(edited).toBe(
+      SCENE.replace(
+        '---\n\nThe bells',
+        'objective: "Get through the gate."\narcs:\n  - "arc_9t3r6y1u0e"\n  - "arc_2b7x9r4k1m"\nending: true\nchoices:\n' +
+          '  - { id: "chc_5g2h8j3k1l", label: "Pay the warden’s price", target: "scn_0q9w8e7r6t" }\n' +
+          '  - { id: "chc_7z6x5c4v3b", label: "Climb", target: "scn_1a2s3d4f5g", note: "the old way" }\n---\n\nThe bells',
+      ),
+    )
+    // and a second edit of the same keys changes only them again, byte for byte elsewhere
+    const again = patchFrontmatter(edited, { ending: undefined, choices: undefined })
+    expect(again).toBe(
+      edited.replace('ending: true\n', '').replace(/choices:\n( {2}- \{.*\}\n){2}/, ''),
+    )
+    expect(patchFrontmatter(again, {})).toBe(again)
+  })
+
   it('takes a key away, and leaves a key that was never there alone', () => {
     expect(patchFrontmatter(SCENE, { pov: undefined })).toBe(
       SCENE.replace('pov: chr_8f3k2m9q1x\n', ''),

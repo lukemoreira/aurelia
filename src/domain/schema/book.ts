@@ -45,6 +45,9 @@ export const chapterSchema = z.looseObject({
   order: orderKey,
   status: progressStatus.optional(),
   summary: z.string().optional(),
+  objective: z.string().optional(),
+  target: z.number().int().nonnegative().optional(),
+  arcs: z.array(idOf('arc')).optional(),
 })
 
 export type Part = z.infer<typeof partSchema>

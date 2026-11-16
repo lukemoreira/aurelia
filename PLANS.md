@@ -386,14 +386,15 @@ Do not scaffold future features early.
 **M5 · Story planning and branching**
 - Editor: tables, footnotes and the Markdown source-mode toggle (moved from M4), with
   golden round-trip tests.
-- Outline: Parts → Chapters → Scenes, drag-and-drop, columns (POV, status, arc).
-- Inspector for Part / Chapter / Scene / Arc fields (spec table).
-- Arcs as threads; "scenes advanced" across books.
-- Corkboard (index cards, colour by arc or status).
+- Outline: Parts → Chapters → Scenes, drag-and-drop, columns (POV, status, arc). **Done (M5a).**
+- Inspector for Part / Chapter / Scene / Arc fields (spec table). **Done (M5a)**, except a chapter's checklist.
+- Arcs as threads; "scenes advanced" across books. **Done (M5a).**
+- Corkboard (index cards, colour by arc or status). **Done (M5a).**
 - **Branching**: scene choices (label → target scene), Story map (node graph),
   Play mode (click through the story), checks for dead ends (scenes can be marked as
   endings), unreachable scenes, choices with no target and "no ending reachable from
-  here".
+  here". **Done (M5a)**, except the editor's "Choices" block at the end of a scene (ADR-0004 §5) and
+  the export's "Choices" list (§10).
 - **Continuity** ([ADR-0006](docs/adr/0006-continuity-model.md)): manual scene state
   changes (shown with plain labels, never the raw kind names), presence from `[[links]]`
   with author overrides, story time as a sortable key with granularity, calendars and
@@ -579,3 +580,17 @@ backup — ADR-0009.)
   with sync on, the sync round replaces the plain upload and versions, retention, retries and "sign in
   again" are shared. Random-order property tests prove: no saved word is lost, devices converge,
   a deleted file does not silently return, nothing reaches `current/` without a precondition.
+- 2026-11-16 — M5a Story planning and branching (branch `feat/m5a-plan-branching`): the Plan view
+  (outline table: parts, chapters, scenes with point of view, status, arcs and words, edited in
+  place, reordered by drag and by keyboard with the same one-file moves as the navigator, drawn
+  a window of rows at a time; and a corkboard of index cards in chapter columns, coloured by arc
+  or status, paged by chapter range), the inspector's fields for a scene (point of view, place,
+  objective, conflict, outcome, word target, arcs, ending, choices), chapter (objective, target,
+  arcs), part and arc (colour, description, and the scenes that advance it across the universe's
+  books), and branching per ADR-0004: choices edited in the inspector (a new scene can be made in
+  the same step), the story map (own layered layout, with a gap for every choice that crosses rows,
+  pan, zoom, arrow keys), the four checks as Error / Warning words with "Mark intended" stored by
+  fingerprint in `book.json`, and read-only Play mode. A book's mode is switched on its Book tab.
+  The sample's Salt & Ash now has 11 scenes, 15 choices and 3 endings, and shows two warnings.
+  Left: continuity and story time (M5b), the editor's tables and footnotes, the "Choices" block in
+  the editor and in exports, a chapter checklist.

@@ -57,7 +57,7 @@ describe('usePalette', () => {
       'Tomas’s ledger',
     ])
     palette.query.value = 'lantern'
-    expect(labels(palette)).toEqual(['Records', 'Books and chapters'])
+    expect(labels(palette)).toEqual(['Records', 'Scenes', 'Books and chapters'])
     palette.query.value = 'go to pl'
     expect(palette.groups.value[0]!.items[0]!.title).toBe('Go to Plan')
   })

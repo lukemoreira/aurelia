@@ -8,7 +8,9 @@ export interface NameAsk {
   description?: string
   confirm: string
   initial: string
-  run: (name: string) => Promise<void>
+  /** Ask too whether the book is a branching story (the new-book question). */
+  offerBranching?: boolean
+  run: (name: string, branching?: boolean) => Promise<void>
 }
 
 /** What the author is told after an action: a line, and for a delete the way back. */

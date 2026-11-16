@@ -42,7 +42,7 @@ describe('navigator tree', () => {
 
   it('shows a branching book’s scene count, the standalone book and the library groups', () => {
     const { tree } = open()
-    expect(tree.books.value[2]!.meta).toBe('6 sc.')
+    expect(tree.books.value[2]!.meta).toBe('11 sc.')
     expect(tree.standalone.value.map((n) => [n.label, n.meta])).toEqual([
       ['The Long Winter of 1709', 'history'],
     ])

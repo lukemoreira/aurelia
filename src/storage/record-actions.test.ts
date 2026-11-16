@@ -31,6 +31,22 @@ describe('records: create', () => {
     ])
   })
 
+  it('each new arc takes the next colour of the palette, so the plan’s cards tell arcs apart at once', async () => {
+    const { session } = await outlineRig()
+    const colours: unknown[] = []
+    for (const title of ['A', 'B', 'C', 'D', 'E']) {
+      const id = await addRecord(session, { type: 'arc', title, universeId: universe(session) })
+      colours.push(session.data.records.find((r) => r.meta.id === id)!.meta.color)
+    }
+    expect(colours).toEqual(['ember', 'tide', 'moss', 'plum', 'ember'])
+    const place = await addRecord(session, {
+      type: 'place',
+      title: 'P',
+      universeId: universe(session),
+    })
+    expect(session.data.records.find((r) => r.meta.id === place)!.meta.color).toBeUndefined()
+  })
+
   it('a place private to one book lives in that book’s folder and says so in its scope', async () => {
     const { session, adapter } = await outlineRig()
     const book = session.data.books[0]!.id

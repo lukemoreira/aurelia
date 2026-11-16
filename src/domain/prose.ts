@@ -18,3 +18,35 @@ export function countWords(body: string): number {
   }
   return n
 }
+
+/** The shown name of a `[[wiki link]]`: `[[id:chr_x|Elena]]` and `[[Elena Vasquez|Elena]]` say "Elena". */
+const WIKI = /!?\[\[(?:id:[^\]|]+\|)?(?:[^\]|]*\|)?([^\]|]*)\]\]/g
+
+/**
+ * A scene's text as plain paragraphs to read (Play mode): links show their names, Markdown's
+ * marks are gone, and a scene break is a single ⁂. Nothing is rendered as HTML, so nothing the
+ * text holds can run.
+ */
+export function readableParagraphs(body: string): string[] {
+  return body
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) => {
+      if (SCENE_BREAK.test(block)) return '⁂'
+      return block
+        .split('\n')
+        .map((line) => line.replace(LINE_MARKER, ''))
+        .join(' ')
+        .replace(WIKI, '$1')
+        .replace(/\[\^[^\]]+\]/g, '')
+        .replace(/\s\^blk-[\w-]+\s*$/, '')
+        .replace(/<\/?u>/g, '')
+        .replace(/(\*\*|__|~~)(.+?)\1/g, '$2')
+        .replace(/(^|[^\w*\\])[*_](\S(?:.*?\S)?)[*_](?![\w*])/g, '$1$2')
+        .replace(/\\([\\`*_{}[\]()#+\-.!~|>])/g, '$1')
+        .replace(/\s+/g, ' ')
+        .trim()
+    })
+    .filter(Boolean)
+}

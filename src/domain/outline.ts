@@ -62,6 +62,16 @@ export const bookScenes = (data: WorkspaceData, bookId: string): SceneDoc[] => [
   ...bookUnfiled(data, bookId),
 ]
 
+/** "7.2" for each scene of a book (chapter number, then place in the chapter); an unfiled scene is just its place. */
+export function sceneLabels(data: WorkspaceData, bookId: string): Map<string, string> {
+  const labels = new Map<string, string>()
+  for (const group of bookOutline(data, bookId))
+    for (const c of group.chapters)
+      c.scenes.forEach((s, i) => labels.set(s.meta.id, `${c.number}.${i + 1}`))
+  bookUnfiled(data, bookId).forEach((s, i) => labels.set(s.meta.id, String(i + 1)))
+  return labels
+}
+
 /** Stands in for the chapter of an unfiled scene. Its ID is empty, which no chapter has. */
 export const UNFILED = 'Unfiled'
 

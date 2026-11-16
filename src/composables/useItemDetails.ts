@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, reactive, ref, watch } from 'vue'
+import { arcsFor } from '@/domain/plan'
 import { STATUS_LABELS } from '@/domain/ui-names'
 import { checkTitle } from '@/domain/titles'
 import { wordsFor } from '@/storage/errors'
 import { renameItem, setDetails } from '@/storage/outline-actions'
+import { setBookMode } from '@/storage/story-actions'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useOutlineEdits } from './useOutlineEdits'
 
@@ -12,43 +14,89 @@ export type DetailsKind = 'scene' | 'chapter' | 'part' | 'book'
 /** The sentinel for "none" in a select, which cannot hold an empty value. */
 export const NONE = '__none'
 
+/** Which fields each kind has (PLANS M5, from the spec's table): the rest are the same for all. */
+export const DETAIL_FIELDS: Record<DetailsKind, string[]> = {
+  scene: ['pov', 'location', 'objective', 'conflict', 'outcome', 'target', 'arcs'],
+  chapter: ['objective', 'target', 'arcs'],
+  part: [],
+  book: [],
+}
+
+type TextKey = 'summary' | 'objective' | 'conflict' | 'outcome'
+const TEXT_KEYS: TextKey[] = ['summary', 'objective', 'conflict', 'outcome']
+
+interface Bag {
+  title: string
+  status?: string
+  summary?: string
+  pov?: string
+  location?: string
+  objective?: string
+  conflict?: string
+  outcome?: string
+  target?: number
+  arcs: string[]
+  mode?: string
+  ending?: boolean
+  choices?: unknown[]
+}
+
 /**
- * The details an author sets on a scene, chapter, part or book: title, status, summary (and a
- * scene's point of view). Text is saved when the author leaves the field, a choice when it is made.
- * Each is one change to one file; a title goes through the same check as a rename.
+ * The details an author sets on a scene, chapter, part or book: title, status, summary, and the
+ * fields each kind has (a scene's point of view, place, objective, conflict, outcome, word target
+ * and arcs; a chapter's objective, target and arcs; a book's mode). Text is saved when the author
+ * leaves the field, a choice when it is made. Each is one change to one file; a title goes
+ * through the same check as a rename.
  */
 export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined) {
   const ws = useWorkspaceStore()
   const edit = useOutlineEdits()
   const error = ref('')
-  const draft = reactive({ title: '', summary: '' })
+  const draft = reactive({
+    title: '',
+    summary: '',
+    objective: '',
+    conflict: '',
+    outcome: '',
+    target: '',
+  })
 
   /** The item as the files say now. */
-  const item = computed(() => {
+  const item = computed((): Bag | undefined => {
     const id = idOf()
     const data = ws.data
     if (!id || !data) return undefined
-    if (kind === 'scene') {
-      const m = data.scenes.find((s) => s.meta.id === id)?.meta
-      return m && { title: m.title, status: m.status, summary: m.summary, pov: m.pov }
-    }
+    const scene = kind === 'scene' ? data.scenes.find((s) => s.meta.id === id)?.meta : undefined
+    if (kind === 'scene') return scene && { arcs: [], ...scene }
     const list = { chapter: data.chapters, part: data.parts, book: data.books }[kind]
-    const found = list.find((x) => x.id === id) as
-      { title: string; status?: string; summary?: string } | undefined
-    return (
-      found && { title: found.title, status: found.status, summary: found.summary, pov: undefined }
-    )
+    const found = list.find((x) => x.id === id) as Omit<Bag, 'arcs'> & { arcs?: string[] }
+    return found && { ...found, arcs: found.arcs ?? [] }
   })
 
-  // What is typed follows the files whenever they change under it (another device, a restore).
+  const FIELDS = ['title', ...TEXT_KEYS, 'target'] as const
+  const storedOf = (k: (typeof FIELDS)[number]) =>
+    k === 'target' ? (item.value?.target ? String(item.value.target) : '') : (item.value?.[k] ?? '')
+  /** What each draft last matched in the files. */
+  const seen = reactive<Record<string, string>>({})
+  const reset = () => {
+    for (const k of FIELDS) draft[k] = seen[k] = storedOf(k)
+    error.value = ''
+  }
+  // Another item: everything starts from the files.
+  watch(idOf, reset, { immediate: true })
+  // The files change under what is typed (another device, a restore, a save of another field): only
+  // a field whose own stored value changed follows, and only when the author has not changed it —
+  // so a save landing in one field never takes the words out of another.
   watch(
-    [idOf, () => item.value?.title, () => item.value?.summary],
+    () => FIELDS.map(storedOf).join('\u0000'),
     () => {
-      draft.title = item.value?.title ?? ''
-      draft.summary = item.value?.summary ?? ''
-      error.value = ''
+      for (const k of FIELDS) {
+        const now = storedOf(k)
+        if (now === seen[k]) continue
+        if (draft[k] === seen[k]) draft[k] = now
+        seen[k] = now
+      }
     },
-    { immediate: true },
   )
 
   const readOnly = computed(() => !edit.canEdit.value)
@@ -58,7 +106,7 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     try {
       await work()
     } catch (e) {
-      error.value = wordsFor(e)
+      error.value = wordsFor(e) // what was typed stays, to be tried again
     }
   }
 
@@ -68,7 +116,6 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
       if (!ws.session || !id || draft.title.trim() === item.value?.title) return
       const checked = checkTitle(draft.title)
       if (!checked.ok) {
-        draft.title = item.value?.title ?? ''
         error.value = checked.error || 'Give it a name.'
         return
       }
@@ -76,13 +123,24 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     })
 
   /** Set a detail; `undefined` takes it away. */
-  const set = (key: 'status' | 'summary' | 'pov', value: string | undefined) =>
+  const set = (key: string, value: unknown) =>
     run(async () => {
       const id = idOf()
-      if (ws.session && id && value !== item.value?.[key])
+      const now = item.value ? (item.value as unknown as Record<string, unknown>)[key] : undefined
+      if (ws.session && id && JSON.stringify(value) !== JSON.stringify(now))
         await setDetails(ws.session, id, { [key]: value })
     })
-  const saveSummary = () => set('summary', draft.summary.trim() ? draft.summary : undefined)
+  const saveText = (key: TextKey) => set(key, draft[key].trim() ? draft[key] : undefined)
+  const saveTarget = () => {
+    const raw = draft.target.trim()
+    if (!raw) return set('target', undefined)
+    const n = Number(raw.replace(/[,\s]/g, ''))
+    if (!Number.isInteger(n) || n < 0) {
+      error.value = 'The word target is a whole number, like 1800.'
+      return Promise.resolve()
+    }
+    return set('target', n || undefined)
+  }
 
   const status = computed({
     get: () => item.value?.status ?? NONE,
@@ -93,35 +151,55 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
   ]
 
-  /** Characters this item's book can name: shared by its universe, or private to the book. */
-  const characters = computed(() => {
+  /** Records this item's book can name: shared by its universe, or private to the book. */
+  const recordsOf = (type: 'character' | 'place') => {
     const data = ws.data
     const book = ws.bookId
     if (!data) return []
     return data.records
       .filter(
         (r) =>
-          r.meta.type === 'character' &&
+          r.meta.type === type &&
           (r.meta.scope === 'universe'
             ? r.universe === ws.universe?.id
             : r.meta.scope === `book:${book}`),
       )
       .sort((a, b) => a.meta.title.localeCompare(b.meta.title))
+  }
+  /** A select of records, with "none", and a line for one that is no longer there. */
+  const recordSelect = (key: 'pov' | 'location', type: 'character' | 'place', none: string) => ({
+    model: computed({
+      get: () => item.value?.[key] ?? NONE,
+      set: (v: string) => void set(key, v === NONE ? undefined : v),
+    }),
+    options: computed(() => {
+      const known = recordsOf(type).map((r) => ({ value: r.meta.id, label: r.meta.title }))
+      const current = item.value?.[key]
+      return [
+        { value: NONE, label: none },
+        ...(current && !known.some((o) => o.value === current)
+          ? [{ value: current, label: `A ${type} that is no longer here` }]
+          : []),
+        ...known,
+      ]
+    }),
   })
-  const pov = computed({
-    get: () => item.value?.pov ?? NONE,
-    set: (v: string) => void set('pov', v === NONE ? undefined : v),
+  const pov = recordSelect('pov', 'character', 'No point of view')
+  const location = recordSelect('location', 'place', 'No place')
+
+  const arcOptions = computed(() => (ws.data && ws.bookId ? arcsFor(ws.data, ws.bookId) : []))
+  const arcs = computed({
+    get: () => item.value?.arcs ?? [],
+    set: (v: string[]) => void set('arcs', v.length ? v : undefined),
   })
-  const povOptions = computed(() => {
-    const known = characters.value.map((r) => ({ value: r.meta.id, label: r.meta.title }))
-    const current = item.value?.pov
-    return [
-      { value: NONE, label: 'No point of view' },
-      ...(current && !known.some((o) => o.value === current)
-        ? [{ value: current, label: 'A character that is no longer here' }]
-        : []),
-      ...known,
-    ]
+
+  const branching = computed({
+    get: () => item.value?.mode === 'branching',
+    set: (v: boolean) =>
+      void run(async () => {
+        const id = idOf()
+        if (ws.session && id) await setBookMode(ws.session, id, v ? 'branching' : 'linear')
+      }),
   })
 
   return {
@@ -130,10 +208,16 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     error,
     readOnly,
     saveTitle,
-    saveSummary,
+    saveText,
+    saveTarget,
     status,
     statusOptions,
-    pov,
-    povOptions,
+    pov: pov.model,
+    povOptions: pov.options,
+    location: location.model,
+    locationOptions: location.options,
+    arcs,
+    arcOptions,
+    branching,
   }
 }
