@@ -13,12 +13,12 @@ const model = defineModel<string>()
 
 <template>
   <TabsRoot v-model="model">
-    <TabsList :aria-label="label" class="flex gap-1 border-b border-line">
+    <TabsList :aria-label="label" class="flex gap-0.5 overflow-x-auto border-b border-line">
       <TabsTrigger
         v-for="t in items"
         :key="t.value"
         :value="t.value"
-        class="-mb-px h-9 border-b-2 border-transparent px-3 text-[13px] font-medium text-ink-2 hover:text-ink data-[state=active]:border-gold data-[state=active]:font-semibold data-[state=active]:text-ink pointer-coarse:h-11"
+        class="-mb-px h-9 shrink-0 border-b-2 border-transparent px-2.5 text-[13px] font-medium text-ink-2 hover:text-ink data-[state=active]:border-gold data-[state=active]:font-semibold data-[state=active]:text-ink pointer-coarse:h-11"
       >
         {{ t.label }}
       </TabsTrigger>

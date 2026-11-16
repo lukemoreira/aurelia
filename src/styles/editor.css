@@ -260,3 +260,140 @@
 .manuscript .ProseMirror .ProseMirror-gapcursor::after {
   border-top-color: var(--ink);
 }
+
+/*
+ * Links, names and embeds (ADR-0010). All drawn over the text, never part of it. A link is blue
+ * (gold is for what matters now); one that points nowhere, or at two things, is warn and dashed so
+ * it is not told by colour alone. A name is plain until "Show names" is on; then it is underlined in
+ * its type's colour. A name Aurelia asks about is dashed grey with a small "?" after it.
+ */
+.manuscript .ProseMirror .aur-link {
+  color: var(--tide);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.manuscript .ProseMirror .aur-link[data-state='missing'],
+.manuscript .ProseMirror .aur-link[data-state='ambiguous'] {
+  color: var(--warn);
+  text-decoration-style: dashed;
+}
+.manuscript[data-names='on'] .ProseMirror .aur-name {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--tide);
+}
+.manuscript[data-names='on'] .ProseMirror .aur-name[data-tone='ember'] {
+  text-decoration-color: var(--ember);
+}
+.manuscript[data-names='on'] .ProseMirror .aur-name[data-tone='moss'] {
+  text-decoration-color: var(--moss);
+}
+.manuscript[data-names='on'] .ProseMirror .aur-name[data-tone='plum'] {
+  text-decoration-color: var(--plum);
+}
+.manuscript .ProseMirror .aur-ask {
+  text-decoration: underline dashed;
+  text-decoration-color: var(--ink-3);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.manuscript .ProseMirror .aur-ask-mark {
+  margin-left: 1px;
+  font-family: var(--font-ui);
+  font-size: 0.6em;
+  font-weight: 700;
+  color: var(--warn);
+  vertical-align: super;
+  user-select: none;
+}
+
+/* The address of a link by ID (`id:chr_…|`) is drawn as nothing; the caret steps over it as one. */
+.manuscript .ProseMirror .aur-id {
+  display: none;
+}
+.manuscript .ProseMirror .aur-id-title {
+  color: inherit;
+}
+
+/* `![[…]]`: the line stays as typed, small and plain; the card it stands for is drawn after it. */
+.manuscript .ProseMirror .aur-embed-src {
+  font-family: var(--font-mono);
+  font-size: 0.78em;
+  color: var(--ink-3);
+  text-decoration: none;
+}
+.manuscript .ProseMirror .aur-embed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15em 0.7em;
+  margin: 0.4em 0 0.9em;
+  padding: 0.6em 0.9em;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--tide);
+  border-radius: var(--radius-card);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  text-indent: 0;
+  color: var(--ink-2);
+  cursor: pointer;
+  user-select: none;
+}
+/* The card stands for the line: the line shows only while the caret is in it. */
+.manuscript .ProseMirror .aur-embed-hidden {
+  display: none;
+}
+.manuscript .ProseMirror .aur-embed:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.manuscript .ProseMirror .aur-embed[data-tone='ember'] {
+  border-left-color: var(--ember);
+}
+.manuscript .ProseMirror .aur-embed[data-tone='moss'] {
+  border-left-color: var(--moss);
+}
+.manuscript .ProseMirror .aur-embed[data-state='missing'],
+.manuscript .ProseMirror .aur-embed[data-state='ambiguous'] {
+  border-left-color: var(--warn);
+  cursor: default;
+}
+.manuscript .ProseMirror .aur-embed-type {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.manuscript .ProseMirror .aur-embed-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+.manuscript .ProseMirror .aur-embed-summary {
+  flex-basis: 100%;
+}
+
+/*
+ * A record's notes are written in the same editor but are notes, not the book's page: the
+ * interface face at a reading size, no small-caps opening, no first-line indent.
+ */
+.manuscript[data-variant='notes'] {
+  font-family: var(--font-ui);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.manuscript[data-variant='notes'] .ProseMirror {
+  min-height: 7rem;
+}
+.manuscript[data-variant='notes'] .ProseMirror .lead-in {
+  font-variant: normal;
+  letter-spacing: normal;
+}
+.manuscript[data-variant='notes'] .ProseMirror > p + p {
+  text-indent: 0;
+  margin-top: 0.6em;
+}

@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { IconName } from '@/domain/ui-names'
-import type { Entry } from '@/index/palette-entries'
+import { entryKey, type Entry } from '@/index/palette-entries'
 import { rankByTitle } from '@/index/palette-search'
 import type { ViewName } from '@/router'
 import { wordsFor } from '@/storage/errors'
@@ -15,7 +15,9 @@ import { useNavigation } from './useNavigation'
 import { useNewScene } from './useNewScene'
 import { useOutlineEdits } from './useOutlineEdits'
 import { useRecordEdits } from './useRecordEdits'
+import { useEditorStore } from '@/stores/editor'
 import { useEditsStore } from '@/stores/edits'
+import { useReviewStore } from '@/stores/review'
 import { useRenameReason } from './useRenameWorkspace'
 import { useTheme } from './useTheme'
 
@@ -33,6 +35,8 @@ export interface PaletteItem {
   disabled?: boolean
   /** The entry key a pin toggles. Actions have none. */
   pinKey?: string
+  /** Where the words found stand in `sub`, drawn in bold. */
+  marks?: [start: number, end: number][]
   run: () => void
 }
 interface PaletteGroup {
@@ -62,6 +66,8 @@ export function usePalette() {
   const edit = useOutlineEdits()
   const records = useRecordEdits()
   const edits = useEditsStore()
+  const editor = useEditorStore()
+  const review = useReviewStore()
 
   /** Switch the open book to a branching story, and go to its map. */
   async function makeBranching() {
@@ -214,6 +220,18 @@ export function usePalette() {
             },
           ]
         : []),
+      // Names found in the text belong to the scene on screen.
+      ...(ws.context && router.currentRoute.value.name === 'write'
+        ? [
+            {
+              id: 'action:names',
+              title: editor.showNames ? 'Hide names' : 'Show names',
+              sub: 'View',
+              icon: 'user' as const,
+              run: () => (editor.showNames = !editor.showNames),
+            },
+          ]
+        : []),
       {
         id: 'action:navigator',
         title: `${navShown ? 'Hide' : 'Show'} the navigator`,
@@ -258,13 +276,48 @@ export function usePalette() {
       )
         .slice(0, PER_GROUP)
         .map((e) => entryItem(e, group))
+    /** Words found in scenes and notes, and other names, not already listed by their titles. */
+    const inText = (listed: PaletteItem[]) => {
+      const shown = new Set(listed.map((i) => i.pinKey))
+      return ws.index
+        .search(q, PER_GROUP * 2)
+        .flatMap((hit) => {
+          const entry = ws.entryByKey.get(entryKey(hit.kind, hit.id))
+          if (!entry || shown.has(entry.key)) return []
+          const item = entryItem(entry, 'text')
+          return [
+            {
+              ...item,
+              sub: hit.snippet ?? `${entry.sub} · another name`,
+              ...(hit.marks ? { marks: hit.marks } : {}),
+              // Opened at the word: the scene or the sheet selects it once it is on screen.
+              run: () => {
+                if (hit.term) review.found = { id: hit.id, term: hit.term }
+                void nav.openEntry(entry)
+              },
+            },
+          ]
+        })
+        .slice(0, PER_GROUP)
+    }
     const keyed = (keys: string[], group: string) =>
       keys.flatMap((k) => ws.entryByKey.get(k) ?? []).map((e) => entryItem(e, group))
-    const result: PaletteGroup[] = q
+    const titled = q
+      ? {
+          records: of(['record'], 'records'),
+          scenes: of(['scene'], 'scenes'),
+          books: of(['book', 'chapter'], 'books'),
+        }
+      : null
+    const result: PaletteGroup[] = titled
       ? [
-          { label: 'Records', items: of(['record'], 'records') },
-          { label: 'Scenes', items: of(['scene'], 'scenes') },
-          { label: 'Books and chapters', items: of(['book', 'chapter'], 'books') },
+          { label: 'Records', items: titled.records },
+          { label: 'Scenes', items: titled.scenes },
+          { label: 'Books and chapters', items: titled.books },
+          {
+            label: 'In your writing',
+            items: inText([...titled.records, ...titled.scenes, ...titled.books]),
+          },
           { label: 'Actions', items: rankByTitle(actions.value, q).slice(0, PER_GROUP) },
         ]
       : [

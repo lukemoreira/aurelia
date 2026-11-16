@@ -37,6 +37,7 @@ describe('golden files', () => {
       'foreign/obsidian-style.md',
       'headings.md',
       'html.md',
+      'links-and-names.md',
       'lists.md',
       'marks.md',
       'paragraphs.md',

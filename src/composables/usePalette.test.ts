@@ -12,6 +12,7 @@ import { openDeviceDb } from '@/storage/device-db'
 import { IdbJournal } from '@/storage/journal'
 import { WorkspaceSession } from '@/storage/session'
 import { useLayoutStore } from '@/stores/layout'
+import { useReviewStore } from '@/stores/review'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { usePalette } from './usePalette'
@@ -51,15 +52,46 @@ describe('usePalette', () => {
   it('groups a search under Records, Scenes, Books and chapters and Actions', async () => {
     const { palette } = await setup()
     palette.query.value = 'tomas'
-    expect(labels(palette)).toEqual(['Records'])
+    expect(labels(palette)).toEqual(['Records', 'In your writing'])
     expect(palette.groups.value[0]!.items.map((i) => i.title)).toEqual([
       'Tomas Brandt',
       'Tomas’s ledger',
     ])
     palette.query.value = 'lantern'
-    expect(labels(palette)).toEqual(['Records', 'Scenes', 'Books and chapters'])
+    expect(labels(palette)).toEqual(['Records', 'Scenes', 'Books and chapters', 'In your writing'])
     palette.query.value = 'go to pl'
     expect(palette.groups.value[0]!.items[0]!.title).toBe('Go to Plan')
+  })
+
+  it('also searches the words of scenes and notes, shows the line around the match, and opens that scene', async () => {
+    const { palette, router } = await setup()
+    palette.query.value = 'ladder'
+    const found = palette.groups.value.find((g) => g.label === 'In your writing')!
+    expect(found.items.length).toBeGreaterThan(0)
+    const first = found.items[0]!
+    expect(first.title).toBe('Curfew Bells')
+    expect(first.sub).toContain('A boy on a ladder lit the lamps')
+    palette.choose(first)
+    await flushPromises()
+    expect(router.currentRoute.value.path).toMatch(/^\/w\//)
+  })
+
+  it('marks the words found in the line, and opens the result at them', async () => {
+    const { palette } = await setup()
+    palette.query.value = 'ladder'
+    const first = palette.groups.value.find((g) => g.label === 'In your writing')!.items[0]!
+    expect(first.marks!.map(([a, b]) => first.sub.slice(a, b))).toEqual(['ladder'])
+    palette.choose(first)
+    await flushPromises()
+    expect(useReviewStore().found).toMatchObject({ term: 'ladder' })
+  })
+
+  it('does not list a scene twice when its title already matched', async () => {
+    const { palette } = await setup()
+    // "curfew" is in the title of Curfew Bells and in its text: it is shown once, under Scenes.
+    palette.query.value = 'curfew'
+    const all = palette.groups.value.flatMap((g) => g.items.map((i) => `${g.label}: ${i.title}`))
+    expect(all.filter((x) => x.endsWith('Curfew Bells'))).toEqual(['Scenes: Curfew Bells'])
   })
 
   it('offers the story map action only for a branching book', async () => {

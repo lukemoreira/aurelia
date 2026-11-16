@@ -84,3 +84,7 @@ export const trashPathFor = (path: string, stamp: string) => `${TRASH_DIR}/${sta
 /** Where a file goes when the author chooses the other version: `.aurelia/conflicts/<stamp>/<path>`. */
 export const conflictsPathFor = (path: string, now = new Date()) =>
   `${CONFLICTS_DIR}/${stampOf(now)}/${path}`
+
+/** Where a file is copied before a change that touches many of them (Rename everywhere): `.aurelia/safety/<stamp>/<path>`. */
+export const safetyPathFor = (path: string, stamp: string) =>
+  `${AURELIA_DIR}safety/${stamp}/${path}`

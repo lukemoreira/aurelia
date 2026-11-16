@@ -82,6 +82,18 @@ function onKeydown(e: KeyboardEvent) {
 const onHighlight = (e?: { value?: unknown }) =>
   (highlighted.value = e?.value as string | undefined)
 const onSelect = (item: PaletteItem) => choose(item)
+/** The line under a result, cut where the words found stand so they can be drawn bold. */
+function subParts(item: PaletteItem) {
+  const parts: { text: string; mark: boolean }[] = []
+  let at = 0
+  for (const [a, b] of item.marks ?? []) {
+    if (a > at) parts.push({ text: item.sub.slice(at, a), mark: false })
+    parts.push({ text: item.sub.slice(a, b), mark: true })
+    at = b
+  }
+  parts.push({ text: item.sub.slice(at), mark: false })
+  return parts
+}
 const iconStyle = (item: PaletteItem) =>
   item.color ? { background: `var(--${item.color})` } : undefined
 </script>
@@ -158,9 +170,14 @@ const iconStyle = (item: PaletteItem) =>
                   </span>
                   <span class="flex min-w-0 flex-1 flex-col">
                     <span class="truncate font-medium text-ink">{{ item.title }}</span>
-                    <span class="truncate text-xs text-ink-3 group-data-[highlighted]:text-ink-2">{{
-                      item.sub
-                    }}</span>
+                    <span class="truncate text-xs text-ink-3 group-data-[highlighted]:text-ink-2"
+                      ><template v-for="(part, i) in subParts(item)" :key="i"
+                        ><strong v-if="part.mark" class="font-semibold text-ink">{{
+                          part.text
+                        }}</strong
+                        ><template v-else>{{ part.text }}</template></template
+                      ></span
+                    >
                   </span>
                   <span
                     v-if="item.hint"

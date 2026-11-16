@@ -2,7 +2,7 @@
   "name": "aurelia",
   "version": "0.0.0",
   "private": true,
-  "description": "Aurelia \u2014 a local-first writing app for novels, histories and game writing.",
+  "description": "Aurelia — a local-first writing app for novels, histories and game writing.",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "engines": {
@@ -38,6 +38,7 @@
     "@tiptap/starter-kit": "^3.33.1",
     "@tiptap/vue-3": "^3.33.1",
     "marked": "^18.2.0",
+    "minisearch": "^7.2.0",
     "pinia": "^4.1.0",
     "reka-ui": "^2.11.0",
     "vue": "^3.5.45",

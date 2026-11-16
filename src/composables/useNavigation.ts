@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router'
 import { isId } from '@/domain/ids'
 import type { Entry } from '@/index/palette-entries'
+import type { Target } from '@/index/workspace-index'
 import { scenePath, viewPath, type ViewName } from '@/router'
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -45,6 +46,13 @@ export function useNavigation() {
     return entry.kind === 'scene' ? openScene(book, entry.id) : openRecord(book, entry.id)
   }
 
+  /** Open a scene (in its own book) or a record's sheet, as a link or a card asks. */
+  function openTarget(target: Pick<Target, 'kind' | 'id' | 'bookId'>) {
+    if (target.kind === 'scene') return openScene(target.bookId ?? ws.bookId ?? '', target.id)
+    const book = ws.bookId ?? target.bookId
+    if (book) return openRecord(book, target.id)
+  }
+
   /** Open whatever an id names: a scene, a chapter, a book or a record. Groups and parts do nothing. */
   function openId(id: string | undefined) {
     if (!id) return
@@ -55,5 +63,15 @@ export function useNavigation() {
       return openRecord(ws.bookId, id)
   }
 
-  return { openBook, openScene, viewHref, openView, openRecord, openChapter, openEntry, openId }
+  return {
+    openBook,
+    openScene,
+    viewHref,
+    openView,
+    openRecord,
+    openChapter,
+    openEntry,
+    openId,
+    openTarget,
+  }
 }

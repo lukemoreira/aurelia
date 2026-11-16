@@ -73,14 +73,26 @@ export const useBackupStore = defineStore('backup', () => {
   /**
    * A version before a big change. Never holds the author up: the zip is built first, so it holds
    * the text as it is now, and only the upload is waited for (10 s at most; it finishes anyway).
+   * True only when a version really reached the server: with backup off, paused or waiting for an
+   * answer, a slow or failing upload, there is none (the caller keeps its own copy of what it changes).
    */
-  async function beforeRisky(reason: string) {
+  async function beforeRisky(reason: string): Promise<boolean> {
+    const v = view.value
+    const willSave = !!v?.enabled && v.status !== 'paused' && v.status !== 'ask'
     const saved = await engine.value?.saveVersion(reason).catch(() => undefined)
-    if (saved)
-      await Promise.race([
-        saved.uploaded.catch(() => undefined),
-        new Promise((resolve) => setTimeout(resolve, 10_000)),
-      ])
+    if (!saved || !willSave) return false
+    // Only an upload that finished, in time and without an error, is a version on the server.
+    const finished = await Promise.race([
+      saved.uploaded.then(
+        () => true,
+        () => false,
+      ),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10_000)),
+    ])
+    const after = view.value
+    return (
+      finished && !after?.error && !['failed', 'offline', 'blocked'].includes(after?.status ?? '')
+    )
   }
 
   return {

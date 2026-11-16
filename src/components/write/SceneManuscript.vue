@@ -10,6 +10,7 @@ import { sceneDetails } from '@/domain/scene-details'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 import SceneChoices from './SceneChoices.vue'
+import NamesToggle from './NamesToggle.vue'
 import SceneEditor from './SceneEditor.vue'
 
 const ws = useWorkspaceStore()
@@ -49,10 +50,16 @@ const keyboard = useKeyboardInset()
       >
         {{ ctx.scene.meta.title }}
       </h1>
-      <p class="mb-[30px] mt-2 font-ui text-[13px] leading-normal text-ink-3">{{ meta }}</p>
+      <div
+        class="mb-[30px] mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 font-ui text-[13px] leading-normal text-ink-3"
+      >
+        <p class="m-0">{{ meta }}</p>
+        <NamesToggle />
+      </div>
       <!-- One editor per scene: switching scenes starts a fresh one on the new text. -->
       <SceneEditor
         :key="ctx.scene.meta.id"
+        :doc-id="ctx.scene.meta.id"
         :body="ctx.scene.body"
         title-id="scene-title"
         :readonly="!canEdit"

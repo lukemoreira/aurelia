@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import type { AnyExtension } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
 import { Editor } from '@tiptap/vue-3'
 import { onBeforeUnmount, ref, watch } from 'vue'
@@ -12,6 +13,8 @@ export interface ManuscriptOptions {
   editable: () => boolean
   /** The author changed the text. Called only for a change made in the editor. */
   onEdit: (body: string) => void
+  /** More to the editor: what only a screen with a workspace has (links, names). */
+  extensions?: AnyExtension[]
   /** Attributes of the editable element: its accessible name. */
   attributes: () => Record<string, string>
 }
@@ -62,7 +65,7 @@ export function useManuscriptEditor(options: ManuscriptOptions) {
   let pending: string | null = null
 
   const created = new Editor({
-    extensions: editorExtensions,
+    extensions: [...editorExtensions, ...(options.extensions ?? [])],
     content: bodyToDoc(known),
     editable: options.editable(),
     editorProps: editorProps(),

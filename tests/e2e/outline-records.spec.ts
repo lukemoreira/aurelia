@@ -254,8 +254,9 @@ for (const scheme of ['light', 'dark'] as const) {
     await sheet.getByLabel('Other name 2', { exact: true }).fill('Vasquez')
     await sheet.getByRole('combobox', { name: 'Tagging for other name 2' }).click()
     await page.getByRole('option', { name: 'Ask me first' }).click()
-    await sheet.getByLabel('Notes', { exact: true }).fill('Owes everyone.')
-    await sheet.getByLabel('Notes', { exact: true }).blur()
+    const notes = sheet.getByRole('textbox', { name: /^Notes/ })
+    await notes.fill('Owes everyone.')
+    await notes.blur()
     await waitSaved(page)
     await page.screenshot({ path: `${shots}/record-sheet-${scheme}.png` })
 
@@ -306,7 +307,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await expect(sheet.getByRole('combobox', { name: 'Tagging for other name 2' })).toContainText(
       'Ask me first',
     )
-    await expect(sheet.getByLabel('Notes', { exact: true })).toHaveValue('Owes everyone.')
+    await expect(sheet.getByRole('textbox', { name: /^Notes/ })).toHaveText('Owes everyone.')
     const files = await opfs.list(page)
     expect(files.filter((f) => /\/records\/(characters|places)\//.test(f))).toHaveLength(2)
   })

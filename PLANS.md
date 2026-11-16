@@ -316,6 +316,56 @@ Do not scaffold future features early.
   *Backup:* the trash and `.aurelia/conflicts/` are backed up like every other file (the engine
   uploads everything the adapter lists), so a deleted chapter survives on the server and comes
   back with a restore; a test pins it.
+- **M3b built (2026-11-16, branch `feat/m3b-links-names`): links, backlinks, search and names
+  found automatically** (the editor parts of M4 that needed M3 are in the same branch).
+  *Index* (`src/index/`, plain TS, derived and never stored): `links.ts` reads `[[Name]]`,
+  `[[Name|label]]`, `[[id:…]]`, `![[…]]` (not in code, not behind a backslash); `names.ts` is the
+  ADR-0010 detector, a pure function of text + names + answers (whole words, the author's
+  capitals, possessives, longest name first, shared / ask / never, sentence-start words that are
+  also names, nothing inside links, code, addresses); `workspace-index.ts` resolves names, aliases
+  and IDs from a book, then its universe (a book's own record wins over a shared one with the same
+  name; two at one step are *ambiguous*, an ID never is), and derives backlinks, "Links to",
+  found names, open questions and what a record is called across the workspace. `sync(data)` is
+  incremental: a keystroke re-reads only that file (objects compared by reference), and a name,
+  title, summary or alias change bumps one version so everything derived from names is worked out
+  again. Search is MiniSearch (MIT, ~6 kB gz) over titles, other names, summaries, scenes and notes,
+  added to the search index only when a search first asks. Measured (`PERF_REPORT=1 npx vitest run
+  src/index/perf.test.ts`, Node + happy-dom): 100 scenes / 150k words sync in ~1 ms, every name and
+  link found and backlinks worked out in ~20 ms, a first search ~50 ms (index built), a keystroke
+  with links and names drawn in a 20,000-word scene median ~5 ms, p95 ~7 ms.
+  *Editor:* links, embeds and names are **decorations over the text, never part of it**, so
+  ADR-0007's guarantees hold untouched (one new golden file, `links-and-names.md`, round-trips byte
+  for byte). `[[` opens a picker (records and scenes, type shown, keyboard first); a name two
+  things share writes `[[id:…|Name]]`, otherwise `[[Name]]`. A link draws blue (warn and dashed when
+  it points nowhere or at two things); `![[…]]` draws a read-only card after its paragraph. A card
+  opens on pointer rest and on the caret after a pause, never while typing (Escape closes, Alt+↓
+  moves into it); Mod-click, or Enter inside a link, opens it. Names are plain until **Show names**
+  (palette or the switch above the text) underlines them in their type's colour; a name Aurelia is
+  not sure of gets a dashed underline and a "?" and a card ("Is this Will Ashby?", "Which one is
+  Corin?") whose answers are *yes, it is this one* (writes `[[id:…|Will]]` at that one place) or
+  *not a name* (scene `ignoreNames`, nothing in the text). Record notes use the same editor
+  (links work; names are not looked for in notes). Inspector tabs **Names** and **Links**; the
+  record sheet shows "Found in your writing" and "Links". The palette gains "In your writing"
+  (the line around each match). **Rename everywhere** (after renaming a record whose old name is
+  written somewhere): each form and what it becomes (changed words carry through "Elena" →
+  "Helena"; "Lena" is kept), every place with its sentence, uncertain ones (a title in quotes, a name
+  another record shares, a name set to ask, an ordinary word) unticked, then one step: a version is
+  saved first when backup is on (said only if it truly reached the server), and a copy of every
+  changed file always goes to `.aurelia/safety/<stamp>/`, the files are written through the session
+  (compare-and-write), a refusal stops the run and says how far it got, and one Undo puts every
+  file and the other names back (a file typed in since is left and named). Nothing is written on
+  open or on looking.
+  *Decisions the spec left open:* a "not a name" key is `Will:2` (the second "Will" in the scene,
+  counting the word wherever it stands, so the editor and the index number the same places and an
+  accept never shifts an answer) — never a `^blk-` ID, since an answer is not a reason to write into
+  the manuscript; an answer hides only a question, never a real name; a link to a name that exists in
+  a book and in the universe resolves to the book's; a scene is found by its title after records;
+  Enter in a link is always a new paragraph and Mod+Enter (or Mod-click) opens it; a link by ID shows
+  only its label (the address is drawn as nothing and the caret steps over it); an embed shows its
+  card, and its line only under the caret; a title Markdown would read is linked by ID.
+  *Left:* "find new names" (M6), "state at this scene" on the card (M5), a toolbar button for
+  `[[`, "Someone or somewhere else…" on a suggestion, names inside record notes, `[[Name|label]]`
+  typed through the picker, a virtual list for very many rename places (it shows 150, then more).
 - Exit: rename or move a record and no link breaks; a shared character resolves from
   two books in one universe; an unchanged file round-trips byte-identical (golden test);
   a half-migrated folder and a duplicate ID are both detected (tests).
@@ -350,11 +400,10 @@ Do not scaffold future features early.
   read-only. Saves still go through `session.editScene`; an outside change replaces the
   text in place and keeps the caret, and cannot be undone into the old text. Measured:
   150k words into the model in ~50 ms, a keystroke in a 20,000-word scene ~3 ms.
-  **Left for M4 part 2, after M3:** wiki-link autocomplete and entity embed cards (they
-  need the index; `[[…]]` and `![[…]]` are kept as typed and written back unescaped),
-  names in the editor and Rename everywhere (ADR-0010), stable block IDs as attributes
-  (`^blk-…` is kept as text). Also left: editing a callout's title (shown and kept), and
-  the Markdown source mode, tables and footnotes (M5).
+  **M4 part 2 is built with M3b** (above): wiki-link autocomplete, entity embed cards, names in
+  the editor and Rename everywhere. Still left: stable block IDs as attributes (`^blk-…` is kept as
+  text), editing a callout's title (shown and kept), and the Markdown source mode, tables and
+  footnotes (M5).
 
 **M4b · Sync through your server** ([ADR-0009 amendment](docs/adr/0009-browser-storage-and-backup.md)) — owner: "Yes, sync after editor"
 - Two-way sync of a workspace between devices through a WebDAV target (your own server
@@ -594,3 +643,8 @@ backup — ADR-0009.)
   The sample's Salt & Ash now has 11 scenes, 15 choices and 3 endings, and shows two warnings.
   Left: continuity and story time (M5b), the editor's tables and footnotes, the "Choices" block in
   the editor and in exports, a chapter checklist.
+- 2026-11-16 — M3b Links, backlinks, search and names found automatically (branch
+  `feat/m3b-links-names`): the index (`src/index/`), `[[`/embed/hover-card/names in the editor as
+  decorations over unchanged Markdown, the Names and Links tabs, search in the palette, and Rename
+  everywhere with a preview, a version or a safety copy first, compare-and-write per file and one
+  Undo. Parallel browser tests: `E2E_PORT=4177 npm run e2e`.

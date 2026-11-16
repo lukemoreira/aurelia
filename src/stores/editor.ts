@@ -57,5 +57,7 @@ export const useEditorStore = defineStore('editor', () => {
     (v) => readSettings(v as unknown as Record<string, unknown>),
   )
   const reset = () => (settings.value = { ...DEFAULT_EDITOR_SETTINGS })
-  return { settings, reset }
+  /** "Show names": the names Aurelia found are drawn in the text, by type (ADR-0010). Off: they read as ordinary text. */
+  const showNames = usePersisted('show-names', false, (v): v is boolean => typeof v === 'boolean')
+  return { settings, reset, showNames }
 })
