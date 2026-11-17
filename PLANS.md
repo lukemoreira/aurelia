@@ -760,3 +760,9 @@ backup — ADR-0009.)
   (palette, Book tab) and "Import a book" on the Welcome screen: Markdown files, a folder or a
   zip, Twee and Twine 2 HTML into a new book, with a preview and a report. Repeatable bytes, a Choices list
   for a branching book, zips read with `DecompressionStream`. See ADR-0014.
+- 2026-11-17 — Delete a workspace (branch `feat/delete-workspace`): each Recent row on the Welcome screen has a
+  trash button beside Open. A browser workspace is deleted after a confirm that shows books, words and when it
+  was last opened, offers "Download a copy first" and says a backup on the server is kept. A folder workspace
+  is only taken off the list: the folder and its files are never touched. `storage/delete-workspace.ts`
+  refuses while another tab holds the workspace's Web Lock or this tab holds unsaved work, then removes the
+  OPFS directory first and, only after that works, the journal rows, backup state and list entry of that key.

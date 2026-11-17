@@ -27,9 +27,9 @@ for (const scheme of ['light', 'dark'] as const) {
     await page.screenshot({ path: `${dir}/saved-scene-${scheme}.png` })
 
     await page.goto('/')
-    await expect(page.getByRole('button', { name: /The Saltmarch Draft/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^The Saltmarch Draft/ })).toBeVisible()
     await page.screenshot({ path: `${dir}/welcome-${scheme}.png` })
-    await page.getByRole('button', { name: /The Saltmarch Draft/ }).click()
+    await page.getByRole('button', { name: /^The Saltmarch Draft/ }).click()
     await expect(sceneText(page)).toBeVisible()
 
     const path = await firstScenePath(page)

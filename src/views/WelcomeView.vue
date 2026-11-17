@@ -3,15 +3,19 @@
 import { computed, onMounted } from 'vue'
 import LogoMark from '@/components/shell/LogoMark.vue'
 import Icon from '@/components/ui/Icon.vue'
+import IconButton from '@/components/ui/IconButton.vue'
 import RestoreDialog from '@/components/backup/RestoreDialog.vue'
 import ImportDialog from '@/components/export/ImportDialog.vue'
+import DeleteWorkspaceDialog from '@/components/welcome/DeleteWorkspaceDialog.vue'
 import NewWorkspaceDialog from '@/components/welcome/NewWorkspaceDialog.vue'
+import { useDeleteWorkspace } from '@/composables/useDeleteWorkspace'
 import { INSECURE_REASON, openedWhen, useOpenWorkspace } from '@/composables/useOpenWorkspace'
 import { useRestore } from '@/composables/useRestore'
 import type { IconName } from '@/domain/ui-names'
 
 const open = useOpenWorkspace()
 const restore = useRestore()
+const del = useDeleteWorkspace(open)
 onMounted(() => void restore.probe())
 
 interface Option {
@@ -139,7 +143,13 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
       class="box-border flex flex-[1.25_1_480px] flex-col gap-7 px-6 pb-10 pt-6 sm:px-16 sm:pt-14"
     >
       <div>
-        <h1 class="m-0 font-prose text-[32px] font-medium leading-[1.2]">Welcome</h1>
+        <h1
+          id="welcome-title"
+          tabindex="-1"
+          class="m-0 font-prose text-[32px] font-medium leading-[1.2] outline-none"
+        >
+          Welcome
+        </h1>
         <p class="mb-0 mt-1.5 text-[15px] text-ink-2">
           Where should your writing live? You can move it later.
         </p>
@@ -205,46 +215,62 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
       >
         <h2
           id="recent-title"
-          class="m-0 mb-1 text-[11px] font-semibold uppercase tracking-[.1em] text-ink-3"
+          tabindex="-1"
+          class="m-0 mb-1 text-[11px] outline-none font-semibold uppercase tracking-[.1em] text-ink-3"
         >
           Recent
         </h2>
-        <button
+        <div
           v-for="row in open.rows.value"
           :key="row.recent.key"
-          type="button"
-          :disabled="open.busy.value"
           :class="[
-            'flex w-full items-center gap-3 rounded-[10px] border px-3 py-2.5 text-left text-ink',
+            'flex w-full items-center rounded-[10px] border text-ink',
             row.needsAccess
               ? 'border-warn-line bg-warn-soft'
               : 'border-line bg-surface hover:bg-raised',
           ]"
-          @click="open.openRecent(row)"
         >
-          <span
-            aria-hidden="true"
-            :class="[
-              'flex size-[34px] shrink-0 items-center justify-center rounded-control bg-gold-soft font-prose text-base font-medium text-gold-ink',
-              row.needsAccess && '!bg-surface !text-warn',
-            ]"
-            >{{ row.recent.name.slice(0, 1).toUpperCase() }}</span
+          <button
+            type="button"
+            :disabled="open.busy.value"
+            class="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] px-3 py-2.5 text-left"
+            @click="open.openRecent(row)"
           >
-          <span class="flex min-w-0 flex-1 flex-col">
-            <span class="truncate text-sm font-semibold">{{ row.recent.name }}</span>
-            <span class="text-[12.5px] text-ink-2">
-              {{ row.recent.label }} ·
-              {{
-                row.needsAccess
-                  ? 'the browser needs your OK to open this folder again'
-                  : `opened ${openedWhen(row.recent.lastOpened)}`
-              }}
+            <span
+              aria-hidden="true"
+              :class="[
+                'flex size-[34px] shrink-0 items-center justify-center rounded-control bg-gold-soft font-prose text-base font-medium text-gold-ink',
+                row.needsAccess && '!bg-surface !text-warn',
+              ]"
+              >{{ row.recent.name.slice(0, 1).toUpperCase() }}</span
+            >
+            <span class="flex min-w-0 flex-1 flex-col">
+              <span class="truncate text-sm font-semibold">{{ row.recent.name }}</span>
+              <span class="text-[12.5px] text-ink-2">
+                {{ row.recent.label }} ·
+                {{
+                  row.needsAccess
+                    ? 'the browser needs your OK to open this folder again'
+                    : `opened ${openedWhen(row.recent.lastOpened)}`
+                }}
+              </span>
             </span>
-          </span>
-          <span class="text-[12.5px] font-medium text-gold-ink">{{
-            row.needsAccess ? 'Reconnect folder' : 'Open'
-          }}</span>
-        </button>
+            <span class="text-[12.5px] font-medium text-gold-ink">{{
+              row.needsAccess ? 'Reconnect folder' : 'Open'
+            }}</span>
+          </button>
+          <IconButton
+            icon="trash"
+            :label="
+              row.recent.kind === 'folder'
+                ? `Remove ${row.recent.name} from the list…`
+                : `Delete ${row.recent.name}…`
+            "
+            :disabled="open.busy.value"
+            class="mr-1.5 shrink-0"
+            @click="del.begin(row)"
+          />
+        </div>
       </section>
 
       <p class="mt-auto text-xs text-ink-3">
@@ -253,6 +279,7 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
       </p>
     </main>
     <RestoreDialog :restore="restore" />
+    <DeleteWorkspaceDialog :del="del" />
     <ImportDialog v-model:open="open.importing.value" into="new" :make="open.importPlan" />
     <NewWorkspaceDialog
       :where="open.naming.value"

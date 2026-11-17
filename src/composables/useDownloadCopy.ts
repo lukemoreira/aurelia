@@ -13,6 +13,10 @@ export function saveBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
+/** "Saltmarch 2026-11-17.zip": the copy's file name. */
+export const copyFilename = (name: string) =>
+  `${name.replace(/[\\/:*?"<>|]+/g, '-')} ${new Date().toLocaleDateString('en-CA')}.zip`
+
 /** "Download a copy (.zip)": every file of the open workspace, saved through the browser. */
 export function useDownloadCopy() {
   const ws = useWorkspaceStore()
@@ -26,10 +30,7 @@ export function useDownloadCopy() {
     error.value = ''
     try {
       const blob = await session.exportZip()
-      saveBlob(
-        blob,
-        `${session.data.workspace.name.replace(/[\\/:*?"<>|]+/g, '-')} ${new Date().toLocaleDateString('en-CA')}.zip`,
-      )
+      saveBlob(blob, copyFilename(session.data.workspace.name))
     } catch (e) {
       error.value = wordsFor(e, 'Aurelia could not make the copy.')
     } finally {

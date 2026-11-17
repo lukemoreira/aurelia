@@ -197,7 +197,7 @@ test.describe('backup to your server', () => {
     await expect(sceneText(page)).toHaveText('')
     // The first workspace is still there, with its words, as a second entry on Welcome.
     await page.goto('/')
-    await expect(page.getByRole('button', { name: /My Writing/ })).toHaveCount(2)
+    await expect(page.getByRole('button', { name: /^My Writing/ })).toHaveCount(2)
   })
 
   test('another device’s newer backup.json stops the backup and asks: Keep both writes nowhere near it', async ({
@@ -277,7 +277,7 @@ test.describe('backup to your server', () => {
     )
     // The other copy, with the words typed here, is still on Welcome.
     await page.goto('/')
-    await expect(page.getByRole('button', { name: /My Writing/ })).toHaveCount(2)
+    await expect(page.getByRole('button', { name: /^My Writing/ })).toHaveCount(2)
   })
 
   test('a login that ran out pauses the backup, says to sign in again, and resumes after', async ({

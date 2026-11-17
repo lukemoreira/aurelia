@@ -84,9 +84,9 @@ test.describe('rename a workspace', () => {
         topBar(page).getByRole('button', { name: 'The Saltmarch Draft', exact: true }),
       ).toBeVisible()
       await page.goto('/')
-      await expect(page.getByRole('button', { name: /The Saltmarch Draft/ })).toBeVisible()
-      await expect(page.getByRole('button', { name: /My Writing/ })).toHaveCount(0)
-      await page.getByRole('button', { name: /The Saltmarch Draft/ }).click()
+      await expect(page.getByRole('button', { name: /^The Saltmarch Draft/ })).toBeVisible()
+      await expect(page.getByRole('button', { name: /^My Writing/ })).toHaveCount(0)
+      await page.getByRole('button', { name: /^The Saltmarch Draft/ }).click()
       await expect(sceneText(page)).toBeVisible()
     })
   }
