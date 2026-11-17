@@ -43,7 +43,7 @@ export function useProgression(idOf: () => string) {
   }
 
   const state = computed(() =>
-    m.value && scene.value ? stateRows(m.value, scene.value.id, idOf(), wide.value) : [],
+    m.value && scene.value ? stateRows(m.value, scene.value.id, idOf(), wide.value, true) : [],
   )
   /** Whether they are on the page anywhere: with nobody to follow yet there is no progression to show. */
   const appears = computed(() => p.value?.scenes.some((s) => s.present) ?? false)

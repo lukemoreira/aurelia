@@ -19,6 +19,7 @@ import { useRecordEdits } from './useRecordEdits'
 import { useEditorStore } from '@/stores/editor'
 import { useEditsStore } from '@/stores/edits'
 import { useReviewStore } from '@/stores/review'
+import { takeWithToast } from './useHistory'
 import { useRenameReason } from './useRenameWorkspace'
 import { useTheme } from './useTheme'
 
@@ -145,6 +146,15 @@ export function usePalette() {
     ]
   }
 
+  /** Take a snapshot of the open scene or book right now, with no name; the toast says where it is. */
+  const snapshotAction = (kind: 'scene' | 'book', id: string, title: string): PaletteItem => ({
+    id: `action:snapshot-${kind}`,
+    title: `Take snapshot of this ${kind}`,
+    sub: `History · ${title}`,
+    icon: 'plus',
+    run: () => void takeWithToast({ kind, id }),
+  })
+
   const actions = computed<PaletteItem[]>(() => {
     const dark = resolved.value === 'dark'
     const navShown = layout.wide ? !layout.nav.collapsed : layout.navSheet
@@ -182,6 +192,11 @@ export function usePalette() {
         : []),
       // Outline editing and records: a real workspace that can be written to.
       ...(edit.canEdit.value ? editActions() : []),
+      // Snapshots go in the workspace's own folder: only a real one that can be written to.
+      ...(edit.canEdit.value && ws.sceneId
+        ? [snapshotAction('scene', ws.sceneId, ws.scene?.meta.title ?? '')]
+        : []),
+      ...(edit.canEdit.value && book ? [snapshotAction('book', book.id, book.title)] : []),
       // A straight book has no Story map tab: this is the way to it from anywhere.
       ...(book && book.mode !== 'branching' && edit.canEdit.value
         ? [

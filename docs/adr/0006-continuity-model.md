@@ -197,3 +197,8 @@ findings. Every input to a finding lives in the folder.
 - **Timeline**: one calendar at a time, grouped by era, year, month or day; times in another calendar and
   scenes with no time are listed apart; dated events show too.
 - **BCE**: see ADR-0003 (signed years).
+- **"Not yet"** (M7a): under "Has learned" the Progression state card also lists, faintly and in words, what the
+  person learns in scenes **after** the one the scrubber is on and has not learned by then ("Not yet: her mother
+  is alive · in 14.1", with the scene that tells it). Later in reading order, each fact once, only for "Learns
+  something" changes. Only the Progression tab asks for it (`stateRows(…, withLater)`); the inspector and the
+  link card show what is true now and nothing else.

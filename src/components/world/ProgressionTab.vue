@@ -111,8 +111,13 @@ const heading = 'm-0 text-[13px] font-semibold text-ink'
               <dt class="text-[11px] font-semibold uppercase tracking-[.08em] text-ink-3">
                 {{ row.label }}
               </dt>
-              <dd v-for="(item, i) in row.items" :key="i" class="m-0 text-[13px]">
+              <dd
+                v-for="(item, i) in row.items"
+                :key="i"
+                :class="['m-0 text-[13px]', item.later ? 'text-ink-2' : '']"
+              >
                 {{ item.text }}
+                <span v-if="item.later" class="text-ink-3"> · in {{ item.later }}</span>
                 <span v-if="item.since" class="text-ink-3"> · since {{ item.since }}</span>
                 <span v-if="item.some" class="text-ink-3"> · on some paths</span>
               </dd>

@@ -4,6 +4,8 @@ import { readZip } from '../../tests/helpers/read-zip'
 import { syncWorld, type SimDevice, type SyncWorld } from '../../tests/helpers/sync-rig'
 import { outlineCache, outlineMarkdown } from '@/domain/outline-files'
 import { hashText } from '@/storage/hash'
+import { restoreScene } from '@/storage/snapshot-restore'
+import { listSnapshots, takeSnapshot } from '@/storage/snapshots'
 import { addChapter } from '@/storage/outline-actions'
 import { WebDavStore } from '@/storage/remote/webdav-store'
 import { davFetch } from '../../tests/helpers/fake-dav'
@@ -266,6 +268,44 @@ describe('the workspace file changed on two devices', () => {
     expect(await copies(b)).toHaveLength(1)
     expect(await everything(b)).toContain('Named on A')
     expect(await everything(b)).toContain('Named on B')
+  })
+})
+
+describe('snapshots (ADR-0013)', () => {
+  it('a snapshot taken on A reaches B whole and can be restored there; snapshots never conflict, so none is made', async () => {
+    world = await syncWorld()
+    const a = world.devices[0]!
+    const b = await world.join('Safari on iOS')
+    const id = sceneId(a)
+    await type(a, 'Words on A, then snapshotted.')
+    const snap = await takeSnapshot(a.session, { kind: 'scene', id })
+    await type(a, 'Rewritten on A.')
+    await a.round()
+    await b.round()
+    const [onB] = await listSnapshots(b.adapter)
+    expect(onB).toMatchObject({ id: snap.id, complete: true })
+    expect(await copies(b)).toEqual([])
+    // B restores the scene from A's snapshot, taking its own "Before restore" first
+    const result = await restoreScene(b.session, snap.id, id)
+    expect(result.changed).toBe(true)
+    expect(bodyOf(b)).toBe('Words on A, then snapshotted.')
+    await b.round()
+    await a.round()
+    expect(await listSnapshots(a.adapter)).toHaveLength(2) // the one made on A and B's "Before restore"
+    expect(await copies(a)).toEqual([])
+  })
+
+  it('two snapshots made on two devices while apart both survive', async () => {
+    world = await syncWorld()
+    const a = world.devices[0]!
+    const b = await world.join('Safari on iOS')
+    await takeSnapshot(a.session, { kind: 'scene', id: sceneId(a) })
+    await takeSnapshot(b.session, { kind: 'scene', id: sceneId(b) })
+    await a.round()
+    await b.round()
+    await a.round()
+    expect(await listSnapshots(a.adapter)).toHaveLength(2)
+    expect(await listSnapshots(b.adapter)).toHaveLength(2)
   })
 })
 

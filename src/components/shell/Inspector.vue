@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import HistoryList from '@/components/history/HistoryList.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -20,7 +21,8 @@ watch(
   (wanted) => wanted && (tab.value = 'scene'),
   { immediate: true },
 )
-// Notes and History arrive with the features they show; until then they are not offered.
+// Notes arrive with the feature they show; until then it is not offered. History is a section at
+// the foot of the Scene and Book tabs, so the strip stays five tabs (a sixth clips the first one).
 const TABS = [
   { value: 'scene', label: 'Scene' },
   { value: 'names', label: 'Names' },
@@ -39,7 +41,18 @@ const TABS = [
     <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1.5">
       <h2 class="sr-only">Inspector</h2>
       <Tabs v-if="route.name === 'write'" v-model="tab" label="Inspector" :items="TABS">
-        <template #scene><SceneInspector /></template>
+        <template #scene>
+          <div class="flex flex-col gap-5">
+            <SceneInspector />
+            <!-- Keyed by scene: a half-typed name and the last restore's words belong to one scene. -->
+            <HistoryList
+              v-if="ws.session && ws.sceneId"
+              :key="ws.sceneId"
+              :target="{ kind: 'scene', id: ws.sceneId }"
+              class="border-t border-line pt-4"
+            />
+          </div>
+        </template>
         <template #names><NamesTab /></template>
         <template #links><LinksList v-if="ws.sceneId" :id="ws.sceneId" /></template>
         <template #chapter>
@@ -61,9 +74,16 @@ const TABS = [
             />
           </div>
         </template>
-        <template #book
-          ><ItemDetails :id="ws.bookId ?? undefined" kind="book" heading="Book"
-        /></template>
+        <template #book>
+          <div class="flex flex-col gap-5">
+            <ItemDetails :id="ws.bookId ?? undefined" kind="book" heading="Book" />
+            <HistoryList
+              v-if="ws.session && ws.bookId"
+              :target="{ kind: 'book', id: ws.bookId }"
+              class="border-t border-line pt-4"
+            />
+          </div>
+        </template>
       </Tabs>
       <div v-else class="px-1 py-6 text-center text-[12.5px]">
         <p class="m-0 font-semibold text-ink">Nothing to inspect here</p>

@@ -401,10 +401,36 @@ export interface StateItem {
   since?: string
   /** "on some paths": not every way of reaching the scene has it. */
   some: boolean
+  /** "Not yet": true only later in the story, in the scene named here ("14.1"). */
+  later?: string
 }
 export interface StateRow {
   label: string
   items: StateItem[]
+}
+
+/** What the person learns in scenes after `at` and has not learned by now, each once, with the scene that tells it. */
+function notYet(
+  m: ContinuityModel,
+  at: number,
+  who: string,
+  withBook: boolean,
+  known: StateItem[],
+) {
+  const seen = new Set(known.map((k) => k.text))
+  const out: StateItem[] = []
+  for (const s of m.scenes.slice(at + 1))
+    for (const c of m.changes(s.id)) {
+      if (c.kind !== 'knows' || c.who !== who || !c.value || seen.has(c.value)) continue
+      seen.add(c.value)
+      const book = m.data.books.find((b) => b.id === s.book)?.title ?? 'Untitled book'
+      out.push({
+        text: `Not yet: ${c.value}`,
+        some: false,
+        later: withBook ? `${book} · ${s.ref}` : s.ref,
+      })
+    }
+  return out
 }
 
 /** What is true of a person at the end of a scene, as rows to read: only what has been recorded. */
@@ -414,6 +440,8 @@ export function stateRows(
   sceneId: string,
   who: string,
   withBook = false,
+  /** Also list what the person learns in scenes after this one ("Not yet: …"), faintly, under "Has learned". */
+  withLater = false,
 ): StateRow[] {
   const after = stateAt(m, sceneId)
   const scene = m.byId.get(sceneId)
@@ -458,9 +486,10 @@ export function stateRows(
     'Holds',
     s.holds.map((l) => item(l, m.nameOf(l.text))),
   )
+  const learned = s.knows.map((l) => item(l, l.text))
   add(
     'Has learned',
-    s.knows.map((l) => item(l, l.text)),
+    withLater ? [...learned, ...notYet(m, scene.index, who, withBook, learned)] : learned,
   )
   add(
     'Believes',
