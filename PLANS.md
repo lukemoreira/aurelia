@@ -511,12 +511,30 @@ timeline.
   left as it is and named). History at the foot of the Scene and Book tabs; palette "Take snapshot of
   this scene / book". Snapshots are backed up (current/, manifest, versions) and synced like any file,
   tested. Left: removing a snapshot (it would go to the trash), snapshotting records.
-- Export: Markdown bundle, DOCX, EPUB, PDF (print stylesheet), export profiles. A
-  branching book exports in outline order, with a "Choices" list (label → scene title)
-  at the end of each scene.
-- Import: Markdown folders, Twine (branching) with a preview and a report.
-- Exit: exports are repeatable; import reports what it could not read; a branching
-  export shows every choice (test).
+- [x] Exit: exports are repeatable; import reports what it could not read; a branching
+  export shows every choice (tests in M7b).
+
+**M7b · Export and import (built)** — [ADR-0014](docs/adr/0014-export-and-import.md)
+- [x] Export a book as a Markdown bundle (.zip), DOCX, EPUB 3 and PDF (a print view and the browser's
+  "Save as PDF"; no PDF library). DOCX and EPUB are written by hand on the stored zip writer. Headings,
+  emphasis, quotes, lists, tables, footnotes, scene breaks; links to records are plain names.
+- [x] Export profiles: named, saved settings (format, title page, chapter and scene titles, scene
+  separator, page size, font, size, spacing, language) in `.aurelia/export-profiles.json` (keeps unknown
+  keys, has `schemaVersion`, never written over a file it cannot read).
+- [x] Repeatable: the same book and profile give the same bytes in every format (fixed zip stamp read in
+  UTC, fixed entry order, EPUB identifier from the book, fixed `dcterms:modified`); tested twice, in three
+  time zones; golden files for the DOCX `document.xml` and the EPUB package and chapter.
+- [x] A branching book exports in outline order with a "Choices" list (label → scene title) at the end of
+  each scene, every choice shown (a choice to a scene that is gone says so); linked in the EPUB and PDF.
+- [x] Import into a **new** book, never touching another: Markdown (several files, a folder, a zip from
+  any tool read with `DecompressionStream`) and Twine (Twee 3, Twine 2 published HTML). Always a preview and
+  a report of what could not be read and why; size limits in plain words; macros and variables stay as text
+  and are named.
+- [x] From the Export dialog (palette "Export this book…", the Book tab) and Import (palette "Import a
+  book…", the Book tab, the Welcome screen: a new workspace that holds the book). Both themes, keyboard,
+  390 px, axe clean.
+- Left (not in M7b): Ink and Twine export; export of a
+  chapter or a scene alone; a contents page, running heads and a cover in DOCX and PDF.
 
 ### Release v0.5 "Assist" → hardening → **v1.0**
 
@@ -736,4 +754,9 @@ backup — ADR-0009.)
   our own (`domain/word-diff.ts`, no dependency) drawn like the Review inbox, with "[Removed: …]" and
   "[Added: …]" for a screen reader. Snapshots go into backup and versions and sync as ordinary files
   (tests on both). Also: the Progression state card shows "Not yet: …" facts learned later in the story
-  (ADR-0006). Left: removing a snapshot, M7b (export and import, another branch).
+  (ADR-0006). Left: removing a snapshot.
+- 2026-11-17 — M7b Export and import (branch `feat/m7b-export-import`): "Export this book…" (palette, Book
+  tab): Markdown bundle, Word, EPUB 3 and PDF (print view), with saved export profiles; "Import a book…"
+  (palette, Book tab) and "Import a book" on the Welcome screen: Markdown files, a folder or a
+  zip, Twee and Twine 2 HTML into a new book, with a preview and a report. Repeatable bytes, a Choices list
+  for a branching book, zips read with `DecompressionStream`. See ADR-0014.

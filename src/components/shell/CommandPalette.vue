@@ -52,6 +52,18 @@ async function highlightTop(tries = 6) {
 }
 watch([paletteOpen, resultIds], () => void highlightTop(), { flush: 'post' })
 
+// With no results there is nothing to point at, but Reka can keep naming the row that was just removed
+// (a screen reader is then told about a row that does not exist: ARIA "valid attribute value").
+watch(
+  resultIds,
+  async (ids) => {
+    if (ids) return
+    await nextTick()
+    if (!resultIds.value) input.value?.$el.removeAttribute('aria-activedescendant')
+  },
+  { flush: 'post' },
+)
+
 // Enter opens the highlighted result, or the first when none is: Reka loses its highlight
 // when the pointer rests on a list that changes under it.
 function onEnter(e: KeyboardEvent) {

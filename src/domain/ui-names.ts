@@ -58,6 +58,8 @@ export type IconName =
   | 'trash'
   | 'image'
   | 'more'
+  | 'download'
+  | 'upload'
 
 export type StatusKind = 'idea' | 'outline' | 'draft' | 'revised' | 'final'
 

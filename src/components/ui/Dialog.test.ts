@@ -5,7 +5,8 @@ import { defineComponent, h, nextTick, ref } from 'vue'
 import Dialog from './Dialog.vue'
 
 const Host = defineComponent({
-  setup() {
+  props: { locked: Boolean },
+  setup(props) {
     const open = ref(false)
     return () =>
       h('div', [
@@ -15,6 +16,7 @@ const Host = defineComponent({
           {
             open: open.value,
             title: 'Delete scene?',
+            locked: props.locked,
             'onUpdate:open': (v: boolean) => (open.value = v),
           },
           () => h('p', 'Body'),
@@ -55,5 +57,29 @@ describe('Dialog', () => {
     // @ts-expect-error `title` is required
     const props: InstanceType<typeof Dialog>['$props'] = { open: false }
     expect(props.title).toBeUndefined()
+  })
+
+  it('while locked, Esc and the close button leave it open, and it closes again once it is not', async () => {
+    const wrapper = mount(Host, { attachTo: document.body, props: { locked: true } })
+    expect(wrapper.findComponent(Dialog).props('locked')).toBe(true)
+    const opener = document.getElementById('opener') as HTMLButtonElement
+    opener.focus()
+    opener.click()
+    await settle()
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    )
+    await settle()
+    expect(document.body.textContent).toContain('Delete scene?')
+    const close = document.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!
+    expect(close.disabled).toBe(true)
+    await wrapper.setProps({ locked: false })
+    await settle()
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    )
+    await settle()
+    expect(document.body.textContent).not.toContain('Delete scene?')
+    wrapper.unmount()
   })
 })

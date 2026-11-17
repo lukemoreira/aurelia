@@ -8,11 +8,15 @@ import {
   browserAdapter,
   browserDirectory,
   canKeepInBrowser,
+  discardBrowserDirectory,
   canPickFolder,
   pickFolder,
 } from '@/storage/browser'
-import { createWorkspace, inspectFolder } from '@/storage/create'
-import { wordsFor } from '@/storage/errors'
+import type { ImportPlan } from '@/import/plan'
+import { checkWorkspaceName, createWorkspace, inspectFolder } from '@/storage/create'
+import { createImportedWorkspace } from '@/storage/import-actions'
+import { regenerateOutlines } from '@/storage/outline-actions'
+import { StorageError, wordsFor } from '@/storage/errors'
 import type { RecentWorkspace } from '@/storage/recents'
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -52,6 +56,8 @@ export function useOpenWorkspace() {
   const busy = ref(false)
   /** Naming a new workspace, in a folder the author picked or in the browser. */
   const naming = ref<'folder' | 'browser' | null>(null)
+  /** The Import dialog is open. */
+  const importing = ref(false)
   let pendingFolder: StorageAdapter | null = null
 
   async function loadRecents() {
@@ -177,6 +183,32 @@ export function useOpenWorkspace() {
     await loadRecents()
   }
 
+  /**
+   * Import from the Welcome screen: a new workspace in this browser that holds the book alone, named after
+   * it, then opened. A failure is thrown for the dialog to say; nothing else is touched.
+   */
+  async function importPlan(plan: ImportPlan, name: string) {
+    if (insecurePage()) throw new StorageError('other', INSECURE_REASON)
+    if (!canKeepInBrowser()) throw new StorageError('other', NO_STORAGE_REASON)
+    const checked = checkWorkspaceName(name)
+    if (!checked.ok) throw new StorageError('other', checked.error || 'Give the workspace a name.')
+    busy.value = true
+    let adapter: StorageAdapter
+    const id = newId('wsp')
+    try {
+      adapter = browserAdapter(await browserDirectory(id, true))
+      await createImportedWorkspace(adapter, checked.name, plan, id)
+    } catch (e) {
+      // A workspace that did not get made leaves nothing behind: no half-written folder in the browser.
+      await discardBrowserDirectory(id).catch(() => undefined)
+      throw e
+    } finally {
+      busy.value = false
+    }
+    await enter(adapter)
+    if (ws.session) await regenerateOutlines(ws.session)
+  }
+
   function openSample() {
     ws.loadSample()
     void router.push(ws.startPath())
@@ -187,6 +219,8 @@ export function useOpenWorkspace() {
     message,
     busy,
     naming,
+    importing,
+    importPlan,
     canPickFolder: canPickFolder(),
     insecure: insecurePage(),
     chooseFolder,

@@ -32,7 +32,7 @@ const V = CURRENT_SCHEMA_VERSION
 const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`
 
 /** An ID no file of the workspace has (an ID that is already someone's would overwrite them). */
-function freshId<P extends IdPrefix>(s: WorkspaceSession, prefix: P) {
+export function freshId<P extends IdPrefix>(s: WorkspaceSession, prefix: P) {
   for (let tries = 0; tries < 10; tries++) {
     const id = newId(prefix)
     if (!s.pathOf(id)) return id
