@@ -12,7 +12,9 @@ test.use({ serviceWorkers: 'block', viewport: { width: 1440, height: 900 } })
 const shots = 'test-results/delete-workspace-screenshots'
 
 const dialog = (page: Page) => page.getByRole('dialog', { name: 'Delete “Duplicate”?' })
-const deleteButtons = (page: Page) => page.getByRole('button', { name: 'Delete Duplicate…' })
+const deleteButtons = (page: Page) =>
+  page.getByRole('button', { name: /^Delete Duplicate, opened / })
+const message = (page: Page) => page.locator('#welcome-message')
 const workspaceDirs = (page: Page) =>
   opfs.list(page).then((files) => new Set(files.map((f) => f.split('/')[0])))
 
@@ -24,9 +26,35 @@ async function twoDuplicates(page: Page) {
   await createBrowserWorkspace(page, 'Duplicate') // reloads the page: a new workspace, a new session
   await sceneText(page).fill('The second one, which must survive.')
   await waitSaved(page)
+  // Two rows of one name must be told apart by when they were opened: make the first one yesterday morning.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('aurelia-device')
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => {
+          const store = open.result.transaction('recent', 'readwrite').objectStore('recent')
+          store.getAll().onsuccess = (e) => {
+            const rows = (e.target as IDBRequest<{ lastOpened: number }[]>).result
+            const oldest = rows.reduce((a, b) => (a.lastOpened < b.lastOpened ? a : b))
+            const d = new Date()
+            oldest.lastOpened = new Date(
+              d.getFullYear(),
+              d.getMonth(),
+              d.getDate() - 1,
+              9,
+              10,
+            ).getTime()
+            store.put(oldest).onsuccess = () => resolve()
+          }
+        }
+      }),
+  )
   await page.goto('/')
   await expect(deleteButtons(page)).toHaveCount(2)
 }
+const yesterdayOne = (page: Page) =>
+  page.getByRole('button', { name: 'Delete Duplicate, opened yesterday at 9:10 AM…' })
 
 test.describe('delete a workspace', () => {
   test('one of two duplicates is deleted from the Welcome screen; the other still opens with its text', async ({
@@ -35,11 +63,12 @@ test.describe('delete a workspace', () => {
     await twoDuplicates(page)
     expect((await workspaceDirs(page)).size).toBe(2)
 
-    // The list is newest first: the second row is the first workspace made.
-    await deleteButtons(page).nth(1).click()
+    // The row is picked by the time in its name, not by its place in the list.
+    await yesterdayOne(page).click()
     await expect(dialog(page)).toBeVisible()
-    await expect(dialog(page)).toContainText('1 book · 7 words · last opened today')
-    await expect(dialog(page)).toContainText('cannot be undone')
+    await expect(dialog(page)).toContainText('1 book · 7 words · last opened yesterday at 9:10 AM')
+    await expect(dialog(page)).toContainText('It cannot be undone.')
+    await expect(dialog(page)).toHaveAccessibleDescription(/cannot be undone/)
     await expect(dialog(page).getByRole('button', { name: 'Download a copy first' })).toBeVisible()
     await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)))
     expect(await seriousViolations(page)).toEqual([])
@@ -48,15 +77,16 @@ test.describe('delete a workspace', () => {
     // Cancel changes nothing and gives focus back to the button that opened the dialog.
     await dialog(page).getByRole('button', { name: 'Cancel' }).click()
     await expect(dialog(page)).toBeHidden()
-    await expect(deleteButtons(page).nth(1)).toBeFocused()
+    await expect(yesterdayOne(page)).toBeFocused()
     expect((await workspaceDirs(page)).size).toBe(2)
 
-    await deleteButtons(page).nth(1).click()
+    await yesterdayOne(page).click()
     await dialog(page).getByRole('button', { name: 'Delete workspace' }).click()
     await expect(dialog(page)).toBeHidden()
-    await expect(page.getByRole('status').filter({ hasText: 'Deleted Duplicate.' })).toBeVisible()
+    await expect(message(page)).toHaveText('Deleted Duplicate.')
+    await expect(message(page)).toBeFocused()
     await expect(deleteButtons(page)).toHaveCount(1)
-    await expect(page.getByRole('heading', { name: 'Recent' })).toBeFocused()
+    await expect(yesterdayOne(page)).toHaveCount(0)
     expect((await workspaceDirs(page)).size).toBe(1)
     expect(await seriousViolations(page)).toEqual([])
 
@@ -64,7 +94,7 @@ test.describe('delete a workspace', () => {
     await page.reload()
     await expect(deleteButtons(page)).toHaveCount(1)
     await page
-      .getByRole('button', { name: /Duplicate/ })
+      .getByRole('button', { name: /^Duplicate/ })
       .first()
       .click()
     await expect(sceneText(page)).toContainText('The second one, which must survive.')
@@ -92,7 +122,7 @@ test.describe('delete a workspace', () => {
       await page.screenshot({ path: `${shots}/confirm-phone-${scheme}.png` })
       await page.keyboard.press('Escape')
       await expect(dialog(page)).toBeHidden()
-      await expect(page.getByRole('button', { name: /Duplicate/ }).first()).toBeVisible()
+      await expect(page.getByRole('button', { name: /^Duplicate/ }).first()).toBeVisible()
     })
   }
 
@@ -103,8 +133,8 @@ test.describe('delete a workspace', () => {
     await page.goto('/')
     await deleteButtons(page).click()
     await dialog(page).getByRole('button', { name: 'Delete workspace' }).click()
-    await expect(page.getByRole('status').filter({ hasText: 'Deleted Duplicate.' })).toBeVisible()
+    await expect(message(page)).toHaveText('Deleted Duplicate.')
     await expect(page.getByRole('heading', { name: 'Recent' })).toHaveCount(0)
-    await expect(page.getByRole('heading', { name: 'Welcome' })).toBeFocused()
+    await expect(message(page)).toBeFocused()
   })
 })

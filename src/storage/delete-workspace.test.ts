@@ -3,10 +3,12 @@ import { IDBFactory } from 'fake-indexeddb'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { BackupStore } from '@/backup/state'
 import { FakeDirectory } from '../../tests/helpers/fake-directory'
+import { readZip } from '../../tests/helpers/read-zip'
 import { FakeLocks } from '../../tests/helpers/fake-locks'
 import { MemoryAdapter } from '../../tests/helpers/memory-adapter'
 import { createWorkspace } from './create'
 import {
+  copyOfStored,
   deleteBrowserWorkspace,
   glanceAt,
   releaseBlock,
@@ -252,5 +254,67 @@ describe('what the confirm dialog shows', () => {
     expect(await glanceAt(adapter)).toEqual({ books: 1, words: 0 })
     expect(await adapter.list()).toEqual(before)
     expect(await glanceAt(new MemoryAdapter())).toBeNull()
+  })
+})
+
+describe('a copy of a workspace that is not open', () => {
+  it('includes the words only the journal holds, so deleting does not lose them', async () => {
+    const adapter = new MemoryAdapter({ 'scenes/one.md': 'saved words', 'aurelia.json': '{}' })
+    await journal.put({
+      workspaceId: A,
+      path: 'scenes/one.md',
+      content: 'newer words, never saved',
+      baseHash: null,
+      time: 1,
+    })
+    await journal.put({
+      workspaceId: A,
+      path: 'scenes/two.md',
+      content: 'a new scene',
+      baseHash: null,
+      time: 1,
+    })
+    await journal.put({
+      workspaceId: B,
+      path: 'scenes/one.md',
+      content: 'not this one',
+      baseHash: null,
+      time: 1,
+    })
+    const zip = readZip(
+      new Uint8Array(await (await copyOfStored(adapter, recent(A), journal)).arrayBuffer()),
+    )
+    const text = (path: string) => zip.find((f) => f.path.endsWith(path))?.text
+    expect(text('scenes/one.md')).toBe('newer words, never saved')
+    expect(text('scenes/two.md')).toBe('a new scene')
+    expect(zip.some((f) => f.text === 'not this one')).toBe(false)
+  })
+})
+
+describe('a row that is out of date', () => {
+  it('refuses to delete when the stored entry is no longer a browser workspace', async () => {
+    await recents.put({ ...recent(A, 'folder'), handle: new FakeDirectory().asHandle() })
+    const before = await rowsOf(A)
+    await expect(deleteBrowserWorkspace(recent(A), deps)).rejects.toThrow(
+      'Saltmarch changed since this list was shown. Try again.',
+    )
+    expect(await rowsOf(A)).toEqual(before)
+  })
+
+  it('refuses to remove from the list when the stored entry is now a browser workspace', async () => {
+    await expect(removeFolderFromList(recent(A, 'folder'), deps)).rejects.toThrow(
+      'changed since this list was shown',
+    )
+    expect((await rowsOf(A)).recent).toBe(true)
+  })
+
+  it('refuses when the entry is gone altogether, without releasing the open session', async () => {
+    await recents.remove(A)
+    let released = false
+    await expect(
+      deleteBrowserWorkspace(recent(A), { ...deps, release: async () => void (released = true) }),
+    ).rejects.toThrow('changed since this list was shown')
+    expect(released).toBe(false)
+    expect((await rowsOf(A)).files.length).toBeGreaterThan(0)
   })
 })

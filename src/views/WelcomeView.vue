@@ -143,13 +143,7 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
       class="box-border flex flex-[1.25_1_480px] flex-col gap-7 px-6 pb-10 pt-6 sm:px-16 sm:pt-14"
     >
       <div>
-        <h1
-          id="welcome-title"
-          tabindex="-1"
-          class="m-0 font-prose text-[32px] font-medium leading-[1.2] outline-none"
-        >
-          Welcome
-        </h1>
+        <h1 class="m-0 font-prose text-[32px] font-medium leading-[1.2]">Welcome</h1>
         <p class="mb-0 mt-1.5 text-[15px] text-ink-2">
           Where should your writing live? You can move it later.
         </p>
@@ -195,17 +189,22 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
         </li>
       </ul>
 
+      <!-- Always in the DOM, so a screen reader hears its text change; after a delete it takes focus. -->
       <p
-        v-if="open.message.value"
-        :role="open.message.value.kind === 'error' ? 'alert' : 'status'"
+        id="welcome-message"
+        tabindex="-1"
+        :role="open.message.value?.kind === 'error' ? 'alert' : 'status'"
         :class="[
-          'm-0 max-w-[640px] rounded-control border px-3.5 py-2.5 text-[13px] text-ink',
-          open.message.value.kind === 'error'
-            ? 'border-danger-line bg-danger-soft'
-            : 'border-info-line bg-info-soft',
+          'm-0 max-w-[640px] text-[13px] text-ink outline-none',
+          !open.message.value && 'sr-only',
+          open.message.value &&
+            'rounded-control border px-3.5 py-2.5 ' +
+              (open.message.value.kind === 'error'
+                ? 'border-danger-line bg-danger-soft'
+                : 'border-info-line bg-info-soft'),
         ]"
       >
-        {{ open.message.value.text }}
+        {{ open.message.value?.text }}
       </p>
 
       <section
@@ -215,8 +214,7 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
       >
         <h2
           id="recent-title"
-          tabindex="-1"
-          class="m-0 mb-1 text-[11px] outline-none font-semibold uppercase tracking-[.1em] text-ink-3"
+          class="m-0 mb-1 text-[11px] font-semibold uppercase tracking-[.1em] text-ink-3"
         >
           Recent
         </h2>
@@ -225,15 +223,16 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
           :key="row.recent.key"
           :class="[
             'flex w-full items-center rounded-[10px] border text-ink',
-            row.needsAccess
-              ? 'border-warn-line bg-warn-soft'
-              : 'border-line bg-surface hover:bg-raised',
+            row.needsAccess ? 'border-warn-line bg-warn-soft' : 'border-line bg-surface',
           ]"
         >
           <button
             type="button"
             :disabled="open.busy.value"
-            class="flex min-w-0 flex-1 items-center gap-3 rounded-[10px] px-3 py-2.5 text-left"
+            :class="[
+              'flex min-w-0 flex-1 items-center gap-3 rounded-[10px] px-3 py-2.5 text-left',
+              !row.needsAccess && 'enabled:hover:bg-raised',
+            ]"
             @click="open.openRecent(row)"
           >
             <span
@@ -261,13 +260,13 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
           </button>
           <IconButton
             icon="trash"
-            :label="
+            :label="`${
               row.recent.kind === 'folder'
-                ? `Remove ${row.recent.name} from the list…`
-                : `Delete ${row.recent.name}…`
-            "
+                ? `Remove ${row.recent.name} from the list`
+                : `Delete ${row.recent.name}`
+            }, opened ${openedWhen(row.recent.lastOpened)}…`"
             :disabled="open.busy.value"
-            class="mr-1.5 shrink-0"
+            class="mr-1.5 shrink-0 enabled:hover:!text-danger"
             @click="del.begin(row)"
           />
         </div>

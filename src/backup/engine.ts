@@ -714,6 +714,11 @@ export class BackupEngine {
     return folder
   }
 
+  /** Resolves once no round is under way. After `dispose()` none starts again, so nothing more is written. */
+  async idle(): Promise<void> {
+    while (this.running) await this.running
+  }
+
   dispose() {
     this.disposed = true
     this.unsubscribe?.()

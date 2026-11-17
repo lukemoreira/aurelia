@@ -41,6 +41,13 @@ export const useBackupStore = defineStore('backup', () => {
     void probe() // the status bar nudges toward backup only where there is a server to hold one
   }
 
+  /** Let go of the engine and wait for a round in flight to end: nothing of it touches the workspace after this. */
+  async function stop() {
+    const old = engine.value
+    await attach(null)
+    await old?.idle()
+  }
+
   async function probe() {
     serverState.value = await detectServer()
   }
@@ -103,6 +110,7 @@ export const useBackupStore = defineStore('backup', () => {
     error,
     now,
     attach,
+    stop,
     probe,
     refreshVersions,
     turnOn,
