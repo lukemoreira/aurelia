@@ -675,6 +675,30 @@ describe('a new scene never takes an existing scene’s ID', () => {
   })
 })
 
+describe('a derived file written while the author works', () => {
+  it('keeps a scene made and words typed during its write on screen', async () => {
+    const session = await open()
+    const outline = (await adapter.list()).find((p) => p.endsWith('OUTLINE.md'))!
+    let release!: () => void
+    const gate = new Promise<void>((r) => (release = r))
+    let waiting = false
+    adapter.beforeWrite = (p) => (p === outline ? ((waiting = true), gate) : undefined)
+    const derived = session.writeDerived(outline, (disk) => `${disk ?? ''}\nput right\n`)
+    await vi.waitFor(() => expect(waiting).toBe(true)) // the outline write has started, and waits
+    const scene = session.data.scenes[0]!.meta.id
+    const made = await session.createScene(session.data.chapters[0]!.id)
+    await session.editScene(scene, 'typed while the outline was written')
+    release()
+    expect(await derived).toBe(true)
+    expect(session.data.scenes.map((s) => s.meta.id)).toContain(made)
+    expect(session.data.scenes.find((s) => s.meta.id === scene)?.body).toBe(
+      'typed while the outline was written',
+    )
+    adapter.beforeWrite = undefined
+    session.dispose()
+  })
+})
+
 describe('a recovered copy of a scene', () => {
   it('is not shown as the scene itself', async () => {
     const path = await scenePathOf()

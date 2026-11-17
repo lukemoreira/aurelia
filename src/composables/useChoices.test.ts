@@ -24,17 +24,20 @@ describe('a scene’s choices, as the inspector edits them', () => {
     expect(c.labels[c.choices.value[0]!.id]).toBe('Climb the aqueduct')
   })
 
-  it('empties the form as the choice is sent, so the next one can be typed while it saves; a second send is ignored', async () => {
+  it('empties the form as the choice is sent; one sent while the first saves is added after it, never dropped', async () => {
     const r = await storyRig()
     const c = inComponent(() => useChoices(() => r.start))
     c.add.label = 'Go left'
     const first = c.addNow()
     expect(c.add.label).toBe('')
+    const twice = c.addNow() // the same press twice: nothing more to add, and no error
     c.add.label = 'Go right'
     const again = c.addNow() // while the first is still being written
-    await Promise.all([first, again])
-    expect(c.choices.value.map((x) => x.label)).toEqual(['Go left'])
-    expect(c.add.label).toBe('Go right') // not lost, not sent
+    expect(c.add.label).toBe('')
+    await Promise.all([first, twice, again])
+    expect(c.choices.value.map((x) => x.label)).toEqual(['Go left', 'Go right'])
+    expect(c.error.value).toBe('')
+    expect(new Set(c.choices.value.map((x) => x.target)).size).toBe(2) // each to its own new scene
   })
 
   it('an empty choice is refused in words, and nothing is added', async () => {
