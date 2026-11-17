@@ -184,14 +184,16 @@ test.describe('moving around', () => {
     await expect(heading(page, 'Ropewalk')).toBeVisible()
   })
 
-  test('the view tabs go to a placeholder with an honest empty state', async ({ page }) => {
+  test('the Continuity tab opens its view, without the scene inspector, and Write comes back', async ({
+    page,
+  }) => {
     await openSample(page)
     await page
       .getByRole('navigation', { name: 'Views' })
       .getByRole('link', { name: 'Continuity' })
       .click()
     await expect(heading(page, 'Continuity')).toBeVisible()
-    await expect(page.getByText('Continuity checks arrive in v0.2.')).toBeVisible()
+    await expect(page.getByRole('complementary', { name: 'Findings' })).toBeVisible()
     // The inspector is not there on another view (320 px of nothing), and never shows the scene's fields.
     await expect(page.getByRole('complementary', { name: 'Scene inspector' })).toHaveCount(0)
     await expect(page.getByText('Get through the gate')).toHaveCount(0)
@@ -563,13 +565,13 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(await allViolations(page)).toEqual([])
     })
 
-    test('a view that is not built yet has no violations', async ({ page }) => {
+    test('the Continuity view has no violations', async ({ page }) => {
       await openSample(page)
       await page
         .getByRole('navigation', { name: 'Views' })
         .getByRole('link', { name: 'Continuity' })
         .click()
-      await expect(page.getByText('Continuity checks arrive in v0.2.')).toBeVisible()
+      await expect(page.getByRole('complementary', { name: 'Findings' })).toBeVisible()
       expect(await allViolations(page)).toEqual([])
     })
   })

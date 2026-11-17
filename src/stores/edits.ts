@@ -40,6 +40,10 @@ export const useEditsStore = defineStore('edits', () => {
   /** Set after a record is renamed; the Rename everywhere dialog takes it up once the name dialog is gone. */
   const renameOffer = ref<RenameOffer | null>(null)
   const toast = ref<Toast | null>(null)
+  /** The text selected in the manuscript when a command was asked for: what "Mark as change" quotes. */
+  const selectedText = ref('')
+  /** The scene whose findings the Continuity list shows alone (from the inspector's "Review"); null shows all. */
+  const findingsScene = ref<string | null>(null)
   /** Said to a screen reader, never shown: what a move did ("Moved “Gate” after “Arrival”"). */
   const announcement = ref('')
   async function announce(text: string) {
@@ -47,5 +51,15 @@ export const useEditsStore = defineStore('edits', () => {
     await nextTick()
     announcement.value = text
   }
-  return { ask, moving, trashOpen, renameOffer, toast, announcement, announce }
+  return {
+    ask,
+    moving,
+    trashOpen,
+    renameOffer,
+    toast,
+    selectedText,
+    findingsScene,
+    announcement,
+    announce,
+  }
 })

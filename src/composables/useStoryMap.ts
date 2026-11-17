@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, ref, shallowRef, watch } from 'vue'
 import {
+  isStoryFingerprint,
   splitFindings,
   storyFindings,
   storyGraph,
@@ -165,6 +166,7 @@ export function useStoryMap() {
         await setDismissed(ws.session, ws.bookId, {
           ...(on ? { add: f.fingerprint } : { remove: f.fingerprint }),
           found: findings.value.map((x) => x.fingerprint),
+          among: isStoryFingerprint, // the Continuity list's marks are not this list's to drop
         })
     })
   const makeBranching = () =>

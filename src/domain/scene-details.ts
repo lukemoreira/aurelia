@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { changeLabel, changeText } from './change-kinds'
 import { sceneContext, sceneLabels } from './outline'
 import type { Scene } from './schema/scene'
+import { timeWords } from './story-time'
 import type { WorkspaceData } from './workspace-data'
 
 const COLOURS = ['ember', 'tide', 'moss', 'plum'] as const
@@ -37,13 +39,6 @@ export const colourOf = (record: { meta: object } | undefined): ColourToken | un
   return COLOURS.find((x) => x === c)
 }
 
-/** Plain words for a change; the raw kind names never reach the screen. */
-const CHANGE_LABEL: Record<string, string> = {
-  relation: 'Relationship',
-  knows: 'Learns',
-  setup: 'Set-up',
-}
-
 /** What the scene inspector shows, resolved from IDs to names. */
 export function sceneDetails(data: WorkspaceData, sceneId: string): SceneDetails | undefined {
   const ctx = sceneContext(data, sceneId)
@@ -69,18 +64,23 @@ export function sceneDetails(data: WorkspaceData, sceneId: string): SceneDetails
     .map(person)
     .filter((p): p is Person => !!p)
 
-  const changeText = (c: NonNullable<typeof meta.changes>[number]) => {
-    if (c.kind === 'relation') return `${name(c.who)} → ${name(c.with)}: ${c.value ?? ''}`
-    if (c.kind === 'knows') return `${name(c.who)}: ${c.value ?? ''}`
-    return c.value ?? ''
-  }
+  const setupText = (id?: string) =>
+    data.scenes.flatMap((s) => s.meta.changes ?? []).find((c) => c.kind === 'setup' && c.id === id)
+      ?.value ?? ''
   const target = meta.target
   return {
     label: ctx.chapter.number === 0 ? String(ctx.index) : `${ctx.chapter.number}.${ctx.index}`,
     ...(meta.status ? { status: meta.status } : {}),
     ...(meta.pov && person(meta.pov) ? { pov: person(meta.pov)! } : {}),
     ...(meta.location ? { location: name(meta.location) } : {}),
-    ...(meta.time ? { storyTime: meta.time.label ?? meta.time.at } : {}),
+    ...(meta.time
+      ? {
+          storyTime: timeWords(
+            meta.time,
+            data.universes.find((u) => u.books.includes(ctx.book.id))?.calendars,
+          ),
+        }
+      : {}),
     words: ctx.scene.words,
     ...(target ? { target } : {}),
     ...(meta.objective ? { objective: meta.objective } : {}),
@@ -93,8 +93,8 @@ export function sceneDetails(data: WorkspaceData, sceneId: string): SceneDetails
       return r ? [{ id, name: r.meta.title, ...(color ? { color } : {}) }] : []
     }),
     changes: (meta.changes ?? []).map((c) => ({
-      kind: CHANGE_LABEL[c.kind] ?? 'Change',
-      text: changeText(c),
+      kind: changeLabel(c.kind),
+      text: changeText(c, name, setupText),
     })),
     choices: (meta.choices ?? []).map((c) => c.label),
   }

@@ -6,12 +6,14 @@ import BackupDialog from '@/components/backup/BackupDialog.vue'
 import Sheet from '@/components/ui/Sheet.vue'
 import ActionToast from '@/components/outline/ActionToast.vue'
 import MoveSceneDialog from '@/components/outline/MoveSceneDialog.vue'
+import ChangeBoard from '@/components/continuity/ChangeBoard.vue'
 import NameDialog from '@/components/outline/NameDialog.vue'
 import RenameEverywhereDialog from '@/components/world/RenameEverywhereDialog.vue'
 import TrashDialog from '@/components/outline/TrashDialog.vue'
 import RenameWorkspaceDialog from '@/components/workspace/RenameWorkspaceDialog.vue'
 import Button from '@/components/ui/Button.vue'
 import Icon from '@/components/ui/Icon.vue'
+import { useAddChange } from '@/composables/useAddChange'
 import { useBackup } from '@/composables/useBackup'
 import { useFocusMode } from '@/composables/useFocusMode'
 import { MAIN_CONTENT_ID, panelAttr } from '@/composables/useFocusMain'
@@ -36,6 +38,7 @@ const layout = useLayoutStore()
 const shortcuts = useShortcutsStore()
 const route = useRoute()
 
+const addChange = useAddChange()
 useSessionWatch()
 useBackup()
 useFocusMode()
@@ -43,6 +46,8 @@ useKeyboardShortcuts([
   { code: 'KeyK', run: () => (layout.paletteOpen = !layout.paletteOpen) },
   { code: 'Backslash', run: layout.toggleNavigator },
   { code: 'Backslash', alt: true, run: layout.toggleInspector },
+  // ⌘⌥M: record a change in this scene; words selected in the text become its quote.
+  { code: 'KeyM', alt: true, run: addChange.fromSelection },
 ])
 
 // The route is the truth: what it names is what is selected, and what was opened is "recent".
@@ -131,6 +136,7 @@ watch(
     <BackupDialog />
     <RenameWorkspaceDialog />
     <NameDialog />
+    <ChangeBoard />
     <RenameEverywhereDialog />
     <MoveSceneDialog />
     <TrashDialog />

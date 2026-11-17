@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
+import { continuityModel } from '@/domain/continuity'
+import { continuityFindings } from '@/domain/continuity-checks'
 import { bookOutline, sceneContext } from '@/domain/outline'
 import { validateWorkspaceData } from '@/domain/workspace-data'
 import { saltmarchSample, SAMPLE_START } from './saltmarch'
@@ -51,5 +53,19 @@ describe('the Saltmarch sample', () => {
     expect(outline[0]!.chapters.map((c) => c.number)).toEqual([5, 6, 7, 8])
     const ctx = sceneContext(data, SAMPLE_START.scene)!
     expect([ctx.chapter.number, ctx.index, ctx.chapter.scenes.length]).toEqual([7, 2, 3])
+  })
+
+  it('has a Lantern Gate with story times and changes: Tomas in two places at once, and a set-up left open', () => {
+    const book = data.books[0]!.id
+    const m = continuityModel({ data, bookId: book, named: () => [], brokenLinks: () => [] })
+    const found = continuityFindings(m)
+    expect(found.map((f) => [f.severity, f.check])).toEqual([
+      ['warning', 'two-places'],
+      ['note', 'setup-unpaid'],
+    ])
+    expect(found[0]!.body).toBe(
+      'Tomas Brandt is at The Customs House (6.3 · The Customs House) and at The Lantern Gate (7.2 · Curfew Bells) at 14 Thaw 412 TR, 18:00.',
+    )
+    expect(found[1]!.body).toBe('“The key under the lantern” (5.1) is never paid off.')
   })
 })

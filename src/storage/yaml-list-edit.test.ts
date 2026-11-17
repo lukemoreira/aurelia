@@ -75,4 +75,48 @@ describe('patchListItem', () => {
       crlf.replace('  - { id: "chc_c", label: "Wait", target: "scn_3" }\r\n', ''),
     )
   })
+
+  describe('an item that ends in a block scalar', () => {
+    const block = (style: string) => `---
+title: Gate
+changes:
+  - kind: knows
+    who: chr_a
+    quote: ${style}
+      first line
+      second line
+  - { kind: "goal", who: "chr_a", value: "middle" }
+  - kind: trait
+    who: chr_a
+    quote: ${style}
+      last words
+mood: grey
+---
+
+Body.
+`
+    for (const style of ['|', '>', '|-']) {
+      it(`is left to the caller (${style}): every edit of the first, middle and last item answers undefined, never a broken file`, () => {
+        const text = block(style)
+        for (const at of [0, 2]) {
+          expect(patchListItem(text, 'changes', { op: 'remove', at })).toBeUndefined()
+          expect(
+            patchListItem(text, 'changes', { op: 'update', at, fields: { who: 'chr_b' } }),
+          ).toBeUndefined()
+        }
+        // adding after a last item that ends in a block scalar
+        expect(
+          patchListItem(text, 'changes', { op: 'add', item: { kind: 'knows' } }),
+        ).toBeUndefined()
+      })
+    }
+
+    it('still edits an item beside them in place, and reads back as exactly the list meant', () => {
+      const text = block('|')
+      const out = patchListItem(text, 'changes', { op: 'remove', at: 1 })!
+      expect(out).toContain('first line')
+      expect(out).toContain('last words')
+      expect(out).not.toContain('middle')
+    })
+  })
 })

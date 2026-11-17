@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { ref } from 'vue'
-import SeverityTag from '@/components/ui/SeverityTag.vue'
+import FindingCard from '@/components/continuity/FindingCard.vue'
 import type { useStoryMap } from '@/composables/useStoryMap'
 import type { StoryFinding } from '@/domain/story-graph'
 
@@ -35,43 +35,38 @@ const button =
       Nothing to fix. Every scene can be reached, and every path can finish.
     </p>
     <ol v-else class="m-0 flex list-none flex-col gap-2 p-0">
-      <li
+      <FindingCard
         v-for="f in m.split.value.active"
         :key="f.fingerprint"
-        class="flex flex-col gap-1 rounded-[10px] border border-line bg-surface px-3 py-2.5"
+        :title="f.title"
+        :body="f.body"
+        :severity="f.severity"
       >
-        <span class="flex items-center gap-2">
-          <SeverityTag :severity="f.severity" />
-          <span class="text-[13px] font-semibold">{{ f.title }}</span>
-        </span>
-        <span class="text-[12.5px] text-ink-2">{{ f.body }}</span>
-        <span class="mt-1 flex flex-wrap gap-1.5">
-          <button
-            v-if="m.canEdit.value"
-            type="button"
-            :class="[button, 'border border-line-2 text-ink hover:bg-raised']"
-            @click="m.fix(f)"
-          >
-            {{ FIX_WORDS[f.fix] }}
-          </button>
-          <button
-            type="button"
-            :class="[button, 'text-gold-ink hover:bg-gold-soft']"
-            @click="m.show(f)"
-          >
-            Show
-          </button>
-          <button
-            v-if="m.canEdit.value && f.severity !== 'error'"
-            type="button"
-            :class="[button, 'text-ink-2 hover:bg-raised']"
-            :aria-label="`Mark intended: ${f.title}, ${f.body}`"
-            @click="m.dismiss(f, true)"
-          >
-            Mark intended
-          </button>
-        </span>
-      </li>
+        <button
+          v-if="m.canEdit.value"
+          type="button"
+          :class="[button, 'border border-line-2 text-ink hover:bg-raised']"
+          @click="m.fix(f)"
+        >
+          {{ FIX_WORDS[f.fix] }}
+        </button>
+        <button
+          type="button"
+          :class="[button, 'text-gold-ink hover:bg-gold-soft']"
+          @click="m.show(f)"
+        >
+          Show
+        </button>
+        <button
+          v-if="m.canEdit.value && f.severity !== 'error'"
+          type="button"
+          :class="[button, 'text-ink-2 hover:bg-raised']"
+          :aria-label="`Mark intended: ${f.title}, ${f.body}`"
+          @click="m.dismiss(f, true)"
+        >
+          Mark intended
+        </button>
+      </FindingCard>
     </ol>
 
     <div v-if="m.split.value.dismissed.length" class="flex flex-col gap-2">

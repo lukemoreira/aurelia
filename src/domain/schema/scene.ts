@@ -11,6 +11,8 @@ const changeSchema = z.looseObject({
   id: idOf('stp').optional(),
   of: idOf('stp').optional(),
   value: z.string().optional(),
+  // The words of the scene the author marked this change on (optional).
+  quote: z.string().optional(),
 })
 
 // ADR-0004: unknown keys on a choice are kept (variables and effects come later).
@@ -44,6 +46,7 @@ export const sceneSchema = z.looseObject({
   ignoreNames: z.array(z.string()).optional(),
   target: z.number().int().nonnegative().optional(),
   flashback: z.boolean().optional(),
+  flashForward: z.boolean().optional(),
   ending: z.boolean().optional(),
   changes: z.array(changeSchema).optional(),
   choices: z.array(choiceSchema).optional(),

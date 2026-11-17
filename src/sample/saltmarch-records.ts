@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { RecordDoc } from '@/domain/workspace-data'
 import { sampleId } from './ids'
-import { arc, bok, chr, plc, unv } from './saltmarch-ids'
+import { arc, bok, chr, itm, plc, unv } from './saltmarch-ids'
 
 const rec = (
   id: string,
@@ -62,6 +62,13 @@ export const records: RecordDoc[] = [
     {},
     'The curfew ledger.',
     `book:${bok.lantern}`,
+  ),
+  rec(
+    itm.key,
+    'item',
+    'The Lantern Key',
+    {},
+    'Opens the lantern at the gate. There are said to be two.',
   ),
   rec(arc.debt, 'arc', 'The Debt', { color: 'ember' }),
   rec(arc.tide, 'arc', 'Rising Tide', { color: 'tide' }),

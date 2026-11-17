@@ -2,7 +2,14 @@
 import { z } from 'zod'
 import { idOf, schemaVersion } from './common'
 
-const calendarSchema = z.looseObject({ id: idOf('cal'), name: z.string() })
+// A named calendar. `months` and `era` only decide how a story time is written out ("14 Thaw 412 TR");
+// the key itself (412-03-14) sorts the same in every calendar.
+const calendarSchema = z.looseObject({
+  id: idOf('cal'),
+  name: z.string(),
+  era: z.string().optional(),
+  months: z.array(z.string()).optional(),
+})
 
 // universe.md frontmatter
 export const universeSchema = z.looseObject({
@@ -15,3 +22,4 @@ export const universeSchema = z.looseObject({
 })
 
 export type Universe = z.infer<typeof universeSchema>
+export type Calendar = z.infer<typeof calendarSchema>

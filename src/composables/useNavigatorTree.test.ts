@@ -51,6 +51,7 @@ describe('navigator tree', () => {
     expect(lib.map((n) => [n.label, n.meta])).toEqual([
       ['Characters', '4'],
       ['Worlds & places', '2'],
+      ['Items', '1'],
       ['Arcs', '3'],
     ])
     expect(lib.every((n) => n.meta === String(n.children!.length))).toBe(true)

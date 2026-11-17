@@ -124,8 +124,12 @@ export interface StoryFinding {
   fingerprint: string
 }
 
-export const fingerprintOf = (check: FindingCheck, ...ids: string[]) =>
+export const fingerprintOf = (check: string, ...ids: string[]) =>
   `${check}:${[...ids].sort().join(',')}`
+
+/** Whether a fingerprint belongs to one of the story map's four checks (the Continuity list adds its own). */
+export const isStoryFingerprint = (fingerprint: string) =>
+  /^(broken-choice|dead-end|unreachable|no-ending):/.test(fingerprint)
 
 const RANK: Record<FindingSeverity, number> = { error: 0, warning: 1, note: 2 }
 

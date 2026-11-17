@@ -25,6 +25,11 @@ export const plc = {
   gate: sampleId('plc', 'lantern-gate'),
   customs: sampleId('plc', 'customs-house'),
 }
+export const itm = { key: sampleId('itm', 'lantern-key') }
+export const stp = {
+  lantern: sampleId('stp', 'key-under-lantern'),
+  favour: sampleId('stp', 'warden-favour'),
+}
 export const arc = {
   debt: sampleId('arc', 'the-debt'),
   tide: sampleId('arc', 'rising-tide'),

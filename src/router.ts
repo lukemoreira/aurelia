@@ -12,13 +12,6 @@ export type ViewName = 'write' | 'plan' | 'continuity' | 'world' | 'map'
 export const scenePath = (book: string, scene: string) => `/w/${book}/${scene}`
 export const viewPath = (book: string, view: Exclude<ViewName, 'write'>) => `/w/${book}/${view}`
 
-const placeholder = (path: string, title: string, blurb: string): RouteRecordRaw => ({
-  path,
-  name: path,
-  component: () => import('./views/PlaceholderView.vue'),
-  meta: { title, blurb },
-})
-
 const routes: RouteRecordRaw[] = [
   { path: '/', name: 'welcome', component: () => import('./views/WelcomeView.vue') },
   { path: '/ui', component: () => import('./views/UiGallery.vue') },
@@ -33,7 +26,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('./views/PlanView.vue'),
         meta: { title: 'Plan' },
       },
-      placeholder('continuity', 'Continuity', 'Continuity checks arrive in v0.2.'),
+      {
+        path: 'continuity',
+        name: 'continuity',
+        component: () => import('./views/ContinuityView.vue'),
+        meta: { title: 'Continuity' },
+      },
       {
         path: 'world',
         name: 'world',
