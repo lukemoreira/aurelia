@@ -11,6 +11,7 @@ import { createWorkspace } from '@/storage/create'
 import { openDeviceDb } from '@/storage/device-db'
 import { IdbJournal } from '@/storage/journal'
 import { WorkspaceSession } from '@/storage/session'
+import { useEditsStore } from '@/stores/edits'
 import { useLayoutStore } from '@/stores/layout'
 import { useReviewStore } from '@/stores/review'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -176,6 +177,20 @@ describe('the Rename workspace command', () => {
     expect(layout.renameOpen).toBe(false) // waits until the palette has closed and given focus back
     layout.paletteThen?.()
     expect(layout.renameOpen).toBe(true)
+  })
+
+  it('finds "Add a change" by those words, with or without words selected in the scene', async () => {
+    const { palette } = await real()
+    const ws = useWorkspaceStore()
+    const scene = ws.entries.find((e) => e.kind === 'scene')!
+    ws.select(scene.bookId!, scene.id)
+    const found = () => {
+      palette.query.value = 'add a change'
+      return palette.items.value.find((i) => i.id === 'action:add-change')?.title
+    }
+    expect(found()).toBe('Add a change to this scene…')
+    useEditsStore().selectedText = 'neither of them spoke'
+    expect(found()).toBe('Add a change from the selected text…')
   })
 
   it('shows the reason, and does nothing when chosen, in a read-only workspace', async () => {
