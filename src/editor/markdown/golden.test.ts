@@ -34,7 +34,10 @@ describe('golden files', () => {
       'block-ids.md',
       'breaks.md',
       'escapes.md',
+      'footnotes.md',
+      'foreign/footnotes-loose.md',
       'foreign/obsidian-style.md',
+      'foreign/tables-loose.md',
       'headings.md',
       'html.md',
       'links-and-names.md',
@@ -44,6 +47,7 @@ describe('golden files', () => {
       'quote-callout.md',
       'raw-kept.md',
       'scene-break.md',
+      'tables.md',
       'wiki-links.md',
     ])
   })

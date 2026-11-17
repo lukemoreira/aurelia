@@ -377,8 +377,8 @@ Do not scaffold future features early.
 - Headings, marks (including `<u>` as one dedicated mark), lists, checklists, quotes,
   callouts, scene breaks, wiki links with autocomplete, entity embed cards, stable block
   IDs. Every other raw HTML is kept as escaped text and never rendered (test).
-- Tables, footnotes and the Markdown source-mode toggle move to M5 (v0.2). Until then,
-  tables and footnotes in a file are kept as raw Markdown, never dropped.
+- Tables, footnotes and the Markdown source-mode toggle moved to M5 (v0.2) and are **done there**
+  (see M5). Until then, tables and footnotes in a file were kept as raw Markdown, never dropped.
 - Focus mode; editor font, size, line height, paragraph spacing.
 - Live word counts (scene, chapter, book, session).
 - **Names in the editor** (ADR-0010): hover or focus a name for its card; suggestions
@@ -434,7 +434,8 @@ Do not scaffold future features early.
 
 **M5 · Story planning and branching**
 - Editor: tables, footnotes and the Markdown source-mode toggle (moved from M4), with
-  golden round-trip tests.
+  golden round-trip tests. **Done (2026-11-16)**: see the progress log and
+  [ADR-0007](docs/adr/0007-markdown-converter.md) (the part on tables, footnotes and the source).
 - Outline: Parts → Chapters → Scenes, drag-and-drop, columns (POV, status, arc). **Done (M5a).**
 - Inspector for Part / Chapter / Scene / Arc fields (spec table). **Done (M5a)**, except a chapter's checklist.
 - Arcs as threads; "scenes advanced" across books. **Done (M5a).**
@@ -662,8 +663,8 @@ backup — ADR-0009.)
   pan, zoom, arrow keys), the four checks as Error / Warning words with "Mark intended" stored by
   fingerprint in `book.json`, and read-only Play mode. A book's mode is switched on its Book tab.
   The sample's Salt & Ash now has 11 scenes, 15 choices and 3 endings, and shows two warnings.
-  Left: continuity and story time (M5b, below), the editor's tables and footnotes, the "Choices" block in
-  the editor and in exports, a chapter checklist.
+  Left: continuity and story time (M5b, below), the "Choices" block in the editor and in exports, a
+  chapter checklist. (The editor's tables and footnotes are done: see their own entry.)
 - 2026-11-16 — M3b Links, backlinks, search and names found automatically (branch
   `feat/m3b-links-names`): the index (`src/index/`), `[[`/embed/hover-card/names in the editor as
   decorations over unchanged Markdown, the Names and Links tabs, search in the palette, and Rename
@@ -693,3 +694,25 @@ backup — ADR-0009.)
   a toolbar button for "Mark as change" (the editor toolbar belongs to the tables worker), BCE years,
   "Age and dates" (needs the M6 sheet fields),
   "Knows before learning", "Whole universe" scope, the Progression view (M6).
+- 2026-11-16 — M5 editor: tables, footnotes and the Markdown source mode (branch
+  `feat/editor-tables-footnotes`). **Tables** (GFM; `@tiptap/extension-table`, MIT) are real tables:
+  Tab and Shift+Tab between cells (Tab in the last cell adds a row), Enter goes down a row, a
+  "Table" button (Mod+Alt+T) and, while the caret is in one, a Table menu in the bar (add row above or
+  below, add column before or after, align a column left, centre or right, delete row, column or
+  table). An untouched table is written back byte for byte in whatever form it had; a changed one is
+  written tidy (padded columns, `:--` `:-:` `--:` from the alignment, `\|` in a cell). A table with a
+  row of more cells than its header is still kept as written, since `marked` would drop the extra
+  cells. **Footnotes**: `[^1]` is a reference node and `[^1]: …` a note (several lines, paragraphs,
+  lists, several to a paragraph); a "Footnote" button (Mod+Alt+F) puts a reference at the caret and an
+  empty note after the last one with the caret in it; the number drawn is the reference's place, the
+  words of the note show over it on hover or when the caret has stepped onto it; the file's labels are
+  never renamed unless "Renumber footnotes" is pressed. **Source mode**: a "Markdown source" switch
+  above the text for the open scene opens the body (not the details at the top) in a plain monospace
+  area; what is typed is what is saved; switching either way writes nothing. ADR-0007 has the
+  decisions. The property test now generates tables and footnotes (a note read alone must read as
+  the same note; footnote labels are kept out of `marked`'s link-definition table); 120,000 files
+  (40 seeds × 3,000) find one odd case in 20,000, all in corners the editor met before as well (8 on
+  the same files). Rename everywhere now reaches names in table cells and notes. Paste of an HTML
+  table makes a table (cells flattened to one line). Parallel browser tests:
+  `E2E_PORT=4180 npm run e2e`. Left: a note's caret-to-reference jump (the note is at the end of the
+  text, reached with the arrows), tables and footnotes inside quotes and lists (kept as written).

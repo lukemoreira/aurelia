@@ -149,7 +149,7 @@ test.describe('writing in the editor', () => {
     await expect(statusBar(page)).toContainText('Saved')
   })
 
-  test('an edit rewrites only its own paragraph; tables, footnotes and raw HTML stay as they were', async ({
+  test('an edit rewrites only its own paragraph; a table, a footnote and raw HTML stay as they were', async ({
     page,
   }) => {
     await openWithBody(page, RICH)
@@ -158,10 +158,10 @@ test.describe('writing in the editor', () => {
     await type(page, ' More.')
     await waitSaved(page)
     expect(await bodyOnDisk(page)).toBe(RICH.replace('> A quote.', '> A quote. More.'))
-    // The table and the footnote are shown as text, never as a table.
-    await expect(sceneText(page).locator('table')).toHaveCount(0)
-    await expect(sceneText(page)).toContainText('| A | B |')
-    await expect(sceneText(page)).toContainText('[^1]: The note.')
+    // The table and the footnote are a table and a numbered note; the file keeps their own text.
+    await expect(sceneText(page).locator('table')).toHaveCount(1)
+    await expect(sceneText(page).locator('th')).toHaveText(['A', 'B'])
+    await expect(sceneText(page).locator('[data-footnote-def]')).toContainText('The note.')
     await expect(sceneText(page).locator('b')).toHaveCount(0)
     await expect(sceneText(page)).toContainText('<b>raw html</b>')
   })

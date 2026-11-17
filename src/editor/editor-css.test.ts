@@ -56,4 +56,22 @@ describe('editor.css', () => {
     expect(raw).not.toMatch(/dashed|monospace|font-mono/)
     expect(rule('.manuscript .ProseMirror pre[data-raw-block]::before')).not.toContain('uppercase')
   })
+
+  it('scrolls a wide table inside its own frame, so the page never scrolls sideways', () => {
+    expect(rule('.manuscript .ProseMirror .tableWrapper')).toContain('overflow-x: auto')
+    expect(rule('.manuscript .ProseMirror table')).toContain('border-collapse: collapse')
+  })
+
+  it('draws a footnote reference as its number and the note’s words only on hover or when selected', () => {
+    const ref = '.manuscript .ProseMirror [data-footnote-ref]'
+    // The number is text in the page, never drawn by the stylesheet.
+    expect(css).not.toContain(`${ref}::after`)
+    expect(rule(`${ref}::before`)).toContain('attr(data-note)')
+    expect(rule(`${ref}::before`)).toContain('display: none')
+    expect(css).toContain(`${ref}:hover::before`)
+    expect(css).toContain(`${ref}.ProseMirror-selectednode::before`)
+    expect(rule('.manuscript .ProseMirror [data-footnote-def]::before')).toContain(
+      'attr(data-number)',
+    )
+  })
 })

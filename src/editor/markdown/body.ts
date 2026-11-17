@@ -64,6 +64,8 @@ interface Piece {
   shape?: ListShape
   /** For a block kept as read: a fingerprint of the text that followed it in the file. */
   nx?: unknown
+  /** The file it was read from ended its lines in CRLF. */
+  crlf: boolean
 }
 
 /** The marker a list's own Markdown starts with: `-`, `*`, `+`, or the `.` or `)` after a number. */
@@ -97,8 +99,10 @@ function pieceOf(node: Node): Piece | null {
   // A block with nothing in it is not written, unless it was read like that (`#` is a heading).
   if (isBlank(node) && !kept) return null
   const family = LIST_FAMILY[node.type.name]
+  const crlf = typeof src === 'string' && src.includes('\r\n')
   if (kept)
     return {
+      crlf,
       node,
       text: src as string,
       kept: true,
@@ -108,6 +112,7 @@ function pieceOf(node: Node): Piece | null {
       nx: (node.attrs as { nx?: unknown }).nx,
     }
   return {
+    crlf,
     node,
     text: '',
     kept: false,
@@ -155,14 +160,29 @@ export function docToBody(doc: Node): string {
     const lo = Math.max(0, i - 2)
     const hi = Math.min(all.length - 1, i + 2)
     const text = first.out.slice(first.starts[lo], first.starts[hi + 1] ?? first.out.length)
-    return parseMarkdown(text).blocks.length !== hi - lo + 1
+    // (A separator written between a note and code is a block of its own.)
+    let parted = 0
+    for (let k = lo + 1; k <= hi + 1; k++) if (first.parted[k]) parted++
+    return parseMarkdown(text).blocks.length !== hi - lo + 1 + parted
   })
-  return bad ? write(all, true).out : first.out
+  const out = bad ? write(all, true).out : first.out
+  // A file read with CRLF ends every line of what is written again in CRLF too, or it would
+  // read as a mix of the two, and be written afresh in full the next time it is touched.
+  return all.some((p) => p.crlf) ? out.replace(/\r?\n/g, '\r\n') : out
 }
 
-function write(all: Piece[], strict: boolean): { out: string; starts: number[] } {
+/** Indented code, kept as written: straight after a note it would read as part of the note. */
+const indentedCode = (p: Piece) =>
+  p.node.type.name === 'rawBlock' && /^(?: {4}|\t)/.test(p.node.textContent)
+
+function write(
+  all: Piece[],
+  strict: boolean,
+): { out: string; starts: number[]; parted: boolean[] } {
   let out = ''
   const starts: number[] = []
+  /** Whether a separator was written before the block (see `indentedCode`). */
+  const parted: boolean[] = []
   all.forEach((p, i) => {
     const last = i === all.length - 1
     const before = all[i - 1]
@@ -180,6 +200,10 @@ function write(all: Piece[], strict: boolean): { out: string; starts: number[] }
           parseMarkdown(out + p.text).blocks.length <= parseMarkdown(out).blocks.length)
       if (apart) out += out.endsWith('\n') ? (out.endsWith('\r\n') ? '\r\n' : '\n') : '\n\n'
     }
+    // A note takes the indented blocks after it as its own; code that is the author's, with
+    // the paragraph that parted it from the note gone, is parted from it by an empty comment.
+    parted[i] = before?.node.type.name === 'footnoteDef' && indentedCode(p)
+    if (parted[i]) out += '<!-- -->\n\n'
     starts.push(out.length)
     if (p.kept) out += p.text
     else {
@@ -188,5 +212,5 @@ function write(all: Piece[], strict: boolean): { out: string; starts: number[] }
       out += renderBlock(p.node, p.marker, p.shape) + trail
     }
   })
-  return { out, starts }
+  return { out, starts, parted }
 }

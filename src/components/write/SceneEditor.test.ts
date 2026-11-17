@@ -25,7 +25,15 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-async function show(body: string, props: { readonly?: boolean; toolbar?: boolean } = {}) {
+async function show(
+  body: string,
+  props: {
+    readonly?: boolean
+    toolbar?: boolean
+    held?: string
+    place?: { block: number; offset: number }
+  } = {},
+) {
   document.body.innerHTML = '<h1 id="scene-title">A scene</h1>'
   target = document.createElement('div')
   document.body.append(target)
@@ -35,6 +43,8 @@ async function show(body: string, props: { readonly?: boolean; toolbar?: boolean
       readonly: props.readonly ?? false,
       titleId: 'scene-title',
       toolbarTarget: props.toolbar === false ? null : target,
+      held: props.held,
+      place: props.place,
     },
     attachTo: document.body,
   })
@@ -60,6 +70,36 @@ describe('opening a scene', () => {
       expect(edits()).toEqual([])
     },
   )
+
+  it('writes nothing when it is only focused, even a text that is not read exactly and ends in a table', async () => {
+    // Mixed line endings are not kept as read; the editor adds an empty line after the table.
+    const { editor } = await show('Words.\r\n\n| a |\n| - |\n')
+    editor.commands.focus('start')
+    await nextTick()
+    editor.commands.focus('end')
+    await nextTick()
+    expect(editor.state.doc.lastChild?.type.name).toBe('paragraph')
+    expect(edits()).toEqual([])
+  })
+
+  it('holds the words the workspace did not take, for the source mode to show', async () => {
+    const { editor } = await show('One.\n')
+    expect((wrapper!.vm as unknown as { pending: () => string | null }).pending()).toBeNull()
+    typeInto(editor, 0, 'Two.')
+    expect((wrapper!.vm as unknown as { pending: () => string | null }).pending()).toBe('Two.\n')
+  })
+
+  it('opens on words handed over from the source mode, shows them and sends them', async () => {
+    const { dom } = await show('One.\n', { held: 'One. Typed in the source.\n' })
+    expect(dom.textContent).toBe('One. Typed in the source.')
+    expect(edits()).toEqual(['One. Typed in the source.\n'])
+  })
+
+  it('opens with the caret where it was in the source', async () => {
+    const { editor } = await show('First.\n\nSecond block.\n', { place: { block: 1, offset: 4 } })
+    expect(editor.state.selection.$from.index(0)).toBe(1)
+    expect(editor.state.selection.$from.parentOffset).toBe(3)
+  })
 
   it('shows the text, named by its scene', async () => {
     const { dom } = await show('The bells rang.\n')
@@ -90,13 +130,28 @@ describe('what is shown for what is in the file', () => {
     expect(dom.querySelector('a[href="https://example.com"]')).not.toBeNull()
   })
 
-  it('shows a table and a footnote as the text they are, nothing dropped', async () => {
-    const { dom } = await show(golden('raw-kept.md'))
-    expect(dom.querySelector('table')).toBeNull()
-    const raws = [...dom.querySelectorAll('pre[data-raw-block]')].map((e) => e.textContent)
-    expect(raws.join('\n')).toContain('| Name | Role |')
-    expect(raws.join('\n')).toContain('[^1]: The first note.')
-    expect(raws.join('\n')).toContain('```js')
+  it('shows a table as a table and a footnote as a number with its note, nothing dropped', async () => {
+    const { dom } = await show(golden('tables.md') + '\n' + golden('footnotes.md'))
+    expect(dom.querySelectorAll('table')).toHaveLength(2)
+    expect([...dom.querySelectorAll('th')].map((e) => e.textContent).slice(0, 2)).toEqual([
+      'Name',
+      'Role',
+    ])
+    expect(dom.querySelector('td[style*="text-align: right"]')).not.toBeNull()
+    // The number is drawn, not typed: a reference and its note share it.
+    const refs = [...dom.querySelectorAll('[data-footnote-ref]')]
+    expect(refs.map((e) => e.getAttribute('data-number'))).toEqual(['1', '2', '1'])
+    expect(refs[0]!.getAttribute('aria-label')).toBe('Footnote 1: The first note.')
+    expect(refs[0]!.getAttribute('role')).toBe('doc-noteref')
+    expect(refs.map((e) => e.textContent)).toEqual(['1', '2', '1'])
+    expect(refs[0]!.getAttribute('data-note')).toBe('The first note.')
+    const notes = [...dom.querySelectorAll('[data-footnote-def]')]
+    expect(notes.map((e) => e.getAttribute('data-number'))).toEqual(['1', '2'])
+    // What is still kept as written is not mistaken for either.
+    const raws = await show(golden('raw-kept.md'))
+    expect(
+      [...raws.dom.querySelectorAll('pre[data-raw-block]')].map((e) => e.textContent),
+    ).toContain('```js\nconst a = [1, 2];\n```')
   })
 
   it('shows lists, a checklist, a quote, a callout and a scene break', async () => {
@@ -226,17 +281,15 @@ describe('an edit the workspace did not take', () => {
 })
 
 describe('pasting', () => {
-  it('a table keeps its cells apart: a paragraph a row, a space between cells', async () => {
+  it('a table becomes a table, each cell one line of words and marks', async () => {
     const { editor } = await show('One.\n')
     editor.commands.focus('end')
     editor.view.pasteHTML(
-      '<table><tr><th>Name</th><th>Role</th></tr><tr><td>Elena</td><td>Courier</td></tr></table>',
+      '<table><tr><th>Name</th><th>Role</th><th>Kind</th></tr>' +
+        '<tr><td><p>Elena</p><p>Vasquez</p></td><td><b>Courier</b></td><td>x<br>y</td></tr></table>',
     )
-    const body = edits().at(-1)!
-    expect(body).toContain('Name Role')
-    expect(body).toContain('Elena Courier')
-    expect(body).not.toContain('NameRole')
-    expect(body).not.toContain('ElenaCourier')
+    expect(edits().at(-1)).toContain('| Name          | Role        | Kind |')
+    expect(edits().at(-1)).toContain('| Elena Vasquez | **Courier** | x y  |')
   })
 })
 

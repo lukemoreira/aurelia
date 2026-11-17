@@ -33,6 +33,7 @@
     "@tiptap/extension-blockquote": "^3.33.1",
     "@tiptap/extension-heading": "^3.33.1",
     "@tiptap/extension-list": "^3.33.1",
+    "@tiptap/extension-table": "^3.33.1",
     "@tiptap/extensions": "^3.33.1",
     "@tiptap/pm": "^3.33.1",
     "@tiptap/starter-kit": "^3.33.1",

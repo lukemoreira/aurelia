@@ -100,30 +100,61 @@ describe('what is understood', () => {
     )
     expect(new Set(types)).toEqual(new Set(['doc', 'rawBlock', 'text']))
   })
-  it('keeps tables and footnotes as raw Markdown text', () => {
+  it('reads a table and a footnote as nodes, with nothing kept as text', () => {
     const md = '| a | b |\n| - | - |\n| 1 | 2 |\n\n[^1]: A note.\n'
-    const raws = blocks(md).filter((b) => b.type === 'rawBlock')
-    expect(raws.map((b) => b.content![0]!.text)).toEqual([
-      '| a | b |\n| - | - |\n| 1 | 2 |',
-      '[^1]: A note.',
+    expect(blocks(md).map((b) => b.type)).toEqual(['table', 'footnoteDef'])
+    expect(blocks(md)[0]!.content!.map((r) => r.content!.map((c) => c.type))).toEqual([
+      ['tableHeader', 'tableHeader'],
+      ['tableCell', 'tableCell'],
     ])
+    expect(blocks(md)[1]!.attrs!.label).toBe('1')
+  })
+  it('keeps what is not a table or a note as written', () => {
+    // A row with more cells than the header: `marked` would drop the third, so it is not a table.
+    const loose = '| a | b |\n| - | - |\n| 1 | 2 | 3 |\n'
+    expect(blocks(loose).map((b) => b.type)).toEqual(['rawBlock'])
+    // A definition that does not start its line is a line of its paragraph.
+    expect(blocks('Text\n  [^1]: not a note\n').map((b) => b.type)).toEqual(['paragraph'])
   })
   it('keeps a table through an edit of the paragraph beside it', () => {
     const md = 'Before.\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\nAfter [^1].\n\n[^1]: A note.\n'
     expect(toBody(edited(md, 0, 'Edited.'))).toBe(md.replace('Before.', 'Edited.'))
   })
-  it('keeps a table even if the raw block itself is rewritten', () => {
-    const doc = bodyToDoc('| a | b |\n| - | - |\n')
-    const raw = doc.content![0]!
-    delete raw.attrs!.sig // forgotten: written from its text
-    expect(toBody(doc)).toBe('| a | b |\n| - | - |\n')
+  it('writes a table that was changed in a tidy form, and keeps the other blocks as read', () => {
+    const md = 'Before.\n\n|a|b|\n|-|-:|\n|1|2|\n\nAfter.\n'
+    const doc = bodyToDoc(md)
+    const cell = doc.content![1]!.content![1]!.content![0]!
+    cell.content = [{ type: 'paragraph', content: [{ type: 'text', text: 'one' }] }]
+    expect(toBody(doc)).toBe('Before.\n\n| a   |   b |\n| --- | --: |\n| one |   2 |\n\nAfter.\n')
+  })
+  it('keeps a table that was only read exactly as it was, whatever its form', () => {
+    const md = 'a | b\n--|--\nc | d\n'
+    expect(toBody(bodyToDoc(md))).toBe(md)
   })
   it('keeps a footnote reference and a wiki link unescaped when its paragraph is rewritten', () => {
     const text =
       'A note[^1], [[Elena Vasquez|Elena]], ![[Elena Vasquez]] and [[id:chr_8f3k2m9q1x]] ^blk-a1b2c3'
-    expect(toBody(edited('x\n', 0, text))).toBe(`${text}\n`)
     const [p] = blocks(text)
-    expect(p!.content!.map((n) => n.text).join('')).toBe(text)
+    const doc = bodyToDoc('x\n')
+    doc.content![0] = { ...p!, attrs: { ...p!.attrs, sig: null } }
+    expect(toBody(doc)).toBe(text)
+    // The reference is a node: its words are the same in the text, and the label is kept.
+    expect(schema.nodeFromJSON(p!).textContent).toBe(text)
+    expect(p!.content!.find((n) => n.type === 'footnoteRef')!.attrs!.label).toBe('1')
+  })
+  it('writes the words `[^1]` typed as text escaped, so they stay words and are not a reference', () => {
+    expect(toBody(edited('x\n', 0, 'See [^1] and [^a.b]: here'))).toBe(
+      'See \\[^1\\] and \\[^a.b\\]: here\n',
+    )
+    const again = bodyToDoc('See \\[^1\\] here\n').content![0]!
+    expect(again.content!.some((n) => n.type === 'footnoteRef')).toBe(false)
+    // After an edit the words are still words, and still escaped.
+    const doc = bodyToDoc('See \\[^1\\] here\n')
+    doc.content![0] = { ...doc.content![0]!, attrs: { ...doc.content![0]!.attrs, sig: null } }
+    expect(toBody(doc)).toBe('See \\[^1\\] here\n')
+    expect(bodyToDoc(toBody(doc)).content![0]!.content!.some((n) => n.type === 'footnoteRef')).toBe(
+      false,
+    )
   })
   it('keeps a block ID at the end of the block it names', () => {
     const md =

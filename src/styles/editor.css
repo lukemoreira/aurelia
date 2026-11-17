@@ -220,7 +220,7 @@
   border-radius: 4px;
 }
 
-/* A block kept as Markdown, exactly as written: a table, a footnote, a code block, HTML. */
+/* A block kept as Markdown, exactly as written: a code block, HTML, anything not yet edited. */
 .manuscript .ProseMirror pre[data-raw-block] {
   font-family: inherit;
   font-size: 0.92em;
@@ -239,6 +239,129 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--ink-3);
+}
+
+/*
+ * Tables: a header row, and cells that hold one paragraph. A wide table scrolls inside its own
+ * frame, so the page never scrolls sideways. Rules are tokens, so both themes follow.
+ */
+.manuscript .ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin-block: 0.9em;
+}
+.manuscript .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.92em;
+  line-height: 1.5;
+  text-indent: 0;
+}
+.manuscript .ProseMirror :is(th, td) {
+  border: 1px solid var(--line-2);
+  padding: 0.35em 0.7em;
+  vertical-align: top;
+  text-align: start;
+  min-width: 3.5em;
+}
+.manuscript .ProseMirror th {
+  background: var(--surface);
+  font-family: var(--font-ui);
+  font-size: 0.9em;
+  font-weight: 600;
+}
+.manuscript .ProseMirror :is(th, td) p {
+  margin: 0;
+  text-indent: 0;
+}
+/* Cells chosen as a block (drag, or Shift and the arrows): gold, as a selection is. */
+.manuscript .ProseMirror .selectedCell {
+  background: var(--gold-soft);
+}
+
+/*
+ * Footnotes. A reference is a small number in the text; the note's words show over it while the
+ * pointer rests on it or the caret has stepped onto it (the number itself is text in the page). A note is a smaller block under the text,
+ * numbered by the same place among the references (its label in the file is its own).
+ */
+.manuscript .ProseMirror [data-footnote-ref] {
+  position: relative;
+  padding: 0 0.12em;
+  font-family: var(--font-ui);
+  font-size: 0.68em;
+  font-weight: 600;
+  line-height: 0;
+  vertical-align: super;
+  text-indent: 0;
+  color: var(--gold-ink);
+  cursor: help;
+  user-select: none;
+}
+.manuscript .ProseMirror [data-footnote-ref]::before {
+  content: attr(data-note);
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+  width: max-content;
+  max-inline-size: min(18rem, 70vw);
+  margin-bottom: 0.7rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: start;
+  white-space: normal;
+  color: var(--ink);
+}
+.manuscript .ProseMirror [data-footnote-ref]:hover::before,
+.manuscript .ProseMirror [data-footnote-ref].ProseMirror-selectednode::before {
+  display: block;
+}
+.manuscript .ProseMirror [data-footnote-ref].ProseMirror-selectednode {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.manuscript .ProseMirror [data-footnote-def] {
+  display: grid;
+  grid-template-columns: 2.2em 1fr;
+  column-gap: 0.4em;
+  margin-block: 0.35em;
+  font-size: 0.88em;
+  line-height: 1.55;
+  text-indent: 0;
+  color: var(--ink-2);
+}
+.manuscript .ProseMirror [data-footnote-def]::before {
+  content: attr(data-number) '.';
+  grid-column: 1;
+  grid-row: 1;
+  padding-top: 0.15em;
+  font-family: var(--font-ui);
+  font-size: 0.82em;
+  font-weight: 600;
+  text-align: end;
+  color: var(--gold-ink);
+  user-select: none;
+}
+.manuscript .ProseMirror [data-footnote-def] > * {
+  grid-column: 2;
+}
+.manuscript .ProseMirror [data-footnote-def] p {
+  text-indent: 0;
+}
+/* The first note of a run is set off from the text by a rule. */
+.manuscript .ProseMirror > :not([data-footnote-def]) + [data-footnote-def] {
+  margin-top: 1.6em;
+  padding-top: 0.8em;
+  border-top: 1px solid var(--line);
 }
 
 /* What is selected: gold, as the caret is (the soft gold is too faint on the dark canvas). */

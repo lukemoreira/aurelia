@@ -1,15 +1,4 @@
-Before the table.
-
-| Name | Role |
-| --- | --- |
-| Elena | Courier |
-| Warden | Gatekeeper |
-
-A footnote ref[^1] and another[^note].
-
-[^1]: The first note.
-[^note]: A longer note
-    with a continuation.
+Before the code.
 
 ```js
 const a = [1, 2];

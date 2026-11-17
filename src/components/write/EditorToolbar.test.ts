@@ -57,6 +57,8 @@ describe('the formatting bar', () => {
       'Quote',
       'Callout',
       'Scene break',
+      'Table',
+      'Footnote',
       'Undo',
       'Redo',
     ])
@@ -133,6 +135,44 @@ describe('the formatting bar', () => {
     await click(button('Callout'))
     await click(button('Scene break'))
     expect(edits().at(-1)).toBe('One.\n\n* * *\n')
+  })
+
+  it('makes a table and a footnote, and writes them as Markdown', async () => {
+    const { editor, button, edits } = await show('One two.\n')
+    editor.commands.setTextSelection(4)
+    await click(button('Footnote'))
+    expect(edits().at(-1)).toBe('One[^1] two.\n\n[^1]:\n')
+    editor.commands.focus('end')
+    await click(button('Undo'))
+    editor.commands.setTextSelection(10)
+    await click(button('Table'))
+    expect(button('Table').getAttribute('aria-pressed')).toBe('true')
+    expect(button('Table').hasAttribute('disabled')).toBe(true)
+    expect(edits().at(-1)).toContain('| --- | --- | --- |')
+  })
+
+  it('offers the rows, columns and alignment of a table only while the caret is in one', async () => {
+    const { editor, bar } = await show('Text.\n\n| a | b |\n| - | - |\n| 1 | 2 |\n')
+    const names = () => [...bar.querySelectorAll('button')].map((b) => b.getAttribute('aria-label'))
+    expect(names()).not.toContain('Table actions')
+    editor.commands.setTextSelection(editor.state.doc.child(0).nodeSize + 4)
+    await flushPromises()
+    expect(editor.isActive('table')).toBe(true)
+    expect(names()).toContain('Table actions')
+    editor.commands.setTextSelection(2)
+    await flushPromises()
+    expect(names()).not.toContain('Table actions')
+  })
+
+  it('offers to renumber the footnotes only when their labels are out of order', async () => {
+    const ordered = await show('A[^1] B[^2].\n\n[^1]: a\n\n[^2]: b\n')
+    expect(ordered.bar.querySelector('[aria-label="Renumber footnotes"]')).toBeNull()
+    wrapper?.unmount()
+    document.body.innerHTML = ''
+    const loose = await show('A[^b] B[^a].\n\n[^a]: a\n\n[^b]: b\n')
+    await click(loose.button('Renumber footnotes'))
+    expect(loose.edits().at(-1)).toBe('A[^1] B[^2].\n\n[^2]: a\n\n[^1]: b\n')
+    expect(loose.bar.querySelector('[aria-label="Renumber footnotes"]')).toBeNull()
   })
 
   it('keeps Undo and Redo off until there is something to undo or redo', async () => {

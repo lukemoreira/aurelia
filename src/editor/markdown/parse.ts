@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { JSONContent } from '@tiptap/core'
-import { Lexer } from 'marked'
+import { Lexer, Tokenizer } from 'marked'
 
 /** The part of a `marked` token that is read here. */
 interface Tok {
@@ -17,6 +17,10 @@ interface Tok {
   checked?: boolean
   href?: string
   title?: string | null
+  /** A table's header cells, rows (each a list of cells) and the alignment of each column. */
+  header?: Tok[]
+  rows?: Tok[][]
+  align?: (string | null)[]
 }
 
 export interface ParsedBlock {
@@ -31,10 +35,32 @@ export interface ParsedMarkdown {
   exact: boolean
 }
 
+/**
+ * `marked` keeps every link definition of a file in one table, and a footnote's line that looks
+ * like one (`[^1]: https://…`) would make every `[^1]` in the file read as a link, wherever it
+ * stands and whatever its neighbours say. A footnote's label is not a link's: its definition is
+ * left out of the table.
+ */
+class NoteSafeTokenizer extends Tokenizer {
+  override def(src: string) {
+    const token = super.def(src)
+    if (token?.tag.startsWith('^')) token.tag = `\0${token.tag}`
+    return token
+  }
+}
+
 const OPTIONS = { gfm: true, breaks: false, pedantic: false }
-const lex = (md: string) => Lexer.lex(md, OPTIONS) as unknown as Tok[]
+const lex = (md: string) =>
+  new Lexer({ ...OPTIONS, tokenizer: new NoteSafeTokenizer() }).lex(md) as unknown as Tok[]
 
 const FOOTNOTE_DEFINITION = /^\[\^[^\]\s]+\]:/
+/**
+ * A footnote's reference, `[^1]`, anywhere in a line; and its definition, only at the start of one.
+ * A label is anything but space, a bracket, a backslash or what Markdown reads (`*`, a backtick,
+ * `<`, `>`, `~`): `[^né]` and `[^a.b]` are labels like `[^1]`.
+ */
+const FOOTNOTE_REFERENCE = /\[\^([^\]\s\\[*`<>~]+)\]/g
+const FOOTNOTE_START = /^\[\^([^\]\s\\[*`<>~]+)\]:/
 const CALLOUT_OPENING = /^\[!([\w-]+)\][ \t]*([^\n]*)(?:\n|$)/
 
 type Mark = NonNullable<JSONContent['marks']>[number]
@@ -54,11 +80,24 @@ function inline(tokens: Tok[] | undefined, marks: Mark[]): JSONContent[] {
     // After a hard break the next line's leading spaces, and a newline `marked` adds, are not text.
     if (out.at(-1)?.type === 'hardBreak') value = value.replace(/^[ \t\n]+/, '')
     const all = [...marks, ...extra]
-    if (value)
-      out.push(
-        all.length ? { type: 'text', text: value, marks: all } : { type: 'text', text: value },
-      )
+    const piece = (text: string) =>
+      text && out.push(all.length ? { type: 'text', text, marks: all } : { type: 'text', text })
+    // `[^1]` is a footnote's reference, except in text kept as written (inline code, a tag).
+    if (all.some((m) => m.type === 'verbatim')) return void piece(value)
+    let from = 0
+    for (const m of value.matchAll(FOOTNOTE_REFERENCE)) {
+      piece(value.slice(from, m.index))
+      reference(m[1]!, all)
+      from = m.index + m[0].length
+    }
+    piece(value.slice(from))
   }
+  const reference = (label: string, all: Mark[]) =>
+    out.push({
+      type: 'footnoteRef',
+      attrs: { label },
+      ...(all.length ? { marks: all } : {}),
+    })
   const list = tokens ?? []
   for (let i = 0; i < list.length; i++) {
     const t = list[i]!
@@ -177,10 +216,126 @@ function block(t: Tok): JSONContent | null {
       return quote(t)
     case 'list':
       return list(t)
+    case 'table':
+      return table(t)
     default:
       // A table, a code block, HTML, a link definition, anything else: kept as written.
       return rawBlock(t)
   }
+}
+
+/**
+ * How many cells a table line has, counted the way `marked` splits it: an unescaped `|` ends a
+ * cell (inside a code span too), and a pipe at either edge does not make an empty one.
+ */
+function cellCount(line: string): number {
+  const row = line.replace(/\|/g, (_m, offset: number, whole: string) => {
+    let escaped = false
+    for (let i = offset - 1; i >= 0 && whole[i] === '\\'; i--) escaped = !escaped
+    return escaped ? '|' : ' |'
+  })
+  const cells = row.split(/ \|/)
+  if (!cells[0]!.trim()) cells.shift()
+  if (cells.length && !cells.at(-1)!.trim()) cells.pop()
+  return cells.length
+}
+
+/**
+ * A GFM table: a row of header cells, then rows. `marked` drops the cells a row has beyond the
+ * header's, so a table with such a row is not read as one: it is kept as written.
+ */
+function table(t: Tok): JSONContent {
+  const header = t.header ?? []
+  const lines = t.raw.replace(/\n+$/, '').split('\n')
+  const body = lines.slice(2)
+  if (
+    (t.rows ?? []).length !== body.length ||
+    [lines[0]!, ...body].some((l) => cellCount(l) > header.length)
+  )
+    return rawBlock(t)
+  const row = (cells: Tok[], type: string) => ({
+    type: 'tableRow',
+    content: cells.map((cell, i) => {
+      const align = t.align?.[i]
+      return {
+        type,
+        ...(align ? { attrs: { align } } : {}),
+        content: [paragraph(inline(cell.tokens, []))],
+      }
+    }),
+  })
+  return {
+    type: 'table',
+    content: [row(header, 'tableHeader'), ...(t.rows ?? []).map((r) => row(r, 'tableCell'))],
+  }
+}
+
+/**
+ * Footnote definitions starting at token `i`: `[^1]: first line`, and what is indented under it
+ * (the lines of its paragraph, then more blocks after a blank line, each indented). One
+ * paragraph can hold several definitions; each is a block with the part of the text that is its
+ * own, so an untouched one is written back as read. Returns null where no definition starts.
+ */
+function definitions(tokens: Tok[], i: number): NoteGroup | null {
+  const group = noteGroup(tokens, i)
+  if (!group) return null
+  // Each note must read the same alone: its neighbours decide how `marked` reads a lazy line
+  // (`2) x` is a list after a definition and a line of text after a paragraph), and one that
+  // read otherwise once a blank line stood before it would be changed by an edit beside it.
+  const alone = group.blocks.every(({ json, src }) => {
+    const own = lex(src)
+    while (own.at(-1)?.type === 'space') own.pop()
+    const again = noteGroup(own, 0)
+    return (
+      again?.end === own.length - 1 &&
+      again.blocks.length === 1 &&
+      JSON.stringify(again.blocks[0]!.json) === JSON.stringify(json)
+    )
+  })
+  return alone ? group : null
+}
+
+interface NoteGroup {
+  end: number
+  blocks: ParsedBlock[]
+}
+
+function noteGroup(tokens: Tok[], i: number): NoteGroup | null {
+  const first = tokens[i]!
+  if ((first.type !== 'paragraph' && first.type !== 'def') || !FOOTNOTE_START.test(first.raw))
+    return null
+  // What belongs to a note: its lazy lines, which `marked` sets apart from a first line that
+  // reads as a link definition (`[^1]: word`, then a line of text), and the indented blocks
+  // after a blank line, which it reads as code.
+  let end = i
+  for (let j = i + 1; j < tokens.length; j++) {
+    const k = tokens[j]!
+    const touching = end === j - 1 && !/\n[ \t]*\n$/.test(tokens[end]!.raw)
+    if (k.type === 'code' && /^(?: {4}|\t)/.test(k.raw)) end = j
+    else if (touching && (k.type === 'paragraph' || k.type === 'def' || k.type === 'text')) end = j
+    else if (k.type !== 'space') break
+  }
+  const raw = tokens
+    .slice(i, end + 1)
+    .map((k) => k.raw)
+    .join('')
+  const starts = [...raw.matchAll(/^\[\^[^\]\s\\[*`<>~]+\]:/gm)].map((m) => m.index)
+  const found = starts.map((at, n) => {
+    const src = raw.slice(at, starts[n + 1] ?? raw.length)
+    const label = FOOTNOTE_START.exec(src)![1]!
+    const text = src
+      .replace(FOOTNOTE_START, '')
+      .replace(/^[ \t]+/, '')
+      .split('\n')
+      .map((line, k) => (k ? line.replace(/^(?: {1,4}|\t)/, '') : line))
+      .join('\n')
+      .replace(/\s+$/, '')
+    return {
+      json: { type: 'footnoteDef', attrs: { label }, content: blocks(lex(text)) },
+      src,
+    }
+  })
+  return { end, blocks: found }
 }
 
 function quote(t: Tok): JSONContent {
@@ -240,7 +395,17 @@ export function parseMarkdown(md: string): ParsedMarkdown {
   }
   const parsed: ParsedBlock[] = []
   let lead = ''
-  for (const t of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i]!
+    const notes = definitions(tokens, i)
+    if (notes) {
+      for (const note of notes.blocks) {
+        parsed.push({ json: note.json, src: lead + note.src })
+        lead = ''
+      }
+      i = notes.end
+      continue
+    }
     const json = block(t)
     if (json) {
       parsed.push({ json, src: lead + t.raw })
