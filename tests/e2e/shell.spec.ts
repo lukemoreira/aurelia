@@ -242,6 +242,21 @@ test.describe('moving around', () => {
     await expect(page.getByRole('tooltip', { name: 'Links' })).toBeVisible()
     await tabs.getByRole('tab', { name: 'Links' }).click()
     await expect(tabs.getByRole('tab', { name: 'Links' })).toHaveAttribute('aria-selected', 'true')
+
+    // Only the open tab scrolls, under the strip: the strip stays, and no scroll bar runs beside it.
+    await tabs.getByRole('tab', { name: 'Book' }).click()
+    await page.setViewportSize({ width: 1280, height: 420 })
+    const panel = page.getByRole('complementary', { name: 'Scene inspector' }).getByRole('tabpanel')
+    const top = (await tabs.boundingBox())!.y
+    const scrolled = await panel.evaluate((el) => {
+      el.scrollTop = el.scrollHeight
+      return el.scrollTop
+    })
+    expect(scrolled).toBeGreaterThan(0)
+    expect((await tabs.boundingBox())!.y).toBe(top)
+    expect((await panel.boundingBox())!.y).toBeGreaterThanOrEqual(
+      top + (await tabs.boundingBox())!.height,
+    )
   })
 
   test('the filter narrows the navigator', async ({ page }) => {
