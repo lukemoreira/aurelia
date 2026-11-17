@@ -41,11 +41,11 @@ export const useBackupStore = defineStore('backup', () => {
     void probe() // the status bar nudges toward backup only where there is a server to hold one
   }
 
-  /** Let go of the engine and wait for a round in flight to end: nothing of it touches the workspace after this. */
-  async function stop() {
+  /** Let go of the engine and wait up to `maxMs` for a round in flight to end. False: it is still going. */
+  async function stop(maxMs: number): Promise<boolean> {
     const old = engine.value
     await attach(null)
-    await old?.idle()
+    return (await old?.idleWithin(maxMs)) ?? true
   }
 
   async function probe() {

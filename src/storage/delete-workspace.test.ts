@@ -7,6 +7,7 @@ import { readZip } from '../../tests/helpers/read-zip'
 import { FakeLocks } from '../../tests/helpers/fake-locks'
 import { MemoryAdapter } from '../../tests/helpers/memory-adapter'
 import { createWorkspace } from './create'
+import { hashText } from './hash'
 import {
   copyOfStored,
   deleteBrowserWorkspace,
@@ -264,7 +265,7 @@ describe('a copy of a workspace that is not open', () => {
       workspaceId: A,
       path: 'scenes/one.md',
       content: 'newer words, never saved',
-      baseHash: null,
+      baseHash: await hashText('saved words'), // the file is still as the journal found it
       time: 1,
     })
     await journal.put({
@@ -288,6 +289,40 @@ describe('a copy of a workspace that is not open', () => {
     expect(text('scenes/one.md')).toBe('newer words, never saved')
     expect(text('scenes/two.md')).toBe('a new scene')
     expect(zip.some((f) => f.text === 'not this one')).toBe(false)
+  })
+})
+
+describe('a copy when the file changed after the journal entry was made', () => {
+  const zipOf = async (adapter: MemoryAdapter) =>
+    readZip(new Uint8Array(await (await copyOfStored(adapter, recent(A), journal)).arrayBuffer()))
+  const entry = async (content: string, base: string | null) =>
+    journal.put({ workspaceId: A, path: 'scenes/one.md', content, baseHash: base, time: 1 })
+
+  it('keeps the file as it is and puts the journal’s words beside it, as a conflict does', async () => {
+    const adapter = new MemoryAdapter({ 'scenes/one.md': 'changed by another app' })
+    await entry('my unsaved words', await hashText('what the journal started from'))
+    const zip = await zipOf(adapter)
+    expect(zip.find((f) => f.path.endsWith('scenes/one.md'))?.text).toBe('changed by another app')
+    expect(zip.find((f) => f.path.endsWith('scenes/one (Aurelia copy).md'))?.text).toBe(
+      'my unsaved words',
+    )
+  })
+
+  it('numbers the copy when one is already there, and leaves a file that already has the words alone', async () => {
+    const adapter = new MemoryAdapter({
+      'scenes/one.md': 'changed by another app',
+      'scenes/one (Aurelia copy).md': 'an earlier copy',
+    })
+    await entry('my unsaved words', null)
+    let zip = await zipOf(adapter)
+    expect(zip.find((f) => f.path.endsWith('one (Aurelia copy).md'))?.text).toBe('an earlier copy')
+    expect(zip.find((f) => f.path.endsWith('one (Aurelia copy 2).md'))?.text).toBe(
+      'my unsaved words',
+    )
+
+    const written = new MemoryAdapter({ 'scenes/one.md': 'my unsaved words' })
+    zip = await zipOf(written) // it did get written: nothing to add
+    expect(zip.map((f) => f.path.split('/').slice(1).join('/'))).toEqual(['scenes/one.md'])
   })
 })
 

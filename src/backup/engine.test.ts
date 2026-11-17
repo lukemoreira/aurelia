@@ -288,6 +288,20 @@ describe('what goes up', () => {
     expect(rig.dav.log).toEqual([])
   })
 
+  it('idleWithin() gives up on a round that does not end, and says yes once it has', async () => {
+    const rig = await backupRig()
+    const engine = track(await rig.open())
+    await engine.turnOn()
+    let land!: () => void
+    rig.onFlush(() => new Promise<void>((resolve) => (land = resolve)))
+    const round = engine.run(true)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(await engine.idleWithin(30)).toBe(false) // stalled: the caller stops waiting
+    land()
+    await round
+    expect(await engine.idleWithin(1000)).toBe(true)
+  })
+
   it('waits while the workspace is read-only or settling, and goes when it is not', async () => {
     const rig = await backupRig()
     const engine = track(await rig.open())

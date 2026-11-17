@@ -4,9 +4,11 @@
 import type { StorageAdapter } from './adapter'
 import { StorageError } from './errors'
 import { zipWorkspace } from './export-copy'
+import { hashText } from './hash'
 import type { IdbJournal } from './journal'
 import { loadWorkspace } from './load'
 import type { RecentWorkspace, Recents } from './recents'
+import { copyPathFor } from './paths'
 import { workspaceLockName, type SessionView } from './session'
 
 export interface DeleteDeps {
@@ -35,12 +37,29 @@ export function releaseBlock(view: SessionView): string | null {
   return null
 }
 
-/** Words that only the recovery journal holds (never reached their files): path → the file as it should be. */
+/**
+ * Words that only the recovery journal holds, as files to put in a copy (path → text). Judged as the
+ * save pipeline's `recover()` judges them: a file that already has the words needs nothing, a file
+ * still as the journal found it takes them, and a file that changed meanwhile stays as it is while the
+ * journal's words go beside it in an "Aurelia copy" file, so neither version is lost.
+ */
 export async function unsavedWords(
   journal: Pick<IdbJournal, 'list'>,
+  adapter: StorageAdapter,
   id: string,
 ): Promise<Map<string, string>> {
-  return new Map((await journal.list(id)).map((e) => [e.path, e.content]))
+  const out = new Map<string, string>()
+  for (const e of await journal.list(id)) {
+    const diskHash = (await adapter.read(e.path))?.hash ?? null
+    if (diskHash !== null && diskHash === (await hashText(e.content))) continue // it did get written
+    if (diskHash === e.baseHash) out.set(e.path, e.content)
+    else {
+      let n = 1
+      while (out.has(copyPathFor(e.path, n)) || (await adapter.read(copyPathFor(e.path, n)))) n++
+      out.set(copyPathFor(e.path, n), e.content)
+    }
+  }
+  return out
 }
 
 /** A zip of a workspace that is not open: its files, with what only the journal holds put in. */
@@ -49,7 +68,7 @@ export async function copyOfStored(
   recent: RecentWorkspace,
   journal: Pick<IdbJournal, 'list'>,
 ) {
-  return zipWorkspace(adapter, recent.name, await unsavedWords(journal, recent.key))
+  return zipWorkspace(adapter, recent.name, await unsavedWords(journal, adapter, recent.key))
 }
 
 /** The list the row came from may be old: refuse unless the stored entry is still the same kind. */
