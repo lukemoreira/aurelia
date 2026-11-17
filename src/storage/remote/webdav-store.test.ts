@@ -30,6 +30,26 @@ describe('WebDavStore', () => {
     expect(dav.folders.has('Aurelia/My Book (wsp_a)/current')).toBe(true)
   })
 
+  it('takes a tag a proxy marked weak (Cloudflare does, compressing) as the server’s own', async () => {
+    const tag = await store.write('Aurelia/b (wsp_a)/backup.json', bytes('{}'))
+    const weakening: typeof fetch = async (input, init) => {
+      const res = await davFetch(dav)(String(input), init)
+      const headers = new Headers(res.headers)
+      const etag = headers.get('ETag')
+      if (etag) headers.set('ETag', `W/${etag}`)
+      const body = [204, 304].includes(res.status) ? null : await res.arrayBuffer()
+      return new Response(body, { status: res.status, headers })
+    }
+    const behind = new WebDavStore('/dav/', weakening)
+    const file = await behind.read('Aurelia/b (wsp_a)/backup.json')
+    expect(file!.etag).toBe(tag)
+    // The next write against it goes through, instead of a 412 on every round.
+    const next = behind.write('Aurelia/b (wsp_a)/backup.json', bytes('{"a":1}'), {
+      ifMatch: file!.etag!,
+    })
+    expect(await code(next)).toBe('ok')
+  })
+
   it('reads a missing file as null and lists a missing folder as empty', async () => {
     expect(await store.read('nope.md')).toBeNull()
     expect(await store.list('Aurelia')).toEqual([])
