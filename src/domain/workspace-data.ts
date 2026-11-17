@@ -8,6 +8,7 @@ import {
   type Part,
 } from './schema/book'
 import { parseDocument } from './migrations'
+import { mediaSchema, type Media } from './schema/media'
 import { recordSchema, type RecordFrontmatter } from './schema/record'
 import { sceneSchema, type Scene } from './schema/scene'
 import { universeSchema, type Universe } from './schema/universe'
@@ -31,6 +32,12 @@ export interface RecordDoc {
   body?: string
 }
 
+/** An imported image: its sidecar and the universe whose `media/` folder holds both files. */
+export interface MediaDoc {
+  meta: Media
+  universe: string
+}
+
 /**
  * Everything a loaded workspace holds, in the shape the storage layer (M2) will feed.
  * The in-memory sample builds it today; a folder or browser store builds it later.
@@ -43,6 +50,8 @@ export interface WorkspaceData {
   chapters: Chapter[]
   scenes: SceneDoc[]
   records: RecordDoc[]
+  /** The images of the universes' media folders. Absent: none. */
+  media?: MediaDoc[]
   /** Where to open first. */
   startAt?: { book: string; scene: string }
 }
@@ -58,5 +67,8 @@ export function validateWorkspaceData(data: WorkspaceData): WorkspaceData {
     chapters: data.chapters.map((c) => parseDocument(chapterSchema, c)),
     scenes: data.scenes.map((s) => ({ ...s, meta: parseDocument(sceneSchema, s.meta) })),
     records: data.records.map((r) => ({ ...r, meta: parseDocument(recordSchema, r.meta) })),
+    ...(data.media
+      ? { media: data.media.map((m) => ({ ...m, meta: parseDocument(mediaSchema, m.meta) })) }
+      : {}),
   }
 }

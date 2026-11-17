@@ -465,18 +465,37 @@ Do not scaffold future features early.
 **M6 · Worldbuilding library**
 - Character sheet (identity, inner life, voice, relationships with types, appearances)
   with a **Progression** view: state scene by scene in reading order, built from scene
-  changes.
+  changes. *M6a built the sheet; the Progression view waits for Continuity (M5b).*
 - Worlds and places as a free hierarchy (planet → … → room, custom levels), sensory
   details, Earth as a root for history writing.
 - Items, events, lore, research (with sources), factions, cultures, magic/tech systems.
 - **Find new names** (ADR-0010): a Names panel lists recurring capitalised words that are
   not records yet, with "Create character / Create place / Not a name".
 - Timeline with real dates (incl. BCE) and custom calendars (builds on the M5 outline
-  columns).
+  columns). *Waits for Continuity (M5b).*
 - Media gallery (portraits, maps, reference images) stored in the project folder. The
   original file and extension are kept (no transcoding); thumbnails are a device-side
   cache.
 - Exit: records link across books in one universe and show in backlinks and search.
+
+**M6a · the World library (built)** — everything above except the Progression view and the
+timeline.
+- [x] Character sheet: Overview (who they are, inner life), Relationships (typed, listed on both
+  sheets, kept on the record that listed it), Appearances (scenes by book, from the index), Voice.
+- [x] Places and worlds as a tree of any depth: author's own level name (`kind`), sensory details,
+  breadcrumbs, "Start from Earth", move by drag, Alt+↑/↓ (out / into the place above) and
+  "Move to…"; no cycles, one key of one file per move.
+- [x] Faction, culture, system, item, event, lore and research (title, author, address, note
+  per source) made from the World view's New menu; their fields are searched.
+- [x] Find new names (World › New names, and the Names tab): ≥ 3 times, not at a sentence start,
+  not a record or any word of one; Create character / place; Not a name kept in `book.json`.
+- [x] Media gallery: originals kept byte for byte (`media/med_….<ext>` + `med_….json` with
+  caption and credit), thumbnails in the browser's private file system (never the folder), a
+  portrait or picture on any record, delete to the trash with Undo; backup, restore and sync carry
+  the files as bytes.
+- Decisions: see ADR-0003, ADR-0009, ADR-0010 and ADR-0012 ("As built (M6a)").
+- Later, not now: the gallery draws every image of the universe (two at a time); a window of tiles
+  at a time (as the outline table does) when a universe holds hundreds.
 
 ### Release v0.4 "Protect and share"
 
@@ -648,3 +667,8 @@ backup — ADR-0009.)
   decorations over unchanged Markdown, the Names and Links tabs, search in the palette, and Rename
   everywhere with a preview, a version or a safety copy first, compare-and-write per file and one
   Undo. Parallel browser tests: `E2E_PORT=4177 npm run e2e`.
+- 2026-11-16 — M6a The World library (branch `feat/m6a-world`): character sheet with tabs, places
+  as a free hierarchy with Earth, the other record types, Find new names, and the media gallery.
+  Storage learned bytes: `StorageAdapter.writeBytes`, binary-safe moves to the trash, restore and
+  sync of images (never read as text, never rewritten). Left for M6b (needs Continuity): the
+  character Progression view and the timeline with real dates and calendars.

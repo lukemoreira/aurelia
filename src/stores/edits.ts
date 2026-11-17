@@ -25,6 +25,8 @@ export interface Toast {
   text: string
   error?: boolean
   undo?: () => Promise<void>
+  /** One more thing to do with what was just made ("Open"). */
+  action?: { label: string; run: () => void }
   /** Move focus to Undo (the delete was made from the keyboard, where the row it had is gone). */
   focusUndo?: boolean
 }

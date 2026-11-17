@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { bookSchema, chapterSchema, partSchema } from '@/domain/schema/book'
+import { mediaSchema } from '@/domain/schema/media'
 import { recordSchema } from '@/domain/schema/record'
 import { universeSchema } from '@/domain/schema/universe'
-import type { RecordDoc, SceneDoc, WorkspaceData } from '@/domain/workspace-data'
+import type { MediaDoc, RecordDoc, SceneDoc, WorkspaceData } from '@/domain/workspace-data'
 import { bodyForEditor, parseFrontmatter, splitDocument } from './frontmatter'
 import { classify } from './paths'
 import { readDocument } from './read-document'
@@ -16,14 +17,19 @@ export type Parsed =
   | { kind: 'chapter'; value: WorkspaceData['chapters'][number] }
   | { kind: 'scene'; doc: SceneDoc; head: string }
   | { kind: 'record'; doc: RecordDoc; head: string }
+  | { kind: 'media'; doc: MediaDoc }
 
 /** The ID of what a file holds. */
 export const parsedId = (p: Parsed) =>
-  p.kind === 'scene' || p.kind === 'record' ? p.doc.meta.id : p.value.id
+  p.kind === 'scene' || p.kind === 'record' || p.kind === 'media' ? p.doc.meta.id : p.value.id
 
 /** The title of what a file holds, for a screen that has to name a file. */
 export const parsedTitle = (p: Parsed) =>
-  p.kind === 'scene' || p.kind === 'record' ? p.doc.meta.title : p.value.title
+  p.kind === 'media'
+    ? p.doc.meta.caption || p.doc.meta.name || p.doc.meta.file
+    : p.kind === 'scene' || p.kind === 'record'
+      ? p.doc.meta.title
+      : p.value.title
 
 /** Markdown file → its frontmatter as data. */
 function frontmatterOf(text: string): unknown {
@@ -65,6 +71,14 @@ export function parseFile(path: string, text: string, onNewer: () => void): Pars
       }
       return { kind: 'record', doc, head: parts.head }
     }
+    case 'media':
+      return {
+        kind: 'media',
+        doc: {
+          meta: readDocument(mediaSchema, JSON.parse(text), onNewer),
+          universe: kind.universe,
+        },
+      }
     default:
       return null
   }
@@ -93,6 +107,8 @@ export function applyParsed(data: WorkspaceData, p: Parsed): WorkspaceData {
       return { ...data, scenes: replaceBy(data.scenes, (s) => s.meta.id, p.doc) }
     case 'record':
       return { ...data, records: replaceBy(data.records, (r) => r.meta.id, p.doc) }
+    case 'media':
+      return { ...data, media: replaceBy(data.media ?? [], (m) => m.meta.id, p.doc) }
   }
 }
 
@@ -107,5 +123,6 @@ export function removeById(data: WorkspaceData, itemId: string): WorkspaceData {
     chapters: data.chapters.filter(not),
     scenes: data.scenes.filter((s) => s.meta.id !== itemId),
     records: data.records.filter((r) => r.meta.id !== itemId),
+    ...(data.media ? { media: data.media.filter((m) => m.meta.id !== itemId) } : {}),
   }
 }

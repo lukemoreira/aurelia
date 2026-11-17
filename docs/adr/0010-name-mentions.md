@@ -129,3 +129,20 @@ Renaming a record opens **"Change the name in your text too?"**:
   session); a change from another device is deferred while the run is going; a refusal stops the
   run and reports how far it got; one Undo restores every file and the other names, leaving (and
   naming) a file typed in since.
+
+## As built (M6a)
+
+- **Find new names** is `WorkspaceIndex.newNames(bookId)` over `src/index/new-names.ts`: a capitalised
+  word (a capital and a small letter after it) that stands 3 or more times in the book's scenes, not at
+  the start of a sentence or a block or right after an opening quote (a full stop after "Mr", "Mrs",
+  "Ms", "Dr", "St" or "Prof" is not a sentence end), not inside a link, code or address, not a day,
+  a month or a title like "Sir", and not any word of any name a record already has (so "Vasquez" is
+  not offered once "Elena Vasquez" exists). Single words only. It reads the open book's scenes, not
+  other books' and not record notes. It is a pure function of the files, so every device agrees.
+- **"Not a name" for this panel** is kept in `book.json` as `notNames: ["Greywater"]` (exact word),
+  not in a scene's `ignoreNames` — that list answers one place a record was suggested, this answers a
+  word the library does not know. Nothing is written into a scene or its text; Undo puts the list back.
+- **Create character / Create place** makes a record shared by the universe (a standalone book's
+  universe is the book's own). The word is then a name and leaves the list; no alias is added.
+- The panel is in World (›New names, with a count) and in the Names tab of the inspector (the design's
+  "New names in this book"). After typing it is worked out again after a 0.7 s pause.

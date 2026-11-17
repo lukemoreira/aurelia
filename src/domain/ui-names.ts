@@ -54,6 +54,7 @@ export type IconName =
   | 'plan'
   | 'continuity'
   | 'trash'
+  | 'image'
   | 'more'
 
 export type StatusKind = 'idea' | 'outline' | 'draft' | 'revised' | 'final'

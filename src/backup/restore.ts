@@ -2,7 +2,7 @@
 import type { StorageAdapter } from '@/storage/adapter'
 import { StorageError } from '@/storage/errors'
 import { encode, hashBytes } from '@/storage/hash'
-import { WORKSPACE_FILE } from '@/storage/paths'
+import { WORKSPACE_FILE, isMediaBinary } from '@/storage/paths'
 import type { RemoteStore } from '@/storage/remote/remote-store'
 import { readZip } from '@/storage/zip'
 import { BACKUP_ROOT, currentPath, parseFolder, parseVersion, versionsDir } from './layout'
@@ -129,11 +129,34 @@ export async function fetchBackup(
       files.set(path, entry.data)
       if (!entry.crcOk) problems.push({ path, kind: 'changed' })
     }
+    await addImagesFrom(store, folder, files)
   }
   if (!files.has(WORKSPACE_FILE) && !problems.some((p) => p.path === WORKSPACE_FILE))
     problems.push({ path: WORKSPACE_FILE, kind: 'missing' })
-  for (const [path, bytes] of files) if (!isText(bytes)) problems.push({ path, kind: 'unreadable' })
+  for (const [path, bytes] of files)
+    if (!isMediaBinary(path) && !isText(bytes)) problems.push({ path, kind: 'unreadable' })
   return { files, etags, problems: problems.sort((a, b) => a.path.localeCompare(b.path)) }
+}
+
+/**
+ * A version's zip holds no images (they are never edited, so `current/` and the trash keep them as
+ * themselves). Restoring a version brings back the images its sidecars list, from `current/` as the
+ * backup's manifest names them, each checked against its hash. One that is not there any more (its
+ * trash was emptied) is left out: its sidecar then shows "File is missing", and nothing else waits.
+ */
+async function addImagesFrom(
+  store: RemoteStore,
+  folder: string,
+  files: Map<string, Uint8Array<ArrayBuffer>>,
+) {
+  const found = await readManifest(store, folder).catch(() => null)
+  if (!found) return
+  for (const [path, expected] of Object.entries(found.manifest.files)) {
+    if (!isMediaBinary(path) || files.has(path)) continue
+    if (!files.has(path.replace(/\.[^./]+$/, '.json'))) continue // the version does not list this image
+    const file = await store.read(currentPath(folder, path))
+    if (file && (await hashBytes(file.bytes)) === expected.hash) files.set(path, file.bytes)
+  }
 }
 
 /** The same files under a new workspace ID: only `aurelia.json` changes. */
@@ -155,7 +178,9 @@ export async function writeRestored(
   const order = [...files.keys()].sort(
     (a, b) => Number(a === WORKSPACE_FILE) - Number(b === WORKSPACE_FILE),
   )
-  for (const path of order) await adapter.write(path, text.decode(files.get(path)!))
+  for (const path of order)
+    if (isMediaBinary(path)) await adapter.writeBytes(path, files.get(path)!)
+    else await adapter.write(path, text.decode(files.get(path)!))
 }
 
 /** One version, as a zip for the browser to save. */

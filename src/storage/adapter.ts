@@ -26,6 +26,8 @@ export interface StorageAdapter {
   readBytes(path: string): Promise<Uint8Array<ArrayBuffer> | null>
   /** Replace the whole file or create it. A write that fails leaves the old file as it was. */
   write(path: string, text: string): Promise<void>
+  /** The same for bytes that are not text (an image): the file is exactly these bytes. */
+  writeBytes(path: string, bytes: Uint8Array<ArrayBuffer>): Promise<void>
   /** Remove a file. Removing what is not there is not an error. */
   remove(path: string): Promise<void>
   /** Whether the browser still lets us use the files. Never prompts. */
@@ -49,20 +51,11 @@ export async function decodeFile(
   }
 }
 
-/** Move a file by copying it first and removing the original only once the copy reads back the same. */
+/** Move a file by copying it first and removing the original only once the copy reads back the same. Text or not: the bytes are what move. */
 export async function moveFile(adapter: StorageAdapter, from: string, to: string): Promise<void> {
   const source = await adapter.readBytes(from)
   if (!source) return
-  let text: string
-  try {
-    text = utf8.decode(source) // keeps a byte order mark, so the copy has the same bytes
-  } catch {
-    throw new StorageError(
-      'unreadable',
-      `“${from}” is not text Aurelia can read, so it was left where it is.`,
-    )
-  }
-  await adapter.write(to, text)
+  await adapter.writeBytes(to, source)
   const copy = await adapter.readBytes(to)
   if (!copy || (await hashBytes(copy)) !== (await hashBytes(source)))
     throw new StorageError('other', `Could not copy “${from}”, so it was left where it is.`)

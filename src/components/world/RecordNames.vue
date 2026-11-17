@@ -18,7 +18,7 @@ const places = (n: number) => `${n} ${n === 1 ? 'place' : 'places'}`
 
 <template>
   <section aria-labelledby="record-found" class="flex flex-col gap-1.5">
-    <h3 id="record-found" class="m-0 text-[13px] font-medium text-ink">Found in your writing</h3>
+    <h2 id="record-found" class="m-0 text-[13px] font-medium text-ink">Found in your writing</h2>
     <ul v-if="usage.forms.length" class="m-0 flex list-none flex-wrap gap-1.5 p-0">
       <li
         v-for="f in usage.forms"

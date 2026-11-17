@@ -26,10 +26,17 @@ export const recordPath = (universe: string, scope: string, folder: string, id: 
     ? `universes/${universe}/records/${folder}/${id}.md`
     : `${book(universe, scope.slice(5))}/records/${folder}/${id}.md`
 
+/** An image of a universe's media folder, and the JSON beside it that holds its caption and credit. */
+export const mediaFilePath = (universe: string, id: string, ext: string) =>
+  `universes/${universe}/media/${id}.${ext}`
+export const mediaSidecarPath = (universe: string, id: string) =>
+  mediaFilePath(universe, id, 'json')
+
 export type FileKind =
   | { kind: 'universe'; universe: string }
   | { kind: 'book' | 'outline' | 'part' | 'chapter' | 'scene'; universe: string; book: string }
   | { kind: 'record'; universe: string }
+  | { kind: 'media'; universe: string }
   | { kind: 'other' }
 
 const BOOK_FILE =
@@ -48,8 +55,20 @@ export function classify(path: string): FileKind {
   if (u) return { kind: 'universe', universe: u[1]! }
   // Records of a universe, or private to one book: …/records/<kind>/<id>.md
   const r = /^universes\/(unv_\w+)\/(?:books\/bok_\w+\/)?records\/.+\.md$/.exec(path)
-  return r ? { kind: 'record', universe: r[1]! } : { kind: 'other' }
+  if (r) return { kind: 'record', universe: r[1]! }
+  const m = /^universes\/(unv_\w+)\/media\/med_\w+\.json$/.exec(path)
+  return m ? { kind: 'media', universe: m[1]! } : { kind: 'other' }
 }
+
+/**
+ * A file of the media folder that is not text: the image as it was imported (ADR-0003), or its
+ * copy waiting in the trash or set aside. It is never read as text, so never rewritten; it travels
+ * in a backup and a sync as the bytes it is.
+ */
+export const isMediaBinary = (path: string) =>
+  /^(?:\.aurelia\/(?:trash|conflicts|safety)\/[^/]+\/)?universes\/unv_\w+\/media\/med_\w+(?: \(Aurelia copy [0-9a-f]+\))?\.(?!json$)[a-z0-9]+$/.test(
+    path,
+  )
 
 // Dropbox, Nextcloud and our own copies write “name (… copy …).ext” — or after the whole name,
 // “book.json (conflicted copy)”. Syncthing writes “name.sync-conflict-DATE-TIME-ID.ext”.

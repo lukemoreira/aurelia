@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { StorageAdapter } from './adapter'
 import { StorageError, toStorageError } from './errors'
-import { hashText } from './hash'
+import { hashBytes, hashText } from './hash'
 import type { Journal, JournalEntry } from './journal'
 import { copyPathFor } from './paths'
 
@@ -395,8 +395,9 @@ export class SavePipeline {
   ): Promise<'applied' | 'deferred'> {
     const s = this.state(path)
     const work = async (): Promise<'applied' | 'deferred'> => {
-      const disk = await this.deps.adapter.read(path)
-      if ((disk?.hash ?? null) !== expect) return 'deferred'
+      // The hash of the bytes on disk, text or not: a removal may be of an image.
+      const disk = await this.deps.adapter.readBytes(path)
+      if ((disk ? await hashBytes(disk) : null) !== expect) return 'deferred'
       if (text === null) {
         if (s.pending !== undefined) return 'deferred'
         await this.deps.adapter.remove(path)
@@ -423,6 +424,28 @@ export class SavePipeline {
       return 'applied'
     }
     const run = s.saving.then(work)
+    s.saving = run.catch(() => undefined)
+    return run
+  }
+
+  /**
+   * A file that is not text (an image) that came from another device: written only while the
+   * place still holds what the caller saw (`expect`, null: nothing there). No words of ours wait
+   * in such a file, so there is nothing to conflict with.
+   */
+  async receiveBytes(
+    path: string,
+    bytes: Uint8Array<ArrayBuffer>,
+    expect: string | null,
+  ): Promise<'applied' | 'deferred'> {
+    const s = this.state(path)
+    const run = s.saving.then(async (): Promise<'applied' | 'deferred'> => {
+      const disk = await this.deps.adapter.readBytes(path)
+      if ((disk ? await hashBytes(disk) : null) !== expect) return 'deferred'
+      await this.deps.adapter.writeBytes(path, bytes)
+      this.writes++
+      return 'applied'
+    })
     s.saving = run.catch(() => undefined)
     return run
   }

@@ -25,6 +25,10 @@ export function guardWrites(adapter: StorageAdapter, isReadOnly: () => boolean):
       if (isReadOnly()) refuse()
       return adapter.write(path, text)
     },
+    writeBytes: async (path, bytes) => {
+      if (isReadOnly()) refuse()
+      return adapter.writeBytes(path, bytes)
+    },
     remove: async (path) => {
       if (isReadOnly()) refuse()
       return adapter.remove(path)

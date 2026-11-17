@@ -2,7 +2,7 @@
 // One sync round (ADR-0012): list the server, plan, act, and leave `backup.json` true.
 import { RemoteError, StorageError } from '@/storage/errors'
 import { hashBytes } from '@/storage/hash'
-import { WORKSPACE_FILE } from '@/storage/paths'
+import { WORKSPACE_FILE, isMediaBinary } from '@/storage/paths'
 import type { RemoteStore } from '@/storage/remote/remote-store'
 import type { RemoteChange } from '@/storage/session'
 import { currentPath, manifestPath } from './layout'
@@ -29,8 +29,10 @@ export interface SyncContext {
   now: number
   /** Every saved file with its hash, once pending saves have landed. */
   scan: () => Promise<Map<string, string>>
-  /** Called once, before the first local file is overwritten or deleted: saves a version, or throws. */
-  beforeChange: () => Promise<void>
+  /** Called once, before the first local file is overwritten or deleted (`paths`: the ones this round will change): saves a version, or a safety copy of them. */
+  beforeChange: (paths: string[]) => Promise<void>
+  /** The server refused this file (too big): it is left out and told, and nothing else waits for it. */
+  skipped?: (path: string) => void
   /** There is something to do: the screens say "Syncing…". */
   working: () => void
   /** Another device owns a plain backup in this folder. Throws. */
@@ -147,8 +149,10 @@ async function onePass(ctx: SyncContext, carry: Carry): Promise<SyncResult & { a
       throw e
     }
   }
-  if (actions.some((a) => a.kind === 'remove-local' || (a.kind === 'pull' && a.expect !== null)))
-    await ctx.beforeChange()
+  const changing = actions.filter(
+    (a) => a.kind === 'remove-local' || (a.kind === 'pull' && a.expect !== null),
+  )
+  if (changing.length) await ctx.beforeChange(changing.map((a) => a.path))
 
   let again = false
   let changed = false
@@ -175,6 +179,7 @@ async function onePass(ctx: SyncContext, carry: Carry): Promise<SyncResult & { a
         carry.cleared.add(path)
       }
     } catch (e) {
+      if (e instanceof RemoteError && e.code === 'too-large') return ctx.skipped?.(path) // this one file; the rest goes on
       if (!(e instanceof RemoteError) || e.code !== 'precondition') throw e
       again = true // someone wrote first: look at the folder again
     }
@@ -219,6 +224,32 @@ async function onePass(ctx: SyncContext, carry: Carry): Promise<SyncResult & { a
         const mine = local.get(path)
         if (mine === hash) {
           base[path] = { etag: got.etag, hash } // both sides already hold these bytes
+          return
+        }
+        // An image of the media folder is bytes, not text: it is brought in as it is.
+        if (a.kind === 'pull' && isMediaBinary(path)) {
+          const done = await source.apply([{ path, text: '', bytes: got.bytes, expect: a.expect }])
+          if (done.get(path) === 'applied') {
+            base[path] = { etag: got.etag, hash }
+            changed = true
+          }
+          return
+        }
+        // Two different images under one name with no base (an image is never edited, so this is a rare meeting):
+        // both are kept, the server's beside mine as a copy, as with a text — never fetched again and again.
+        if (isMediaBinary(path)) {
+          const copy = copyNameFor(path, hash)
+          const there = await source.adapter.readBytes(copy)
+          if (there ? (await hashBytes(there)) !== hash : false) return
+          if (!there) {
+            const done = await source.apply([
+              { path: copy, text: '', bytes: got.bytes, expect: null },
+            ])
+            if (done.get(copy) !== 'applied') return
+            changed = true
+          }
+          await push(copy, null, got.bytes)
+          await push(path, got.etag)
           return
         }
         const text = textOf(got.bytes)

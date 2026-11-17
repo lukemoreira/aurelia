@@ -16,10 +16,19 @@ export async function outlineRig() {
   return { adapter, journal, open, session: await open() }
 }
 
-/** Every file with its text. */
+const utf8 = new TextDecoder('utf-8', { fatal: true })
+
+/** Every file with its text; a file that is not text (an image) is its bytes in hex, so a change in it still shows. */
 export async function snapshot(adapter: MemoryAdapter) {
   const files = new Map<string, string>()
-  for (const path of await adapter.list()) files.set(path, (await adapter.read(path))!.text)
+  for (const path of await adapter.list()) {
+    const bytes = (await adapter.readBytes(path))!
+    try {
+      files.set(path, utf8.decode(bytes))
+    } catch {
+      files.set(path, `bytes:${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`)
+    }
+  }
   return files
 }
 

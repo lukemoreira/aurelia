@@ -77,6 +77,22 @@ export const ADAPTER_CONTRACT: ContractCase[] = [
     },
   },
   {
+    name: 'bytes that are not text (an image) are written and read back exactly, and the hash is theirs',
+    run: async (make) => {
+      const a = await make()
+      const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0xff, 0xfe, 0x00, 0x80, 0xc3, 0x28])
+      await a.writeBytes('universes/u/media/med_a.png', bytes)
+      same(
+        Array.from((await a.readBytes('universes/u/media/med_a.png')) ?? []),
+        Array.from(bytes),
+        'bytes',
+      )
+      same(await a.list(), ['universes/u/media/med_a.png'], 'list')
+      await a.writeBytes('universes/u/media/med_a.png', bytes.slice(0, 3))
+      same((await a.readBytes('universes/u/media/med_a.png'))?.length, 3, 'replaced whole')
+    },
+  },
+  {
     name: 'the hash changes when the text does, and only then',
     run: async (make) => {
       const a = await make()

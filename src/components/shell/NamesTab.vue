@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button.vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { useOutlineEdits } from '@/composables/useOutlineEdits'
 import { useSceneNames } from '@/composables/useSceneNames'
+import NewNames from '@/components/world/NewNames.vue'
 
 /** Names found in the open scene, and the ones Aurelia is asking about (ADR-0010). Nothing here writes into the text. */
 const nav = useNavigation()
@@ -66,5 +67,7 @@ const label = 'text-[11px] font-semibold uppercase tracking-[.06em] text-ink-3'
       </ul>
     </section>
     <p v-else-if="found.length" class="m-0 text-ink-3">Nothing needs your answer.</p>
+
+    <NewNames heading="h3" compact class="border-t border-line pt-4" />
   </div>
 </template>

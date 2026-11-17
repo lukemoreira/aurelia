@@ -294,6 +294,16 @@ export async function deleteItem(s: WorkspaceSession, id: string): Promise<Delet
       label = d.chapters.find((c) => c.id === id)!.title
       const scenes = d.scenes.filter((x) => x.meta.chapter === id).map((x) => s.pathOf(x.meta.id))
       paths = [...scenes.filter((p): p is string => !!p), own]
+    } else if (isId(id, 'med')) {
+      // An image goes with the file that holds its caption: both wait in the trash, both come back.
+      // The caption's file goes first: a stop between the two leaves an image nobody lists (as a stop
+      // in an import does), never a listing with nothing behind it. Only an image named after this
+      // one is moved: a sidecar that names another image does not take it along.
+      kind = 'media'
+      const m = d.media?.find((x) => x.meta.id === id)
+      label = m?.meta.caption || m?.meta.name || 'Image'
+      const image = m?.meta.file.startsWith(`${id}.`) ? m.meta.file : undefined
+      paths = image ? [own, own.replace(/[^/]*$/, image)] : [own]
     } else if (isId(id, 'prt')) {
       kind = 'part'
       label = d.parts.find((p) => p.id === id)!.title

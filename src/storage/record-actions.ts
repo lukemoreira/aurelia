@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { RECORD_INFO } from '@/domain/record-types'
 import { CURRENT_SCHEMA_VERSION } from '@/domain/schema/common'
-import type { Alias, RecordType } from '@/domain/schema/record'
+import type { Alias, RecordType, Relationship, Source } from '@/domain/schema/record'
 import { newId } from '@/domain/ids'
 import { checkTitle } from '@/domain/titles'
 import { StorageError } from './errors'
@@ -69,4 +69,28 @@ export function aliasesPatch(list: Alias[]): Alias[] | undefined {
     clean.push({ text, ...(match && match !== 'auto' ? { match } : {}), ...unknown })
   }
   return clean.length ? clean : undefined
+}
+
+/** The sources of a research note as the file keeps them: trimmed, none without a title, empty parts left out. */
+export function sourcesPatch(list: Source[]): Source[] | undefined {
+  const clean: Source[] = []
+  for (const x of list) {
+    const { title, author, url, note, ...unknown } = x // keys this version does not know are kept (ADR-0003 rule 6)
+    const part = (v: string | undefined) => (v?.trim() ? { v: v.trim() } : undefined)
+    if (!title.trim()) continue
+    clean.push({
+      title: title.trim(),
+      ...(part(author) ? { author: part(author)!.v } : {}),
+      ...(part(url) ? { url: part(url)!.v } : {}),
+      ...(part(note) ? { note: part(note)!.v } : {}),
+      ...unknown,
+    })
+  }
+  return clean.length ? clean : undefined
+}
+
+/** The relationships of a record as the file keeps them: each to a record, with the words that name it. */
+export function relationshipsPatch(list: Relationship[]): Relationship[] | undefined {
+  // Entries are kept as they are, a hand-written one with no words included: it is the author's.
+  return list.length ? list : undefined
 }

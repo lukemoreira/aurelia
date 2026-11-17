@@ -75,11 +75,15 @@ export class HandleAdapter implements StorageAdapter {
     return bytes ? decodeFile(bytes, path) : null
   }
 
-  async write(path: string, text: string): Promise<void> {
+  write(path: string, text: string): Promise<void> {
+    return this.writeBytes(path, encode(text))
+  }
+
+  async writeBytes(path: string, bytes: Uint8Array<ArrayBuffer>): Promise<void> {
     try {
       const dir = (await this.parent(path, true))!
       const file = await dir.getFileHandle(path.split('/').pop()!, { create: true })
-      await writeFileBytes(file, encode(text))
+      await writeFileBytes(file, bytes)
     } catch (e) {
       throw toStorageError(e, path)
     }

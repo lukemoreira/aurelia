@@ -56,6 +56,12 @@ export class MemoryAdapter implements StorageAdapter {
     this.files.set(path, encode(text))
   }
 
+  async writeBytes(path: string, bytes: Uint8Array<ArrayBuffer>): Promise<void> {
+    this.check()
+    await this.beforeWrite?.(path, new TextDecoder().decode(bytes)) // a write of bytes can fail like any other
+    this.files.set(path, bytes.slice())
+  }
+
   async remove(path: string): Promise<void> {
     this.check()
     await this.beforeRemove?.(path)

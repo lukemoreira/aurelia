@@ -162,3 +162,24 @@ On save, `[[Name]]` links are stored as `[[id:…\|Name]]` so they survive renam
 kept as escaped text and is **never rendered** (a test checks this).
 
 Every feature has a golden round-trip test.
+
+## As built (M6a): the World library
+
+- **Record frontmatter** (all optional, unknown keys kept): the type's plain-text fields (`role`,
+  `kind`, `when`, `goal`, `voice`, `sight`, `smell`, `rules`… — `TEXT_FIELDS` in `schema/record.ts`),
+  `parent` (a place or world ID: the place hierarchy; a missing or looping parent reads as the top),
+  `relationships: [{ with: <record ID>, type: "mentor" }]` (kept on the record that listed it, shown
+  on both), `sources: [{ title, author?, url?, note? }]` (research) and `image: med_…` (the picture).
+  A record of the whole universe only points at records of the whole universe; a book's own record
+  may also point at its book's.
+- **Media**: `universes/<unv>/media/med_<id>.<original extension, lower-case>` is the image exactly as
+  imported (no transcoding; the file's own name is kept in `name`), and `med_<id>.json` beside it holds
+  `{ schemaVersion, id, file, name, type, size, caption?, credit? }`. The image is written first and
+  read back, the JSON (what lists it) last; a stop leaves a file nobody lists, never a listing with
+  nothing behind it. Delete moves both to `.aurelia/trash/` and restore brings both back. Images up to
+  48 MiB (under the 64 MiB a storage server takes in one file); PNG, JPEG, GIF, WebP, AVIF and SVG. A file whose name has another extension is refused.
+- **Thumbnails** are a cache in the browser's private file system (`thumbnails/<workspace>/<id>.webp`,
+  beside `workspaces/`, never in it); losing them costs a redraw. SVG and GIF are shown as they are.
+- Backup, restore and sync carry an image as bytes (`isMediaBinary` in `storage/paths.ts`, also for its
+  copy in the trash); any other file that is not text is still left alone by sync.
+- `book.json` may carry `notNames` (ADR-0010).

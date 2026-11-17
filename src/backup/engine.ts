@@ -5,6 +5,7 @@ import { RemoteError, StorageError, wordsFor } from '@/storage/errors'
 import { hashBytes, hashText } from '@/storage/hash'
 import type { RemoteStore } from '@/storage/remote/remote-store'
 import type { RemoteChange } from '@/storage/session'
+import { isMediaBinary, safetyPathFor, stampOf } from '@/storage/paths'
 import { zipFiles } from '@/storage/zip'
 import {
   currentPath,
@@ -70,6 +71,8 @@ export interface BackupView {
   name?: string
   /** Plain words for what went wrong, while it has. */
   error: string | null
+  /** Files the server would not take (too big), by the name the author knows them by: they are left out, and nothing else waits for them. */
+  skipped?: string[]
   /** Another device owns the backup folder: the author chooses (Keep both / Use the backup here). */
   /** `sync`: that device keeps the folder in sync (join it), rather than backing it up (keep both, or use its backup). */
   ask: { deviceName: string; at: string; sync?: boolean } | null
@@ -128,6 +131,8 @@ export class BackupEngine {
   private now: () => number
   private devices: SyncDevice[] = []
   private waiting = 0
+  /** Files the server refused this round (path → the name the author knows it by). */
+  private refused = new Map<string, string>()
 
   private constructor(
     private deps: EngineDeps,
@@ -173,6 +178,7 @@ export class BackupEngine {
       ...(this.s.name ? { name: this.s.name } : {}),
       error: this.error,
       ask: this.ask,
+      ...(this.refused.size ? { skipped: [...this.refused.values()] } : {}),
     }
   }
 
@@ -249,6 +255,7 @@ export class BackupEngine {
     // A change that came in while the last round was failing its sign-in, or asking, set a timer: it waits for the author.
     if (!force && (this.status === 'paused' || this.status === 'ask')) return
     if (this.deps.source.blocked()) return this.set('blocked')
+    this.refused.clear()
     try {
       await this.sync(force)
       this.attempt = 0
@@ -322,7 +329,8 @@ export class BackupEngine {
       state: s,
       now: at,
       scan: async () => new Map([...(await this.scan())].map(([p, f]) => [p, f.hash])),
-      beforeChange: () => this.versionBeforeSync(),
+      beforeChange: (paths) => this.versionBeforeSync(paths),
+      skipped: (path) => void this.refuse(path),
       working: () => this.set('working'),
       ask: (m) => this.askAbout(m),
       devices: (d) => (this.devices = devicesOf(d, this.device.id)),
@@ -338,13 +346,50 @@ export class BackupEngine {
    * replaces may be newer than anything the server has (a server that lost its files, a device that was behind). One
    * is skipped only when the workspace is exactly what the last one holds, so a retried round piles up nothing.
    */
-  private async versionBeforeSync() {
+  private async versionBeforeSync(paths: string[]) {
     await this.flushed()
     const files = [...(await this.scan())].map(([p, f]) => `${p}\n${f.hash}`).sort()
     const fingerprint = await hashText(files.join('\n'))
     if (this.s.lastSyncFingerprint === fingerprint) return
-    await this.makeVersion('before-sync')
+    try {
+      await this.makeVersion('before-sync')
+    } catch (e) {
+      // A version the server will not keep (too big, or it failed) must not stop other devices' changes from
+      // arriving for ever: the files this round will change are copied aside on this device first, then it goes on.
+      // Not reaching the server at all is different: the round cannot go on without it.
+      if (!(e instanceof RemoteError) || (e.code !== 'too-large' && e.code !== 'server')) throw e
+      await this.keepLocally(paths)
+    }
     this.s.lastSyncFingerprint = fingerprint
+  }
+
+  /** A copy of these files in `.aurelia/safety/<stamp>/`: what a pull is about to replace, kept (images are never replaced). */
+  private async keepLocally(paths: string[]) {
+    const { adapter } = this.deps.source
+    const stamp = stampOf(new Date(this.now()))
+    for (const path of paths) {
+      if (isMediaBinary(path)) continue
+      const bytes = await adapter.readBytes(path)
+      if (bytes) await adapter.writeBytes(safetyPathFor(path, stamp), bytes)
+    }
+  }
+
+  /** The server refused a file as too big: it is left out, and the author is told its name. */
+  private async refuse(path: string) {
+    let label = path.slice(path.lastIndexOf('/') + 1)
+    if (isMediaBinary(path)) {
+      // The sidecar beside an image knows the name it was imported under.
+      const sidecar = await this.deps.source.adapter
+        .read(path.replace(/\.[^./]+$/, '.json'))
+        .catch(() => null)
+      try {
+        const name = (JSON.parse(sidecar?.text ?? '') as { name?: unknown }).name
+        if (typeof name === 'string' && name) label = name
+      } catch {
+        // the file name will do
+      }
+    }
+    this.refused.set(path, label)
   }
 
   private async versionIfDue(changed: boolean, at: number) {
@@ -420,7 +465,15 @@ export class BackupEngine {
         }
         const hash = await hashBytes(bytes)
         files[path] = { hash, size: bytes.length }
-        await store.write(currentPath(folder, path), bytes)
+        try {
+          await store.write(currentPath(folder, path), bytes)
+        } catch (e) {
+          // One file the server refuses (too big) is left out and named; the others and the manifest still go.
+          if (!(e instanceof RemoteError) || e.code !== 'too-large') throw e
+          delete files[path]
+          await this.refuse(path)
+          continue
+        }
         s.uploaded[path] = hash
       }
       for (const path of gone) {
@@ -482,6 +535,9 @@ export class BackupEngine {
     const files = []
     for (const path of await source.adapter.list()) {
       if (SYSTEM_FILES.has(path.slice(path.lastIndexOf('/') + 1))) continue
+      // Images are never edited and are kept as themselves in current/ (and in the trash): a version holds only
+      // their small files, so it stays under what a server takes however many images there are.
+      if (isMediaBinary(path)) continue
       const data = await source.adapter.readBytes(path)
       if (data) files.push({ path: `${root}/${path}`, data })
     }

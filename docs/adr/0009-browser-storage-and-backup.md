@@ -151,3 +151,17 @@ stay in M10.
 - OneDrive app folder: https://learn.microsoft.com/graph/onedrive-sharepoint-appfolder
 - Dropbox OAuth guide (PKCE): https://developers.dropbox.com/oauth-guide
 - Nextcloud CORS (WebAppPassword app): https://github.com/digital-blueprint/webapppassword
+
+## As built (M6a): images and a server's limits
+
+- **A version holds no images.** An image is never edited and is kept as itself in `current/` (and,
+  once deleted, in the trash, which is backed up like any file), so the version zip leaves out
+  `media/` images (`isMediaBinary`): it holds only their small `med_….json` files and stays under what
+  a server takes in one file however many images there are. Restoring a version brings back the
+  images its sidecars list, from `current/` as `backup.json` names them, each checked against its
+  hash; one that is no longer on the server (its trash was emptied) is left out and its sidecar then
+  shows "File is missing". Older versions that do hold images still restore them from the zip.
+- **One file the server refuses (413) never stops the rest.** A file too big for the server is left out
+  of the upload and of the manifest, named in plain words on the Backup screen ("Your server would not
+  take “The big map.png”… Everything else is saved."), and tried again on a later round. Images are
+  limited to 48 MiB so this stays rare.
