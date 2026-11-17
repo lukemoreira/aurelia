@@ -15,6 +15,6 @@ export default defineConfig({
     command: `npm run build && npm run build:e2e && npx vite preview --outDir dist-e2e --strictPort --port ${port}`,
     url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 300_000,
   },
 })
