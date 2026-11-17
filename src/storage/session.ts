@@ -422,12 +422,13 @@ export class WorkspaceSession {
       this.pipeline.expect(path, disk?.hash)
       return false
     }
-    const data = this.show(this.data, path, next)
+    this.show(this.data, path, next) // text that does not read throws here, before the disk is touched
     await this.adapter.write(path, next)
     this.pipeline.writes++
     this.wrote = true
     this.texts.set(path, next)
-    this.data = data
+    // Shown on what is on screen NOW: a scene made or a word typed during the write stays.
+    this.data = this.show(this.data, path, next)
     this.pipeline.expect(path, await hashText(next))
     this.changed()
     return true

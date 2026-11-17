@@ -93,23 +93,31 @@ export function useChoices(idOf: () => string | undefined) {
   /**
    * The form is emptied as it is sent, not when the file is written: the new scene shows on the map
    * before the save is over, and the next choice may already be being typed. A choice that fails to
-   * save puts its words back (unless something else has been typed since).
+   * save puts its words back (unless something else has been typed since). One sent while another
+   * is saving waits for it, then is added: a quick second "Add choice" is never dropped.
    */
-  let adding = false
+  let saving: Promise<void> | undefined
   /** A new scene made for a choice whose save then failed: the next try leads to it, not to another. */
   let made: { label: string; target: string } | undefined
   const addNow = () =>
     run(async () => {
       const id = idOf()
-      if (!ws.session || !id || adding) return
+      const session = ws.session
+      if (!session || !id) return
+      // The same press twice: the first took the words, so there is nothing more to add.
+      if (saving && !add.label.trim()) return
       const sent = { label: add.label, target: add.target }
-      adding = true
       add.label = ''
       add.target = NEW_SCENE
-      const label = sent.label.trim()
-      const reuse = sent.target === NEW_SCENE && made?.label === label ? made.target : undefined
+      const before = saving
+      let done!: () => void
+      const mine = new Promise<void>((r) => (done = r))
+      saving = mine
       try {
-        await addChoice(ws.session, id, {
+        await before
+        const label = sent.label.trim()
+        const reuse = sent.target === NEW_SCENE && made?.label === label ? made.target : undefined
+        await addChoice(session, id, {
           label: sent.label,
           ...(sent.target !== NEW_SCENE || reuse
             ? { target: reuse ?? sent.target }
@@ -121,7 +129,8 @@ export function useChoices(idOf: () => string | undefined) {
         if (!add.label) Object.assign(add, sent)
         throw e
       } finally {
-        adding = false
+        done()
+        if (saving === mine) saving = undefined
       }
     })
   const relabel = (choice: string) =>
