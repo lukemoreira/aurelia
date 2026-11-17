@@ -18,6 +18,9 @@ import {
 import { StorageError, wordsFor } from '@/storage/errors'
 import { useWorkspaceStore } from '@/stores/workspace'
 
+/** How long a delete waits for a backup round already sending. */
+const BACKUP_WAIT_MS = 20_000
+
 /** The "Delete workspace" / "Remove from list" dialog on the Welcome screen, and what it does. */
 export function useDeleteWorkspace(open: ReturnType<typeof useOpenWorkspace>) {
   const ws = useWorkspaceStore()
@@ -46,20 +49,22 @@ export function useDeleteWorkspace(open: ReturnType<typeof useOpenWorkspace>) {
     hasBackup.value = false
     hasUnsaved.value = false
     copied.value = false
+    copying.value = false
     failure.value = ''
     if (row.recent.kind === 'folder') return
     const key = row.recent.key
-    const [backedUp, unsaved] = await Promise.all([
-      backupState
-        .load(key)
-        .then((s) => s.folder !== null)
-        .catch(() => false),
-      unsavedWords(journal, key)
-        .then((w) => w.size > 0)
-        .catch(() => false),
-    ])
+    const backedUp = await backupState
+      .load(key)
+      .then((s) => s.folder !== null)
+      .catch(() => false)
     const found = await reopen(row.recent)
     const read = 'adapter' in found ? await glanceAt(found.adapter) : null
+    const unsaved =
+      'adapter' in found
+        ? await unsavedWords(journal, found.adapter, key)
+            .then((w) => w.size > 0)
+            .catch(() => false)
+        : false
     if (target.value !== row) return // another row's dialog is open now
     hasBackup.value = backedUp
     hasUnsaved.value = unsaved
@@ -76,7 +81,12 @@ export function useDeleteWorkspace(open: ReturnType<typeof useOpenWorkspace>) {
       const open = ws.session?.data.workspace.id === id
       await ws.release(id)
       // Its backup engine is not closed with the session here: stop it, and let a round in flight end.
-      if (open) await backup.stop()
+      // A server that never answers must not hold the dialog: past the wait, nothing is deleted.
+      if (open && !(await backup.stop(BACKUP_WAIT_MS)))
+        throw new StorageError(
+          'other',
+          `A backup of ${target.value?.recent.name ?? 'it'} is still sending. Try again in a minute.`,
+        )
     },
     forget: (id) => ws.forget(id),
   })
@@ -104,6 +114,7 @@ export function useDeleteWorkspace(open: ReturnType<typeof useOpenWorkspace>) {
       setTimeout(() => document.getElementById('welcome-message')?.focus(), 0)
     } catch (e) {
       failure.value = wordsFor(e, 'Aurelia could not finish deleting that. Try again.')
+      void open.loadRecents() // the list may be what is out of date: a retry must not meet the same row
     } finally {
       busy.value = false
     }
@@ -132,7 +143,7 @@ export function useDeleteWorkspace(open: ReturnType<typeof useOpenWorkspace>) {
     } catch (e) {
       if (target.value === row) failure.value = wordsFor(e, 'Aurelia could not make the copy.')
     } finally {
-      copying.value = false
+      if (target.value === row) copying.value = false
     }
   }
 

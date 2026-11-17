@@ -268,6 +268,7 @@ export class BackupEngine {
   }
 
   private async fail(e: unknown) {
+    if (this.disposed) return // a disposed engine neither retries nor scans again
     const words = wordsFor(e, 'The backup did not work. Nothing was lost.')
     if (e instanceof RemoteError && e.code === 'unauthorized') return this.set('paused', words)
     if (e instanceof RemoteError && e.code === 'offline' && this.s.mode === 'sync') {
@@ -717,6 +718,17 @@ export class BackupEngine {
   /** Resolves once no round is under way. After `dispose()` none starts again, so nothing more is written. */
   async idle(): Promise<void> {
     while (this.running) await this.running
+  }
+
+  /** `idle()`, but gives up after `ms`: false when a round is still under way (a server that does not answer). */
+  async idleWithin(ms: number): Promise<boolean> {
+    let timer!: ReturnType<typeof setTimeout>
+    const late = new Promise<false>((resolve) => (timer = setTimeout(() => resolve(false), ms)))
+    try {
+      return await Promise.race([this.idle().then(() => true as const), late])
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   dispose() {
