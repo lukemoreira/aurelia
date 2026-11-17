@@ -132,6 +132,26 @@ describe('the board that records what changes in a scene', () => {
     expect(changesOf(r)).toEqual([{ kind: 'status', who: r.tomas, value: 'dead' }])
   })
 
+  it('says whose progression the change shows on, as it is filled in', async () => {
+    const r = await rig()
+    r.form.startAdd()
+    expect(r.form.shows.value).toBe('Shows on Elena’s progression.') // the point of view, a goal to come
+    r.form.choose('relation')
+    r.form.f.with = r.tomas
+    expect(r.form.shows.value).toBe('Shows on Elena’s and Tomas’s progression.')
+    r.form.choose('knows')
+    expect(r.form.shows.value).toBe('Shows on Elena’s progression.')
+    // an arc moves on, a set-up is promised: neither is a person's
+    r.form.choose('beat')
+    expect(r.form.shows.value).toBe('')
+    r.form.choose('setup')
+    expect(r.form.shows.value).toBe('')
+    // nobody picked yet
+    r.form.choose('knows')
+    r.form.f.who = ''
+    expect(r.form.shows.value).toBe('')
+  })
+
   it('presses twice, saves once: a second Add while the first is being written does nothing', async () => {
     const r = await rig()
     r.form.startAdd()

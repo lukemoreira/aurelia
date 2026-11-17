@@ -189,3 +189,26 @@ export async function addCalendar(
   }))
   return id
 }
+
+/** When an event happens (`time`) or when a character was born (`born`) on their sheet; null takes it away. */
+export function setRecordTime(
+  s: WorkspaceSession,
+  recordId: string,
+  key: 'time' | 'born',
+  time: { calendar: string; at: string; label?: string } | null,
+) {
+  return s.exclusive(async () => {
+    const record = s.data.records.find((r) => r.meta.id === recordId)
+    if (!record) throw new StorageError('other', 'That is no longer in the workspace.')
+    // Any key the file has beyond the sheet's own (a season, say) stays; the sheet's are set or dropped.
+    const rest: Record<string, unknown> = { ...record.meta[key] }
+    delete rest.label
+    const label = time?.label?.trim()
+    await s.setFields(recordId, {
+      [key]: time
+        ? { ...rest, calendar: time.calendar, at: time.at.trim(), ...(label ? { label } : {}) }
+        : undefined,
+    })
+    await s.flushPaths([s.pathOf(recordId) ?? ''])
+  })
+}

@@ -149,3 +149,79 @@ describe('record', () => {
     expect(recordSchema.safeParse({ ...rec, id: 'scn_4n8w2c7d0p' }).success).toBe(false)
   })
 })
+
+describe('dates before the calendar starts, and the dates on a sheet', () => {
+  const time = { calendar: 'cal_4k8m2x9t1q', at: '-44-03-15' }
+  it('takes a minus sign on a story time, and no other sign', () => {
+    expect(sceneSchema.safeParse({ ...scene, time }).success).toBe(true)
+    expect(sceneSchema.safeParse({ ...scene, time: { ...time, until: '-43' } }).success).toBe(true)
+    for (const at of ['+44', '--44', '44-', '-', '- 44'])
+      expect(sceneSchema.safeParse({ ...scene, time: { ...time, at } }).success).toBe(false)
+  })
+
+  it('keeps a character’s birth and an event’s date on the sheet, and reads them as story times', () => {
+    const rec = {
+      title: 'Elena',
+      schemaVersion: 1,
+      id: 'chr_8f3k2m9q1x',
+      type: 'character',
+      scope: 'universe',
+      born: time,
+      maxAge: '700',
+    }
+    expect(recordSchema.parse(rec)).toMatchObject({ born: time, maxAge: '700' })
+    expect(recordSchema.safeParse({ ...rec, type: 'event', time }).success).toBe(true)
+  })
+
+  it('does not refuse a record whose date is written as words or a bare number: the date is left out, the file is read', () => {
+    const rec = {
+      title: 'Elena',
+      schemaVersion: 1,
+      id: 'chr_8f3k2m9q1x',
+      type: 'character',
+      scope: 'universe',
+    }
+    for (const bad of [
+      'spring of 412',
+      412,
+      { calendar: 'cal_4k8m2x9t1q', at: 'long ago' },
+      'the third age',
+    ]) {
+      const out = recordSchema.safeParse({ ...rec, born: bad, time: bad })
+      expect(out.success).toBe(true)
+      expect(out.data?.born).toBeUndefined()
+      expect(out.data?.time).toBeUndefined()
+    }
+    // and the rest of the record is read as it was
+    expect(recordSchema.parse({ ...rec, born: 412, summary: 'x' }).summary).toBe('x')
+  })
+
+  it('reads a year written bare in YAML as the key it means, on a scene and on the sheet, and a number in a text field as text', () => {
+    for (const [bare, key] of [
+      [412, '412'],
+      [-44, '-44'],
+    ] as const) {
+      expect(
+        sceneSchema.parse({ ...scene, time: { calendar: 'cal_4k8m2x9t1q', at: bare, until: bare } })
+          .time,
+      ).toMatchObject({ at: key, until: key })
+    }
+    const rec = {
+      title: 'Elena',
+      schemaVersion: 1,
+      id: 'chr_8f3k2m9q1x',
+      type: 'character',
+      scope: 'universe',
+      born: { calendar: 'cal_4k8m2x9t1q', at: -44 },
+      age: 34,
+      maxAge: 700,
+    }
+    expect(recordSchema.parse(rec)).toMatchObject({
+      born: { at: '-44' },
+      age: '34',
+      maxAge: '700',
+    })
+    // a number is a number only for a key or a text field: a list is still refused
+    expect(recordSchema.safeParse({ ...rec, aliases: 5 }).success).toBe(false)
+  })
+})

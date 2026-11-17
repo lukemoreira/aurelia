@@ -35,7 +35,18 @@ describe('a scene’s story time, as the inspector edits it', () => {
     const r = await rig()
     r.t.draft.at = 'dusk'
     await r.t.save()
-    expect(r.t.error.value).toContain('Write the time as a year')
+    expect(r.t.error.value).toBe(
+      'That date is not complete. Fill the year first, then the month, day and time.',
+    )
+    // there is no year 0: refused in words, for the time and for its end, and nothing is written
+    r.t.draft.at = '0'
+    await r.t.save()
+    expect(r.t.error.value).toContain('There is no year 0')
+    r.t.draft.at = '412'
+    r.t.draft.until = '0-03'
+    await r.t.save()
+    expect(r.t.error.value).toContain('There is no year 0')
+    r.t.draft.until = ''
     r.t.draft.at = '412-03'
     await r.t.save()
     expect(r.t.error.value).toBe('Pick the calendar this time is in, or make a new one.')

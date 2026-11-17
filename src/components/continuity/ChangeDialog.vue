@@ -208,6 +208,7 @@ const chip =
         <p v-if="form.preview.value" class="m-0 rounded-control bg-raised px-3 py-2 text-[12.5px]">
           {{ form.preview.value }}
         </p>
+        <p v-if="form.shows.value" class="m-0 text-xs text-ink-3">{{ form.shows.value }}</p>
         <Field label="Quote from the scene (optional)">
           <Textarea v-model="f.quote" rows="2" />
         </Field>

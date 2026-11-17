@@ -4,7 +4,7 @@
 // model. Plain TS: the index hands in what the texts name, so Node can run the same code (ADR-0008).
 import { bookOutline, bookUnfiled, UNFILED } from './outline'
 import type { Change } from './change-kinds'
-import { runFlow, type Flow, type State } from './continuity-state'
+import { join, runFlow, type Flow, type State } from './continuity-state'
 import type { SceneDoc, WorkspaceData } from './workspace-data'
 import type { Calendar } from './schema/universe'
 import { spanOf, type Span } from './story-time'
@@ -23,6 +23,8 @@ export interface ContinuityInput {
 export interface SceneInfo {
   id: string
   doc: SceneDoc
+  /** The book it is in. */
+  book: string
   title: string
   /** "7.2": chapter number, then the place in the chapter. */
   ref: string
@@ -36,6 +38,8 @@ export interface SceneInfo {
 }
 
 export interface ChapterInfo {
+  /** The book it is in. */
+  book: string
   /** Empty for the scenes of no chapter, shown together as "Unfiled". */
   id: string
   title: string
@@ -77,7 +81,14 @@ export interface ContinuityModel {
   changes: (sceneId: string) => readonly Change[]
 }
 
-export function continuityModel(input: ContinuityInput): ContinuityModel {
+/** Where a book of a universe begins: what is true at the end of the one before it. */
+export interface BookStart {
+  state: State
+  /** What a scene of an earlier book is called, for a finding that points back at it. */
+  sceneName: (id: string) => string | undefined
+}
+
+export function continuityModel(input: ContinuityInput, start?: BookStart): ContinuityModel {
   const { data, bookId } = input
   const book = data.books.find((b) => b.id === bookId)
   const universe = data.universes.find((u) => u.books.includes(bookId))
@@ -95,6 +106,7 @@ export function continuityModel(input: ContinuityInput): ContinuityModel {
   ) => {
     const chapter = chapters.length
     const info: ChapterInfo = {
+      book: bookId,
       id,
       title,
       number,
@@ -108,6 +120,7 @@ export function continuityModel(input: ContinuityInput): ContinuityModel {
       const scene: SceneInfo = {
         id: doc.meta.id,
         doc,
+        book: bookId,
         title: doc.meta.title,
         ref: number === 0 ? String(i + 1) : `${number}.${i + 1}`,
         index: scenes.length,
@@ -175,7 +188,7 @@ export function continuityModel(input: ContinuityInput): ContinuityModel {
           ps.filter((p) => graph.reachable.has(p)),
         )
     if (graph.start) entries.add(graph.start)
-    // Scenes nobody leads to start from the empty state, so they are still checked: first those with no
+    // Scenes nobody leads to start from where the book starts (the empty state, or in a universe the end of the book before), so they are still checked: first those with no
     // way in at all, then (for a loop nothing leads into) the first scene of each that is left.
     const covered = new Set(graph.reachable)
     const cover = (from: string) => {
@@ -212,13 +225,14 @@ export function continuityModel(input: ContinuityInput): ContinuityModel {
     entries,
     changes,
     carries: (id) => byId.get(id)?.doc.meta.flashForward !== true,
+    ...(start ? { initial: start.state } : {}),
   })
 
   const nameOf = (id: string) =>
     data.records.find((r) => r.meta.id === id)?.meta.title ?? 'Someone no longer here'
   const sceneName = (id: string) => {
     const s = byId.get(id)
-    return s ? `${s.ref} · ${s.title}` : 'a scene that is no longer here'
+    return s ? `${s.ref} · ${s.title}` : (start?.sceneName(id) ?? 'a scene that is no longer here')
   }
   return {
     input,
@@ -237,6 +251,27 @@ export function continuityModel(input: ContinuityInput): ContinuityModel {
     sceneName,
     changes,
   }
+}
+
+/** What is true when a book ends, as the next book of the universe begins from it; undefined for a book with no scenes. */
+export function endState(m: ContinuityModel): State | undefined {
+  const g = m.graph
+  const last = (id: string) => {
+    const s = m.byId.get(id)
+    return s?.doc.meta.flashForward ? m.flow.before.get(id) : m.flow.after.get(id)
+  }
+  let ends: string[]
+  if (g) {
+    const leads = new Set(g.edges.filter((e) => !e.broken).map((e) => e.from))
+    ends = [...g.reachable].filter((id) => !leads.has(id))
+    // A story that only loops has no end: what holds on any scene a reader can reach is what is carried on.
+    if (!ends.length) ends = [...g.reachable]
+  } else {
+    const chain = m.scenes.filter((s) => m.chapters[s.chapter]!.id)
+    ends = chain.length ? [chain.at(-1)!.id] : []
+  }
+  const states = ends.flatMap((id) => last(id) ?? [])
+  return states.length ? join(states) : undefined
 }
 
 /** The state of the story at the end of a scene, for the inspector and the cards. */

@@ -1,26 +1,39 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import ArcLanes from '@/components/continuity/ArcLanes.vue'
 import FindingsList from '@/components/continuity/FindingsList.vue'
 import PovBalance from '@/components/continuity/PovBalance.vue'
 import PresenceMap from '@/components/continuity/PresenceMap.vue'
 import TimeChart from '@/components/continuity/TimeChart.vue'
+import { toolButton } from '@/components/ui/buttonStyles'
+import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import Select from '@/components/ui/Select.vue'
+import TimelinePanel from '@/components/continuity/TimelinePanel.vue'
 import { useContinuity } from '@/composables/useContinuity'
+import { useTimeline } from '@/composables/useTimeline'
+import { SCOPES, SCOPE_LABEL } from '@/domain/continuity-universe'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 /** Continuity: who is on the page and how arcs move, story time against reading order, whose eyes, and what the checks found. */
 const ws = useWorkspaceStore()
 const c = useContinuity()
+const timeline = useTimeline(c.model)
+/** The checks and the map, or the story laid out on story time. */
+const mode = ref('checks')
+const modes = [
+  { value: 'checks', label: 'Checks' },
+  { value: 'timeline', label: 'Timeline' },
+]
+/** A universe of one book has nothing to widen to. */
+const manyBooks = computed(() => (ws.universe?.books.length ?? 1) > 1)
 const mapList = ref(false)
 const timeList = ref(false)
 const whoOptions = [
   { value: 'everyone', label: 'Everyone on the page' },
   { value: 'main', label: 'Main and POV' },
 ]
-const button =
-  'h-8 rounded-control border border-line-2 bg-surface px-3 text-[13px] font-medium text-ink hover:bg-raised disabled:text-ink-3 pointer-coarse:h-11'
+const button = toolButton
 const section = 'flex flex-col gap-3 rounded-card border border-line bg-surface p-4'
 const heading = 'm-0 text-sm font-semibold'
 </script>
@@ -31,14 +44,23 @@ const heading = 'm-0 text-sm font-semibold'
       <div class="min-w-[240px] flex-1">
         <h1 class="m-0 font-prose text-[26px] font-medium leading-[1.2]">Continuity</h1>
         <p class="m-0 mt-0.5 text-[12.5px] text-ink-3">
-          {{ ws.book?.title }} · {{ c.chapters.value.length }} chapters ·
-          {{ c.model.value?.scenes.length ?? 0 }} scenes · checked on this device
+          {{ c.scope.value === 'universe' ? `${c.books.value} books` : ws.book?.title }} ·
+          {{ c.chapters.value.length }} chapters · {{ c.model.value?.scenes.length ?? 0 }} scenes ·
+          checked on this device
         </p>
       </div>
+      <SegmentedControl v-model="mode" label="Show" :options="modes" />
+      <SegmentedControl
+        v-if="manyBooks"
+        v-model="c.scope.value"
+        :label="SCOPE_LABEL"
+        :options="SCOPES"
+      />
     </div>
 
     <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <div class="flex min-w-0 flex-1 flex-col gap-4 p-5 lg:overflow-y-auto">
+      <TimelinePanel v-if="mode === 'timeline'" :t="timeline" />
+      <div v-else class="flex min-w-0 flex-1 flex-col gap-4 p-5 lg:overflow-y-auto">
         <ul
           class="m-0 grid list-none grid-cols-2 gap-2.5 p-0 md:grid-cols-4"
           aria-label="At a glance"
@@ -122,7 +144,7 @@ const heading = 'm-0 text-sm font-semibold'
           </section>
         </div>
       </div>
-      <FindingsList :c="c" />
+      <FindingsList v-if="mode === 'checks'" :c="c" />
     </div>
   </div>
 </template>

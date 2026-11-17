@@ -138,13 +138,14 @@ describe('the record sheet', () => {
     w.unmount()
   })
 
-  it('a character has Relationships, Appearances and Voice between the Overview and the Notes', async () => {
+  it('a character has Progression, Relationships, Appearances and Voice between the Overview and the Notes', async () => {
     const { session, unv, mount: mountIt } = await open()
     const id = await addRecord(session, { type: 'character', title: 'Elena', universeId: unv })
     const w = mountIt(RecordSheet, { id })
     await flushPromises()
     expect(w.findAll('[role=tab]').map((t) => t.text())).toEqual([
       'Overview',
+      'Progression',
       'Relationships',
       'Appearances',
       'Voice',

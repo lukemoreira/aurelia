@@ -179,5 +179,21 @@ findings. Every input to a finding lives in the folder.
 - **Thresholds.** A thread is silent after 6 chapters with no beat and no scene advancing it; a main
   character (point of view somewhere, or on the page in a fifth of the chapters) has been away after
   8.
-- **Not yet:** the "Age and dates" check (it needs sheet fields from M6), BCE years, a time order
-  across flashbacks in a branching book beyond a scene and its direct way in.
+- **Not yet:** a time order across flashbacks in a branching book beyond a scene and its direct way in.
+
+## Built in M6b
+
+- **Progression** (character sheet tab): `progression(model, who)` reads the one model. A table of chapters
+  (scenes and words they are on the page for, point of view, changes), a scrubber over reading order that
+  shows `stateRows` at the scene it rests on ("on some paths" in a branching book), and the change log
+  (changes about them, including another person's relationship that points at them; arcs, set-ups and
+  pay-offs are about the story, not a person).
+- **Whole universe**: each book of the universe is read from the end state of the book before it
+  (`universeModels`, `endState`; a branching book's end is the join of its reachable scenes with no way
+  on), so a death in book one is a finding in book two. `mergeModels` lays the books end to end for the
+  views; a finding is marked intended in its own book's `book.json`.
+- **Age and dates**: from the sheet's `born` and a scene's time in one calendar. Before birth is an Error;
+  older than `maxAge` (default 120, per character) is a Warning. Age is a range when a date is coarse.
+- **Timeline**: one calendar at a time, grouped by era, year, month or day; times in another calendar and
+  scenes with no time are listed apart; dated events show too.
+- **BCE**: see ADR-0003 (signed years).

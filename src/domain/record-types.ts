@@ -4,7 +4,8 @@ import type { RecordType, TextField } from './schema/record'
 import type { IconName } from './ui-names'
 
 /** The tabs of a record's sheet: each type shows the ones it has fields or lists for. */
-export type SheetTab = 'overview' | 'relationships' | 'appearances' | 'voice' | 'senses' | 'sources'
+export type SheetTab =
+  'overview' | 'progression' | 'relationships' | 'appearances' | 'voice' | 'senses' | 'sources'
 
 /** A basic field of a record: a key of the record's frontmatter, as plain text. */
 export interface BasicField {
@@ -72,7 +73,7 @@ export const RECORD_INFO: Record<RecordType, RecordTypeInfo> = {
     icon: 'user',
     prefix: 'chr',
     folder: 'characters',
-    tabs: ['relationships', 'appearances', 'voice'],
+    tabs: ['progression', 'relationships', 'appearances', 'voice'],
     fields: [
       {
         key: 'role',
@@ -81,6 +82,11 @@ export const RECORD_INFO: Record<RecordType, RecordTypeInfo> = {
         group: 'Who they are',
       },
       { key: 'age', label: 'Age', hint: '34, or “in her forties”' },
+      {
+        key: 'maxAge',
+        label: 'Longest they could live',
+        hint: 'In years. Blank means 120; an elf might say 700',
+      },
       {
         key: 'appearance',
         label: 'What they look like',

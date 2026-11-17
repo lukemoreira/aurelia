@@ -6,7 +6,8 @@
 import { EXITS } from './change-kinds'
 import { coReachable, type ContinuityModel, type SceneInfo } from './continuity'
 import { holderSets, statusFacts } from './continuity-state'
-import { certainlyBefore, keyWords, overlaps, sameMoment } from './story-time'
+import { DEFAULT_MAX_AGE, ageAt, bornSpan, maxAgeOf, statedMaxAge } from './continuity-age'
+import { certainlyBefore, keyWords, overlaps, sameMoment, timeWords } from './story-time'
 import { fingerprintOf, storyFindings, type FindingSeverity } from './story-graph'
 
 export type ContinuityCheck =
@@ -19,6 +20,7 @@ export type ContinuityCheck =
   | 'silent-arc'
   | 'long-absence'
   | 'broken-link'
+  | 'age-dates'
 
 /** The tabs of the findings list. */
 export type FindingGroup = 'characters' | 'time' | 'threads' | 'story'
@@ -44,6 +46,8 @@ export interface ContinuityFinding {
   at?: string
   /** Holds on every path that reaches the scene, or only on some (branching books). */
   paths?: 'every' | 'some'
+  /** The book it was found in, when a whole universe is read (a finding is marked intended in its own book). */
+  book?: string
   /** Only possible: the times overlap but are not known to be the same. Shown collapsed. */
   possible?: true
 }
@@ -446,6 +450,69 @@ export function branchingFindings(m: ContinuityModel): ContinuityFinding[] {
   }))
 }
 
+/** Someone on the page before they were born, or older than they can live: from the birth date on the sheet and the scene's story time. */
+export function ageAndDates(m: ContinuityModel): ContinuityFinding[] {
+  const out: ContinuityFinding[] = []
+  for (const who of m.characters.keys()) {
+    const born = bornSpan(m, who)
+    if (!born) continue
+    const record = m.data.records.find((r) => r.meta.id === who)!.meta
+    const bornAt = record.born!
+    const bornWords = keyWords(
+      bornAt.at,
+      m.calendars.find((c) => c.id === bornAt.calendar),
+    )
+    const max = maxAgeOf(m, who)
+    const stated = statedMaxAge(m, who)
+    const hits = { before: [] as SceneInfo[], old: [] as SceneInfo[] }
+    for (const s of m.scenes) {
+      if (!s.span || s.span.calendar !== born.calendar || !m.presence.get(s.id)?.present.has(who))
+        continue
+      if (certainlyBefore(s.span, born)) hits.before.push(s)
+      else if ((ageAt(m, who, s)?.min ?? 0) > max) hits.old.push(s)
+    }
+    for (const kind of ['before', 'old'] as const) {
+      const [s, ...rest] = hits[kind]
+      if (!s) continue
+      const when = timeWords(s.doc.meta.time, m.calendars)
+      const limit = stated
+        ? `but the sheet says they live to ${stated} at most (born ${bornWords})`
+        : `which is older than ${DEFAULT_MAX_AGE}, the longest we assume (born ${bornWords}). Change “Longest they could live” on their sheet if this is right`
+      const more = rest.length
+        ? ` The same is true of ${rest.length} more ${rest.length === 1 ? 'scene' : 'scenes'}.`
+        : ''
+      out.push(
+        finding('age-dates', {
+          group: 'characters',
+          severity: kind === 'before' ? 'error' : 'warning',
+          scene: s.id,
+          related: rest.slice(0, 5).map((r) => r.id),
+          subject: who,
+          title:
+            kind === 'before' ? 'On the page before they were born' : 'Older than they can live',
+          body:
+            kind === 'before'
+              ? `${m.nameOf(who)} is in ${m.sceneName(s.id)}, set in ${when}, but was born in ${bornWords}.${more} Check the birth date or the scene’s story time.`
+              : `${m.nameOf(who)} is at least ${ageAt(m, who, s)!.min} in ${m.sceneName(s.id)}, set in ${when}, ${limit}.${more} Check the birth date or the scene’s story time.`,
+          // The evidence is part of the finding: every scene it holds in (with its time), the birth date and the
+          // limit. A mark of "intended" on one ghost scene does not hide a later scene, a new date or a new limit.
+          ids: [
+            who,
+            kind,
+            ...hits[kind].map((h) => {
+              const time = h.doc.meta.time
+              return `${h.id}@${time?.calendar}:${time?.at}:${time?.until ?? ''}`
+            }),
+            `born=${bornAt.calendar}:${bornAt.at}`,
+            `max=${max}`,
+          ],
+        }),
+      )
+    }
+  }
+  return out
+}
+
 const CHECKS = [
   appearsAfterExit,
   twoPlaces,
@@ -455,6 +522,7 @@ const CHECKS = [
   silentArc,
   longAbsence,
   brokenLinks,
+  ageAndDates,
 ]
 
 /** Every finding of the book: the continuity checks, and in a branching book the story map's. Worst first, then in reading order. */

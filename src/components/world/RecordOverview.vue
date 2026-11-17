@@ -34,6 +34,7 @@ defineEmits<{
       :disabled="disabled"
       @save="$emit('saveField', $event)"
     />
+    <slot />
     <PlaceContext v-if="place" :id="id" />
     <AliasEditor
       v-model="aliases"

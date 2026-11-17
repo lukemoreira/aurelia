@@ -10,6 +10,7 @@ import {
   type ChangePick,
 } from '@/domain/change-kinds'
 import { personState } from '@/domain/continuity-state'
+import { showsOn } from '@/domain/progression'
 import { wordsFor } from '@/storage/errors'
 import { colourOf } from '@/domain/scene-details'
 import { addChange, removeChange, restoreChange, updateChange } from '@/storage/continuity-actions'
@@ -171,6 +172,15 @@ export function useChangeForm(sceneId: () => string | undefined) {
     }
   })
 
+  /** "Shows on Tomas’s and Elena’s progression." once the change names them. */
+  const shows = computed(() =>
+    showsOn(
+      built.value,
+      (id) => nameOf(id),
+      (id) => !!model.value?.characters.has(id),
+    ),
+  )
+
   // ---- Opening, saving ------------------------------------------------------------------------------
   function reset(over: Partial<ReturnType<typeof blank>> = {}) {
     Object.assign(f, blank(), over)
@@ -272,6 +282,7 @@ export function useChangeForm(sceneId: () => string | undefined) {
     aboutNobody,
     was,
     preview,
+    shows,
     nameOf,
     startAdd,
     startEdit,

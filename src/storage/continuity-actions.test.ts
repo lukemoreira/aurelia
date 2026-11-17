@@ -9,9 +9,11 @@ import {
   addCalendar,
   addChange,
   removeChange,
+  setRecordTime,
   setSceneTime,
   updateChange,
 } from './continuity-actions'
+import { addRecord } from './record-actions'
 import { createWorkspace } from './create'
 import { openDeviceDb } from './device-db'
 import { IdbJournal } from './journal'
@@ -316,6 +318,55 @@ describe('intended findings of two lists', () => {
   })
 })
 
+describe('dates before the calendar starts, and the dates on a sheet', () => {
+  it('writes a BCE story time as quoted text, and it reads back as the same key', async () => {
+    const rig = await scene()
+    const { session, id, path } = rig
+    const cal = await addCalendar(session, session.data.universes[0]!.id, { name: 'Old Count' })
+    await setSceneTime(session, id, { calendar: cal, at: '-44-03-15', until: '-44' })
+    await session.flush()
+    // quoted, so a reader of the file does not take it for a number
+    expect(session.current(path)).toMatch(/at: "-44-03-15"/)
+    const saved = (await reload(rig)).scenes.find((s) => s.meta.id === id)!
+    expect(saved.meta.time).toMatchObject({ at: '-44-03-15', until: '-44' })
+  })
+
+  it('sets a character’s birth and an event’s date in their record files only, then takes it away', async () => {
+    const rig = await scene()
+    const { session, adapter } = rig
+    const unv = session.data.universes[0]!.id
+    const cal = await addCalendar(session, unv, { name: 'Old Count', era: 'OC' })
+    const elena = await addRecord(session, { type: 'character', title: 'Elena', universeId: unv })
+    const storm = await addRecord(session, { type: 'event', title: 'The storm', universeId: unv })
+    await session.flush()
+    const before = await snapshot(adapter)
+    const record = (rid: string) => session.data.records.find((r) => r.meta.id === rid)!
+    await setRecordTime(session, elena, 'born', { calendar: cal, at: ' -44-03-15 ' })
+    await setRecordTime(session, storm, 'time', {
+      calendar: cal,
+      at: '412',
+      label: ' spring tide ',
+    })
+    await session.flush()
+    expect(record(elena).meta.born).toEqual({ calendar: cal, at: '-44-03-15' })
+    expect(record(storm).meta.time).toEqual({ calendar: cal, at: '412', label: 'spring tide' })
+    const moved = changes(before, await snapshot(adapter))
+    expect(moved.added).toEqual([])
+    expect(moved.removed).toEqual([])
+    expect(moved.changed).toHaveLength(2)
+    expect(moved.changed.every((f) => f.includes('records/'))).toBe(true)
+    // another date replaces the sheet's own keys and keeps one it does not know
+    await session.setFields(elena, { born: { ...record(elena).meta.born, season: 'thaw' } })
+    await setRecordTime(session, elena, 'born', { calendar: cal, at: '-43' })
+    expect(record(elena).meta.born).toEqual({ calendar: cal, at: '-43', season: 'thaw' })
+    await setRecordTime(session, elena, 'born', null)
+    expect(record(elena).meta.born).toBeUndefined()
+    await expect(setRecordTime(session, 'chr_aaaaaaaaaa', 'born', null)).rejects.toThrow(
+      'no longer in the workspace',
+    )
+  })
+})
+
 describe('in a workspace that cannot be written to', () => {
   it('refuses every one in words, and changes no file', async () => {
     const adapter = new MemoryAdapter()
@@ -334,6 +385,7 @@ describe('in a workspace that cannot be written to', () => {
     ).rejects.toThrow()
     await expect(removeChange(second, id, 0, { kind: 'knows' })).rejects.toThrow()
     await expect(setSceneTime(second, id, null)).rejects.toThrow()
+    await expect(setRecordTime(second, 'chr_aaaaaaaaaa', 'born', null)).rejects.toThrow()
     await expect(addCalendar(second, second.data.universes[0]!.id, { name: 'x' })).rejects.toThrow()
     expect(await snapshot(adapter)).toEqual(before)
   })

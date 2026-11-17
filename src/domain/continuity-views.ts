@@ -11,6 +11,7 @@ import {
   silentStretches,
 } from './continuity-checks'
 import { stateAt, type ContinuityModel } from './continuity'
+import { ageAt, ageWords } from './continuity-age'
 import { personState, type Line } from './continuity-state'
 import { colourOf } from './scene-details'
 import { byStart, keyWords } from './story-time'
@@ -407,18 +408,31 @@ export interface StateRow {
 }
 
 /** What is true of a person at the end of a scene, as rows to read: only what has been recorded. */
-export function stateRows(m: ContinuityModel, sceneId: string, who: string): StateRow[] {
+/** `withBook`: the books of a universe are read together, so a scene it names says its book first. */
+export function stateRows(
+  m: ContinuityModel,
+  sceneId: string,
+  who: string,
+  withBook = false,
+): StateRow[] {
   const after = stateAt(m, sceneId)
   const scene = m.byId.get(sceneId)
   if (!after || !scene) return []
   const s = personState(after, who)
+  const sinceRef = (id: string) => {
+    const at = m.byId.get(id)!
+    const book = m.data.books.find((b) => b.id === at.book)?.title ?? 'Untitled book'
+    return withBook ? `${book} · ${at.ref}` : at.ref
+  }
   const item = (l: Line, text: string): StateItem => ({
     text,
-    ...(l.since && m.byId.get(l.since) ? { since: m.byId.get(l.since)!.ref } : {}),
+    ...(l.since && m.byId.get(l.since) ? { since: sinceRef(l.since) } : {}),
     some: !l.every,
   })
   const rows: StateRow[] = []
   const add = (label: string, items: StateItem[]) => items.length && rows.push({ label, items })
+  const age = ageAt(m, who, scene)
+  add('Age', age ? [{ text: ageWords(age), some: false }] : [])
   add(
     'Status',
     s.status.map((l) => item(l, STATUS_WORDS[(l.text || 'alive') as Status] ?? l.text)),

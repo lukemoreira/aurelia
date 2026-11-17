@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, reactive, ref, watch } from 'vue'
-import { GRANULARITY_WORDS, parseTimeKey } from '@/domain/story-time'
+import { GRANULARITY_WORDS, parseTimeKey, timeKeyProblem } from '@/domain/story-time'
 import { wordsFor } from '@/storage/errors'
 import { addCalendar, setSceneTime, type TimeOrder } from '@/storage/continuity-actions'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -15,11 +15,8 @@ export const ORDER_OPTIONS: { value: TimeOrder; label: string }[] = [
   { value: 'flash-forward', label: 'Flash-forward' },
 ]
 
-const WRONG_KEY =
-  'Write the time as a year, then the month, the day and the time, as far as you know it: 412, 412-03, 412-03-14 or 412-03-14 18:00.'
-
 /** A key as typed (a space or a T before the clock) in the form it is stored in. */
-const keyOf = (typed: string) => typed.trim().replace(/\s+/, 'T')
+export const keyOf = (typed: string) => typed.trim().replace(/\s+/, 'T')
 
 /**
  * A scene's story time (ADR-0003): a time in a calendar of the universe, as exact as the author
@@ -78,6 +75,12 @@ export function useSceneTime(sceneId: () => string | undefined) {
   )
   /** The month names of the chosen calendar, for the date picker. */
   const months = computed(() => calendars.value.find((c) => c.id === draft.calendar)?.months ?? [])
+  /** The era of the chosen calendar (or of the one being made), for the words after a year. */
+  const era = computed(() =>
+    draft.calendar === NEW_CALENDAR
+      ? draft.era
+      : calendars.value.find((c) => c.id === draft.calendar)?.era,
+  )
   const granularity = computed(() => {
     const k = draft.at.trim() ? parseTimeKey(keyOf(draft.at)) : undefined
     return k ? `Known to ${GRANULARITY_WORDS[k.granularity]}` : ''
@@ -94,8 +97,9 @@ export function useSceneTime(sceneId: () => string | undefined) {
         await setSceneTime(ws.session, id, null, draft.order)
         return
       }
-      if (!parseTimeKey(at) || (until && !parseTimeKey(until))) {
-        error.value = WRONG_KEY
+      const problem = timeKeyProblem(at) ?? (until ? timeKeyProblem(until) : undefined)
+      if (problem) {
+        error.value = problem
         return
       }
       let calendar = draft.calendar
@@ -125,5 +129,5 @@ export function useSceneTime(sceneId: () => string | undefined) {
     if (key === 'order' || (value !== NEW_CALENDAR && draft.at.trim())) void save()
   }
 
-  return { draft, error, readOnly, calendarOptions, ready, months, granularity, save, pick }
+  return { draft, error, readOnly, calendarOptions, ready, months, era, granularity, save, pick }
 }

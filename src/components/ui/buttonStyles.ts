@@ -25,3 +25,7 @@ export const iconSizeClass: Record<ButtonSize, string> = {
   md: 'size-8 pointer-coarse:size-11',
   lg: 'size-11',
 }
+
+/** A small bordered button beside a control (a pager, "Table view", a step), where a full Button would be too much. */
+export const toolButton =
+  'h-8 rounded-control border border-line-2 bg-surface px-3 text-[13px] font-medium text-ink hover:bg-raised disabled:text-ink-3 pointer-coarse:h-11'
