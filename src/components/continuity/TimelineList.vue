@@ -19,7 +19,7 @@ const visible = computed(() => props.items.slice(range.value.start, range.value.
 </script>
 
 <template>
-  <div :ref="setScroller" class="max-h-[240px] overflow-y-auto">
+  <div :ref="setScroller" class="max-h-[240px] relative overflow-y-auto">
     <ul class="m-0 list-none p-0">
       <li aria-hidden="true" :style="{ height: `${before}px` }" />
       <li

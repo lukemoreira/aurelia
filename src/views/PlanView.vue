@@ -62,7 +62,7 @@ const colours = [
         <OutlineTable v-if="p.plan.view === 'outline'" />
         <PlanCorkboard v-else />
       </div>
-      <PlanInspector class="shrink-0 lg:w-80 lg:overflow-y-auto" />
+      <PlanInspector class="shrink-0 lg:w-80 relative lg:overflow-y-auto" />
     </div>
   </div>
 </template>

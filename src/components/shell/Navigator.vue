@@ -131,7 +131,7 @@ const rowMenu = (node: { id: string }) => edit.rowMenu(node.id)
       </label>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2.5">
+    <div class="min-h-0 flex-1 relative overflow-y-auto px-1.5 pb-2.5">
       <section v-if="pinnedEntries.length && !filter" aria-label="Pinned">
         <h2 :class="heading">Pinned</h2>
         <ul class="m-0 flex list-none flex-col gap-px p-0">

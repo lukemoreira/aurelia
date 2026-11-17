@@ -42,7 +42,7 @@ watch(
   <aside
     ref="root"
     aria-label="Findings"
-    class="order-first flex shrink-0 flex-col gap-3 border-b border-line bg-chrome p-4 lg:order-none lg:w-[340px] lg:overflow-y-auto lg:border-b-0 lg:border-l"
+    class="order-first flex shrink-0 flex-col gap-3 border-b border-line bg-chrome p-4 lg:order-none lg:w-[340px] relative lg:overflow-y-auto lg:border-b-0 lg:border-l"
   >
     <div class="flex items-baseline justify-between">
       <h2 class="m-0 text-sm font-semibold">

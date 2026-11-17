@@ -91,7 +91,7 @@ const m = useStoryMap()
       </div>
       <aside
         aria-label="Story map details"
-        class="flex shrink-0 flex-col gap-5 border-l border-line bg-chrome p-4 lg:w-80 lg:overflow-y-auto"
+        class="flex shrink-0 flex-col gap-5 border-l border-line bg-chrome p-4 lg:w-80 relative lg:overflow-y-auto"
       >
         <StoryProblems :map="m" />
         <StoryDetails v-if="!m.play.active.value" :map="m" class="border-t border-line pt-4" />

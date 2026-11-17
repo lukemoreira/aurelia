@@ -229,6 +229,21 @@ test.describe('moving around', () => {
     }
   })
 
+  test('the inspector tabs are icons that fit the panel, each named by a tooltip', async ({
+    page,
+  }) => {
+    await openSample(page)
+    const tabs = page
+      .getByRole('complementary', { name: 'Scene inspector' })
+      .getByRole('tablist', { name: 'Inspector' })
+    await expect(tabs.getByRole('tab')).toHaveText(['', '', '', '', '']) // no words in the strip
+    expect(await tabs.evaluate((el) => el.scrollWidth - el.clientWidth)).toBe(0) // no scroll bar
+    await tabs.getByRole('tab', { name: 'Links' }).hover()
+    await expect(page.getByRole('tooltip', { name: 'Links' })).toBeVisible()
+    await tabs.getByRole('tab', { name: 'Links' }).click()
+    await expect(tabs.getByRole('tab', { name: 'Links' })).toHaveAttribute('aria-selected', 'true')
+  })
+
   test('the filter narrows the navigator', async ({ page }) => {
     await openSample(page)
     await page.getByRole('searchbox', { name: 'Filter the navigator' }).fill('warden')

@@ -26,7 +26,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', leave))
 </script>
 
 <template>
-  <section aria-label="Play" class="flex min-h-0 flex-1 flex-col overflow-auto">
+  <section aria-label="Play" class="flex min-h-0 flex-1 flex-col relative overflow-auto">
     <div class="mx-auto flex w-full max-w-[720px] flex-col gap-6 px-5 py-8">
       <div class="flex flex-wrap items-center gap-2">
         <Button :disabled="p.path.value.length < 2" @click="p.back()"

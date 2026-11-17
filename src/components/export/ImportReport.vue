@@ -44,7 +44,7 @@ const sections = computed<{ id: string; title: string; tone: string; items: Repo
       <ul
         tabindex="0"
         aria-label="The chapters and scenes that will be made"
-        class="m-0 flex max-h-44 list-none flex-col gap-1.5 overflow-y-auto rounded-control border border-line p-3"
+        class="m-0 flex max-h-44 list-none flex-col gap-1.5 relative overflow-y-auto rounded-control border border-line p-3"
       >
         <li v-for="(c, i) in plan.chapters" :key="i">
           <span class="font-semibold">{{ c.title }}</span>

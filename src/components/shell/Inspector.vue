@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button.vue'
 import { smallCapsHeading } from '@/components/ui/fieldStyles'
 import Icon from '@/components/ui/Icon.vue'
 import Tabs from '@/components/ui/Tabs.vue'
+import type { IconName } from '@/domain/ui-names'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 import ItemDetails from './ItemDetails.vue'
@@ -25,13 +26,13 @@ watch(
   { immediate: true },
 )
 // Notes arrive with the feature they show; until then it is not offered. History is a section at
-// the foot of the Scene and Book tabs, so the strip stays five tabs (a sixth clips the first one).
-const TABS = [
-  { value: 'scene', label: 'Scene' },
-  { value: 'names', label: 'Names' },
-  { value: 'links', label: 'Links' },
-  { value: 'chapter', label: 'Chapter' },
-  { value: 'book', label: 'Book' },
+// the foot of the Scene and Book tabs. Icons with tooltips, so the strip fits the panel unscrolled.
+const TABS: { value: string; label: string; icon: IconName }[] = [
+  { value: 'scene', label: 'Scene', icon: 'scene' },
+  { value: 'names', label: 'Names', icon: 'user' },
+  { value: 'links', label: 'Links', icon: 'link' },
+  { value: 'chapter', label: 'Chapter', icon: 'chapter' },
+  { value: 'book', label: 'Book', icon: 'book' },
 ]
 </script>
 
@@ -41,7 +42,7 @@ const TABS = [
     aria-label="Scene inspector"
     class="relative flex h-full min-h-0 flex-col bg-chrome text-ink"
   >
-    <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1.5">
+    <div class="min-h-0 flex-1 relative overflow-y-auto px-3 pb-4 pt-1.5">
       <h2 class="sr-only">Inspector</h2>
       <Tabs v-if="route.name === 'write'" v-model="tab" label="Inspector" :items="TABS">
         <template #scene>

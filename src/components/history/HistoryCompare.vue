@@ -86,7 +86,7 @@ watch(
         <ul
           v-if="!sceneId && shown.length"
           aria-label="Scenes that differ"
-          class="m-0 flex max-h-40 list-none flex-col overflow-auto rounded-card border border-line p-0"
+          class="m-0 flex max-h-40 list-none flex-col relative overflow-auto rounded-card border border-line p-0"
         >
           <li v-for="r in shown" :key="r.id" class="border-t border-line first:border-t-0">
             <button
