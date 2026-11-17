@@ -42,9 +42,10 @@ const TABS: { value: string; label: string; icon: IconName }[] = [
     aria-label="Scene inspector"
     class="relative flex h-full min-h-0 flex-col bg-chrome text-ink"
   >
-    <div class="min-h-0 flex-1 relative overflow-y-auto px-3 pb-4 pt-1.5">
+    <!-- The tabs stay at the top; only the open tab scrolls, so its scroll bar starts under them. -->
+    <div class="relative flex min-h-0 flex-1 flex-col pt-1.5">
       <h2 class="sr-only">Inspector</h2>
-      <Tabs v-if="route.name === 'write'" v-model="tab" label="Inspector" :items="TABS">
+      <Tabs v-if="route.name === 'write'" v-model="tab" label="Inspector" :items="TABS" fill>
         <template #scene>
           <div class="flex flex-col gap-5">
             <SceneInspector />
@@ -98,7 +99,7 @@ const TABS: { value: string; label: string; icon: IconName }[] = [
           </div>
         </template>
       </Tabs>
-      <div v-else class="px-1 py-6 text-center text-[12.5px]">
+      <div v-else class="px-4 py-6 text-center text-[12.5px]">
         <p class="m-0 font-semibold text-ink">Nothing to inspect here</p>
         <p class="mx-0 mb-0 mt-1 text-ink-2">The details of the open scene show in Write.</p>
       </div>

@@ -13,6 +13,8 @@ defineProps<{
    * with its label as the tooltip and as its name for a screen reader: a narrow strip fits.
    */
   items: { value: string; label: string; icon?: IconName }[]
+  /** Fill a side panel: the strip stays put and only the open tab's panel scrolls, under it. */
+  fill?: boolean
 }>()
 const model = defineModel<string>()
 const trigger =
@@ -20,10 +22,13 @@ const trigger =
 </script>
 
 <template>
-  <TabsRoot v-model="model">
+  <TabsRoot v-model="model" :class="fill && 'flex min-h-0 flex-1 flex-col'">
     <TabsList
       :aria-label="label"
-      class="relative flex gap-0.5 overflow-x-auto border-b border-line [scrollbar-width:thin]"
+      :class="[
+        'relative flex gap-0.5 overflow-x-auto border-b border-line [scrollbar-width:thin]',
+        fill && 'mx-3 shrink-0',
+      ]"
     >
       <template v-for="t in items" :key="t.value">
         <Tooltip v-if="t.icon" :text="t.label">
@@ -39,7 +44,12 @@ const trigger =
         }}</TabsTrigger>
       </template>
     </TabsList>
-    <TabsContent v-for="t in items" :key="t.value" :value="t.value" class="pt-3">
+    <TabsContent
+      v-for="t in items"
+      :key="t.value"
+      :value="t.value"
+      :class="['pt-3', fill && 'relative min-h-0 flex-1 overflow-y-auto px-3 pb-4']"
+    >
       <slot :name="t.value" />
     </TabsContent>
   </TabsRoot>
