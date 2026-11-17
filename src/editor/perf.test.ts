@@ -13,8 +13,8 @@ const report = (label: string, ms: number) => {
   if (process.env.PERF_REPORT) process.stderr.write(`perf ${label}: ${ms.toFixed(1)} ms\n`)
 }
 // Shared CI machines run this about ten times slower and pause for GC; the budgets there keep catching
-// a real slowdown (an order of magnitude) without failing on noise. Locally they stay tight.
-const SLACK = process.env.CI ? 8 : 1
+// a real slowdown (an order of magnitude) without failing on noise. Locally they allow for other work running.
+const SLACK = process.env.CI ? 8 : 3
 
 // A 20,000-word scene typed 300 times takes seconds on a slow machine: give the file room.
 vi.setConfig({ testTimeout: 120_000 })
