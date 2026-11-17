@@ -105,7 +105,10 @@ watch(
         :body="f.body"
         :severity="f.severity"
       >
-        <template v-if="f.related.length" #evidence>Also: {{ evidence(f) }}</template>
+        <template v-if="f.related.length || f.book" #evidence>
+          <template v-if="f.book">In {{ c.bookTitle(f.book) }}. </template>
+          <template v-if="f.related.length">Also: {{ evidence(f) }}</template>
+        </template>
         <button
           type="button"
           :class="[button, 'text-gold-ink hover:bg-gold-soft']"

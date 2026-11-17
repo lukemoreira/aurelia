@@ -12,6 +12,8 @@ import { parseTimeKey } from '@/domain/story-time'
  */
 const props = defineProps<{
   months?: string[]
+  /** The calendar's era: the words after a year ("TR") and for a year before it ("before TR"). A calendar with none is year 1 and before it. */
+  era?: string
   disabled?: boolean
   /** Names the group for a screen reader. */
   label: string
@@ -21,10 +23,11 @@ const emit = defineEmits<{ commit: [] }>()
 const NONE = '__none'
 const pad = (n: number | string) => String(n).padStart(2, '0')
 
-const parts = reactive({ year: '', month: NONE, day: '', time: '' })
+const parts = reactive({ year: '', before: false, month: NONE, day: '', time: '' })
 function read(key: string) {
   const k = parseTimeKey(key)
-  parts.year = k ? String(k.parts[0]) : ''
+  parts.year = k ? String(Math.abs(k.parts[0]!)) : ''
+  parts.before = !!k && k.parts[0]! < 0
   parts.month = k?.parts[1] ? String(k.parts[1]) : NONE
   parts.day = k?.parts[2] ? String(k.parts[2]) : ''
   parts.time = k?.parts[3] !== undefined ? `${pad(k.parts[3])}:${pad(k.parts[4] ?? 0)}` : ''
@@ -33,8 +36,10 @@ read(model.value)
 
 /** The key the parts make: a month needs a year, a day a month, a time a day. */
 function compose(): string {
-  const year = parts.year.trim().replace(/\D/g, '')
-  if (!year) return ''
+  const digits = parts.year.trim().replace(/\D/g, '')
+  if (!digits) return ''
+  // there is no year 0, and no minus zero: "before" means nothing for it
+  const year = `${parts.before && Number(digits) !== 0 ? '-' : ''}${digits}`
   if (parts.month === NONE) return year
   const month = `${year}-${pad(parts.month)}`
   const day = parts.day.trim().replace(/\D/g, '')
@@ -44,10 +49,33 @@ function compose(): string {
     ? `${date}T${pad(parts.time.trim().split(':')[0]!)}:${parts.time.trim().split(':')[1]}`
     : date
 }
+// A minus typed in front of the year says the same as the era: before it.
+watch(
+  () => parts.year,
+  (y) => {
+    if (!y.trim().startsWith('-')) return
+    parts.before = true
+    parts.year = y.replace(/^\s*-+/, '')
+  },
+)
+// With no year there is no era to keep: the next year typed is a year after the start, unless said otherwise.
+watch(
+  () => parts.year.trim(),
+  (y, old) => {
+    if (!y && old && !old.startsWith('-')) parts.before = false
+  },
+)
 watch(parts, () => (model.value = compose()))
 // The stored time changed outside (another scene, another device): the parts follow, unless they already say it.
 watch(model, (key) => key !== compose() && read(key))
 
+const eraOptions = () => {
+  const era = props.era?.trim()
+  return [
+    { value: 'after', label: era || 'After year 1' },
+    { value: 'before', label: era ? `before ${era}` : 'Before year 1' },
+  ]
+}
 const monthOptions = () => [
   { value: NONE, label: 'Month' },
   ...(props.months?.length
@@ -59,7 +87,7 @@ const small = 'min-w-0'
 </script>
 
 <template>
-  <div role="group" :aria-label="label" class="grid grid-cols-[1fr_1.4fr_0.8fr_1fr] gap-1.5">
+  <div role="group" :aria-label="label" class="grid grid-cols-6 gap-1.5">
     <Input
       v-model="parts.year"
       aria-label="Year"
@@ -67,13 +95,27 @@ const small = 'min-w-0'
       inputmode="numeric"
       autocomplete="off"
       :disabled="disabled"
-      :class="small"
+      :class="[small, 'col-span-4']"
       @change="emit('commit')"
+    />
+    <Select
+      :model-value="parts.before ? 'before' : 'after'"
+      aria-label="Before or after"
+      class="col-span-2"
+      :options="eraOptions()"
+      :disabled="disabled || !parts.year"
+      @update:model-value="
+        (v) => {
+          parts.before = v === 'before'
+          emit('commit')
+        }
+      "
     />
     <Select
       v-model="parts.month"
       aria-label="Month"
       :options="monthOptions()"
+      class="col-span-3"
       :disabled="disabled || !parts.year"
       @update:model-value="emit('commit')"
     />
@@ -84,7 +126,7 @@ const small = 'min-w-0'
       inputmode="numeric"
       autocomplete="off"
       :disabled="disabled || parts.month === NONE"
-      :class="small"
+      :class="[small, 'col-span-1']"
       @change="emit('commit')"
     />
     <Input
@@ -93,7 +135,7 @@ const small = 'min-w-0'
       placeholder="18:00"
       autocomplete="off"
       :disabled="disabled || !parts.day"
-      :class="small"
+      :class="[small, 'col-span-2']"
       @change="emit('commit')"
     />
   </div>

@@ -48,6 +48,7 @@ const commit = async () => {
         v-model="d.at"
         label="When"
         :months="t.months.value"
+        :era="t.era.value"
         :disabled="t.readOnly.value || !t.ready.value"
         @commit="commit()"
       />

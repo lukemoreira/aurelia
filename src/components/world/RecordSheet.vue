@@ -16,6 +16,8 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import LinksList from '@/components/shell/LinksList.vue'
 import SceneEditor from '@/components/write/SceneEditor.vue'
 import AppearancesTab from './AppearancesTab.vue'
+import ProgressionTab from './ProgressionTab.vue'
+import RecordTime from './RecordTime.vue'
 import FieldList from './FieldList.vue'
 import RecordPortrait from './RecordPortrait.vue'
 import RecordOverview from './RecordOverview.vue'
@@ -35,6 +37,7 @@ const nav = useNavigation()
 
 const TAB_LABEL: Record<SheetTab | 'notes', string> = {
   overview: 'Overview',
+  progression: 'Progression',
   relationships: 'Relationships',
   appearances: 'Appearances',
   voice: 'Voice',
@@ -165,7 +168,25 @@ const role = computed(() => s.record.value?.meta.role?.trim() || s.record.value?
             @save-aliases="s.saveAliases()"
             @add-alias="s.addAlias()"
             @remove-alias="s.removeAlias"
-          />
+          >
+            <RecordTime
+              v-if="type === 'character'"
+              :id="id"
+              field="born"
+              label="Born"
+              hint="Their birth date. The checks use it to catch age mistakes."
+            />
+            <RecordTime
+              v-else-if="type === 'event'"
+              :id="id"
+              field="time"
+              label="When it happens"
+              hint="A date in one of the universe’s calendars. Events with a date show on the timeline."
+            />
+          </RecordOverview>
+        </template>
+        <template #progression>
+          <ProgressionTab :id="id" :name="s.record.value.meta.title" />
         </template>
         <template #relationships>
           <RelationshipsTab :id="id" :name="s.record.value.meta.title" />

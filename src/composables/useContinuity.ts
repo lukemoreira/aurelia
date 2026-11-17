@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, ref, toRaw, watch } from 'vue'
 import type { ContinuityFinding, FindingGroup } from '@/domain/continuity-checks'
+import type { Scope } from '@/domain/continuity-universe'
 import {
   arcLanes,
   continuityStats,
@@ -40,12 +41,20 @@ export function useContinuity() {
   const ws = useWorkspaceStore()
   const edits = useEditsStore()
   const review = useReviewStore()
-  const { model, all, split } = useContinuityModel()
+  const { model: bookModel, all, split, universe, universeFindings } = useContinuityModel()
   const nav = useNavigation()
   const edit = useOutlineEdits()
   const guarded = useGuarded()
 
-  const open = computed(() => split.value.active)
+  // What is read: this book, or every book of its universe end to end.
+  const scope = ref<Scope>('book')
+  const wide = computed(() => scope.value === 'universe' && !!universe.value)
+  const model = computed(() => (wide.value ? universe.value?.merged : bookModel.value))
+  const open = computed(() =>
+    wide.value ? (universeFindings.value?.split.active ?? []) : split.value.active,
+  )
+  const books = computed(() => ws.universe?.books.length ?? 1)
+  const bookTitle = (id?: string) => ws.data?.books.find((b) => b.id === id)?.title ?? ''
   const rows = computed(() => (model.value ? presenceMap(model.value, open.value) : []))
   const lanes = computed(() => (model.value ? arcLanes(model.value) : []))
   const chart = computed(() => (model.value ? timeChart(model.value, open.value) : undefined))
@@ -88,7 +97,7 @@ export function useContinuity() {
   const canPage = (by: -1 | 1) =>
     by < 0 ? range.value.start > 0 : range.value.end < chapters.value.length
   watch(
-    () => ws.bookId,
+    () => [ws.bookId, scope.value],
     () => {
       from.value = 0
       edits.findingsScene = null
@@ -118,7 +127,11 @@ export function useContinuity() {
   const certain = computed(() => open.value.filter((f) => !f.possible && inFilter(f)))
   /** Times that only overlap: shown apart, collapsed (ADR-0006 §4). */
   const possible = computed(() => open.value.filter((f) => f.possible && inFilter(f)))
-  const marked = computed(() => split.value.dismissed.filter(inFilter))
+  const marked = computed(() =>
+    (wide.value ? (universeFindings.value?.split.dismissed ?? []) : split.value.dismissed).filter(
+      inFilter,
+    ),
+  )
 
   // A cell of the map that holds a finding leads to it: the list scrolls to it and takes the keyboard.
   const focusRequest = ref<{ fingerprint: string; n: number } | null>(null)
@@ -146,11 +159,21 @@ export function useContinuity() {
   /** "Mark intended" and its undo: the list changes by the one fingerprint, where it is written. */
   const dismiss = (f: ContinuityFinding, on: boolean) =>
     guarded(async () => {
-      if (ws.session && ws.bookId)
-        await setDismissed(ws.session, ws.bookId, {
-          ...(on ? { add: f.fingerprint } : { remove: f.fingerprint }),
-          found: all.value.map((x) => x.fingerprint),
-        })
+      const book = f.book ?? ws.bookId
+      if (!ws.session || !book) return
+      await setDismissed(ws.session, book, {
+        ...(on ? { add: f.fingerprint } : { remove: f.fingerprint }),
+        // Read from one book, its list is cleaned of what no longer shows — and what shows only across the
+        // universe (a death in the book before) still shows, so its mark stays; read across the universe,
+        // only this one mark changes.
+        found: f.book
+          ? [f.fingerprint]
+          : [
+              ...all.value,
+              ...(universeFindings.value?.all.filter((x) => x.book === ws.bookId) ?? []),
+            ].map((x) => x.fingerprint),
+        ...(f.book ? { among: () => false } : {}),
+      })
     })
   /** The words in the text where a finding is, if they are known: a person as they are written there, or a broken link. */
   const placeOf = (f: ContinuityFinding) =>
@@ -162,15 +185,19 @@ export function useContinuity() {
       : undefined)
   /** "Go to": the scene opens with the place selected, and the keyboard in the text. */
   async function show(f: ContinuityFinding) {
-    if (!ws.bookId) return
+    const book = f.book ?? ws.bookId
+    if (!book) return
     const term = placeOf(f)
-    await nav.openScene(ws.bookId, f.scene)
+    await nav.openScene(book, f.scene)
     // Once the scene is on screen: the editor takes the words and the keyboard.
     if (term) review.found = { id: f.scene, term }
   }
 
   return {
     model,
+    scope,
+    books,
+    bookTitle,
     rows,
     shown,
     lanes,

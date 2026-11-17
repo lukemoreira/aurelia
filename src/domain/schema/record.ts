@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { z } from 'zod'
 import { isId } from '../ids'
-import { idOf, schemaVersion } from './common'
+import { idOf, numberAsText, schemaVersion, storyTime } from './common'
 
 export const RECORD_TYPES = [
   'character',
@@ -53,6 +53,7 @@ export const TEXT_FIELDS = [
   'when',
   'purpose',
   'age',
+  'maxAge',
   'appearance',
   'background',
   'goal',
@@ -79,9 +80,11 @@ export const TEXT_FIELDS = [
   'limits',
 ] as const
 export type TextField = (typeof TEXT_FIELDS)[number]
-const textFields = Object.fromEntries(TEXT_FIELDS.map((k) => [k, z.string().optional()])) as Record<
+// A number written bare in YAML (`age: 34`, `maxAge: 700`) is read as the text it stands for.
+const text = () => z.preprocess(numberAsText, z.string()).optional()
+const textFields = Object.fromEntries(TEXT_FIELDS.map((k) => [k, text()])) as Record<
   TextField,
-  z.ZodOptional<z.ZodString>
+  ReturnType<typeof text>
 >
 
 // A generic record's frontmatter (characters, places, items, lore, …).
@@ -96,6 +99,10 @@ export const recordSchema = z.looseObject({
   summary: z.string().optional(),
   // The type's basic fields (see record-types.ts): plain text, all optional.
   ...textFields,
+  // When an event happens, and when a character was born: a story time in one of the universe's calendars.
+  // Written by hand as words ("spring of 412"), they are left out when read, never a reason to refuse the file.
+  time: storyTime.optional().catch(undefined),
+  born: storyTime.optional().catch(undefined),
   // A picture of it: an imported image (`media/`), a portrait for a character.
   image: idOf('med').optional(),
   // A place or world sits inside another one (planet → country → city → room).

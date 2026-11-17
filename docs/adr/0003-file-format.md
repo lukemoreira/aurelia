@@ -140,6 +140,10 @@ The bells had already started when [[Elena Vasquez]] reached the Lantern Gate.
 `time.at` is a **sortable key with granularity**: `412`, `412-03`, `412-03-14` or
 `412-03-14T18:00`, read in the named calendar. An optional `until` (same shape) makes a
 span. `label` is free text ("dusk") and is display only; nothing sorts or checks on it.
+A minus sign puts the year before the calendar's epoch: `-44` is 44 BCE, `-44-03-15` the 15th of the third
+month of it. Signed years sort in time order, and 1 BCE is followed by 1 CE (no year 0 in the age
+arithmetic). A character's birth (`born`) and an event's date (`time`) on a record's frontmatter have the same
+shape (`calendar`, `at`, optional `label`); `maxAge` is a plain-text number of years.
 How the keys are used is in [ADR-0006](0006-continuity-model.md).
 
 ## Markdown dialect (v1)

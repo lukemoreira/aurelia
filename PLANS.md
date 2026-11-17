@@ -456,7 +456,7 @@ Do not scaffold future features early.
 - Continuity view: presence map, arc lanes, POV balance, story time vs reading order,
   pacing, and the checks list (dead-then-alive, two places at once, time order, item in
   two hands, setup without payoff, silent arc, long absence, broken links). Severities
-  are Error / Warning / Note. **Done (M5b)**, for one book; "Whole universe" is left.
+  are Error / Warning / Note. **Done (M5b)**, for one book; "Whole universe" built in M6b.
 - Exit: plan and reorder a book without leaving the workspace; write and play a
   branching story start to end; every check in ADR-0006 has a test that finds it and a
   test that does not raise it on a clean story; a test with a flashback that reveals an
@@ -468,14 +468,14 @@ Do not scaffold future features early.
 **M6 · Worldbuilding library**
 - Character sheet (identity, inner life, voice, relationships with types, appearances)
   with a **Progression** view: state scene by scene in reading order, built from scene
-  changes. *M6a built the sheet; the Progression view waits for Continuity (M5b).*
+  changes. *M6a built the sheet; the Progression view is built (M6b).*
 - Worlds and places as a free hierarchy (planet → … → room, custom levels), sensory
   details, Earth as a root for history writing.
 - Items, events, lore, research (with sources), factions, cultures, magic/tech systems.
 - **Find new names** (ADR-0010): a Names panel lists recurring capitalised words that are
   not records yet, with "Create character / Create place / Not a name".
 - Timeline with real dates (incl. BCE) and custom calendars (builds on the M5 outline
-  columns). *Waits for Continuity (M5b).*
+  columns). **Built (M6b)**, as a mode of the Continuity view.
 - Media gallery (portraits, maps, reference images) stored in the project folder. The
   original file and extension are kept (no transcoding); thumbnails are a device-side
   cache.
@@ -716,3 +716,8 @@ backup — ADR-0009.)
   table makes a table (cells flattened to one line). Parallel browser tests:
   `E2E_PORT=4180 npm run e2e`. Left: a note's caret-to-reference jump (the note is at the end of the
   text, reached with the arrows), tables and footnotes inside quotes and lists (kept as written).
+- 2026-11-17 — M6b Progression and the Timeline (branch `feat/m6b-progression-timeline`): the character
+  sheet's Progression tab (chapter table, scrubber, state at a scene, change log), the Continuity view's
+  "This book / Whole universe" scope and a Timeline mode (calendars, eras, BCE, zoom, flashbacks, events,
+  keyboard, table view), "Shows on X's progression" in the add-change board, birth dates and the Age and
+  dates check, BCE in the story-time picker. See ADR-0006 "Built in M6b".

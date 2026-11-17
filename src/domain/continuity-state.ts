@@ -21,7 +21,8 @@ const keyOf = (f: Fact) => `${f.value}\u0001${f.at}`
 const poss = (...facts: Fact[]): Possible => new Map(facts.map((f) => [keyOf(f), f]))
 /** What a fact is before anything has changed it. */
 const INITIAL: Possible = poss({ value: '', at: '' })
-const EMPTY: State = new Map()
+export const EMPTY_STATE: State = new Map()
+const EMPTY = EMPTY_STATE
 
 // The fact names. One place spells them, so the queries below and the changes agree.
 const attr = {
@@ -149,8 +150,9 @@ export interface FlowInput {
   order: readonly string[]
   /** The scenes that lead into each scene. */
   preds: ReadonlyMap<string, readonly string[]>
-  /** Scenes the story can begin at: they start from the empty state. */
+  /** Scenes the story can begin at: they start from the empty state, or from `initial` (a later book of a universe). */
   entries: ReadonlySet<string>
+  initial?: State
   changes: (scene: string) => readonly Change[]
   /** False for a scene whose changes do not carry on to the scenes after it in reading order. */
   carries?: (scene: string) => boolean
@@ -185,7 +187,7 @@ export function runFlow(input: FlowInput): Flow {
       if (!dirty[i]) continue
       dirty[i] = false
       const incoming = (preds.get(id) ?? []).flatMap((p) => leaving.get(p) ?? [])
-      if (entries.has(id)) incoming.push(EMPTY)
+      if (entries.has(id)) incoming.push(input.initial ?? EMPTY)
       if (!incoming.length) continue // nothing has reached it yet
       const start = join(incoming)
       const old = before.get(id)

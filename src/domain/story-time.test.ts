@@ -2,10 +2,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   certainlyBefore,
+  beforeWords,
+  byStart,
   keyWords,
   overlaps,
   parseTimeKey,
   sameMoment,
+  timeKeyProblem,
+  yearsBetween,
   spanOf,
   timeWords,
 } from './story-time'
@@ -71,5 +75,68 @@ describe('story time keys', () => {
     expect(
       timeWords({ calendar: cal, at: '412-01-14', until: '412-01-16', label: 'dusk' }, [tide]),
     ).toBe('14 Thaw 412 TR – 16 Thaw 412 TR · dusk')
+  })
+})
+
+describe('years before the calendar starts (BCE)', () => {
+  it('reads a minus sign as a year before the epoch, at every granularity', () => {
+    expect(parseTimeKey('-44')).toEqual({ parts: [-44], granularity: 'year' })
+    expect(parseTimeKey('-44-03-15T06:00')).toEqual({
+      parts: [-44, 3, 15, 6, 0],
+      granularity: 'minute',
+    })
+    expect(parseTimeKey('--44')).toBeUndefined()
+    expect(parseTimeKey('4-4')).toBeUndefined()
+  })
+
+  it('puts years in time order: 500 BCE, 44 BCE, 1 BCE, 1 CE, 412 CE', () => {
+    const keys = ['412', '-44', '1', '-500', '-1']
+    const sorted = keys.map((k) => span(k)).sort(byStart)
+    expect(sorted.map((s) => s.lo[0])).toEqual([-500, -44, -1, 1, 412])
+    // and the months of one BCE year still run January to December
+    expect(certainlyBefore(span('-44-03'), span('-44-04'))).toBe(true)
+    expect(certainlyBefore(span('-44-04'), span('-44-03'))).toBe(false)
+    expect(certainlyBefore(span('-44'), span('-43'))).toBe(true)
+    expect(certainlyBefore(span('-43'), span('-44'))).toBe(false)
+  })
+
+  it('writes it in words: BCE for a plain calendar, "before TR" for one with an era of its own', () => {
+    const tide = { id: cal, name: 'Tide', era: 'TR', months: ['Thaw', 'Bloom'] }
+    expect(keyWords('-44')).toBe('44 BCE')
+    expect(keyWords('-44-03-15')).toBe('44-03-15 BCE')
+    expect(keyWords('-44-01-15T06:00', tide)).toBe('15 Thaw 44 before TR, 06:00')
+    expect(keyWords('412-01-15', tide)).toBe('15 Thaw 412 TR')
+    expect(beforeWords({ era: 'CE' })).toBe('BCE')
+    expect(beforeWords({ era: 'AD' })).toBe('BC')
+    expect(beforeWords()).toBe('BCE')
+    expect(timeWords({ calendar: cal, at: '-44', until: '-43' }, [{ ...tide, months: [] }])).toBe(
+      '44 before TR – 43 before TR',
+    )
+  })
+
+  it('counts whole years, with no year 0 between 1 BCE and 1 CE', () => {
+    expect(yearsBetween([412, 3, 14], [421, 3, 14])).toBe(9)
+    expect(yearsBetween([412, 3, 14], [421, 3, 13])).toBe(8) // the day before the birthday
+    expect(yearsBetween([-44], [-34])).toBe(10)
+    expect(yearsBetween([-1], [1])).toBe(1) // 1 BCE to 1 CE is a year
+    expect(yearsBetween([-10], [5])).toBe(14)
+  })
+
+  it('counts a stored year 0 as 1 BCE rather than a year of its own', () => {
+    expect(yearsBetween([-1], [0])).toBe(0)
+    expect(yearsBetween([0], [1])).toBe(1)
+    expect(yearsBetween([-5], [0])).toBe(4) // 5 BCE to 1 BCE
+    expect(yearsBetween([-5], [1])).toBe(5)
+  })
+
+  it('refuses year 0 in words, and a key that does not read', () => {
+    expect(timeKeyProblem('412-03-14')).toBeUndefined()
+    expect(timeKeyProblem('-44')).toBeUndefined()
+    expect(timeKeyProblem('0')).toContain('There is no year 0')
+    expect(timeKeyProblem('-0')).toContain('There is no year 0')
+    expect(timeKeyProblem('0-03-14')).toContain('There is no year 0')
+    expect(timeKeyProblem('dusk')).toBe(
+      'That date is not complete. Fill the year first, then the month, day and time.',
+    )
   })
 })
