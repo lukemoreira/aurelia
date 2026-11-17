@@ -254,6 +254,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await sheet.getByLabel('Other name 2', { exact: true }).fill('Vasquez')
     await sheet.getByRole('combobox', { name: 'Tagging for other name 2' }).click()
     await page.getByRole('option', { name: 'Ask me first' }).click()
+    await sheet.getByRole('tab', { name: 'Notes' }).click()
     const notes = sheet.getByRole('textbox', { name: /^Notes/ })
     await notes.fill('Owes everyone.')
     await notes.blur()
@@ -284,9 +285,9 @@ for (const scheme of ['light', 'dark'] as const) {
     await page.getByRole('menuitem', { name: 'Delete' }).click()
     const toast = page.getByRole('status').filter({ hasText: 'Moved “The Old Gate”' })
     await expect(toast).toBeVisible()
-    await expect(page.getByRole('button', { name: 'The Old Gate' })).toHaveCount(0)
+    await expect(page.getByRole('treeitem', { name: 'The Old Gate' })).toHaveCount(0)
     await toast.getByRole('button', { name: 'Undo' }).click()
-    await expect(page.getByRole('button', { name: 'The Old Gate' })).toBeVisible()
+    await expect(page.getByRole('treeitem', { name: 'The Old Gate' })).toBeVisible()
 
     // Pick the character as the point of view of the scene, then reload: everything persists.
     await page.getByRole('link', { name: 'Write' }).click()
@@ -307,6 +308,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await expect(sheet.getByRole('combobox', { name: 'Tagging for other name 2' })).toContainText(
       'Ask me first',
     )
+    await sheet.getByRole('tab', { name: 'Notes' }).click()
     await expect(sheet.getByRole('textbox', { name: /^Notes/ })).toHaveText('Owes everyone.')
     const files = await opfs.list(page)
     expect(files.filter((f) => /\/records\/(characters|places)\//.test(f))).toHaveLength(2)

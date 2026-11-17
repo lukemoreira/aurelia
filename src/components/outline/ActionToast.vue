@@ -21,7 +21,7 @@ const { undoButton, undo, dismiss } = useActionToast()
       edits.toast.error ? 'border-danger-line' : 'border-line',
     ]"
   >
-    <span class="font-medium">{{ edits.toast.text }}</span>
+    <span class="whitespace-pre-line font-medium">{{ edits.toast.text }}</span>
     <span class="flex gap-2">
       <button
         v-if="edits.toast.undo"
@@ -32,6 +32,17 @@ const { undoButton, undo, dismiss } = useActionToast()
       >
         Undo
       </button>
+      <Button
+        v-if="edits.toast.action"
+        size="sm"
+        @click="
+          () => {
+            edits.toast?.action?.run()
+            dismiss()
+          }
+        "
+        >{{ edits.toast.action.label }}</Button
+      >
       <Button variant="quiet" size="sm" @click="dismiss">Dismiss</Button>
     </span>
   </div>

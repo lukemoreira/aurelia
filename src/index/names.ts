@@ -90,7 +90,7 @@ const OPENING_QUOTE = /["“«]/
 const SKIPPED_BEFORE = /[\s“”"‘’'(«[—–-]/
 
 /** The word starts a sentence: at the start of a block, after `. ! ?`, or right after an opening quote. */
-function startsSentence(text: string, start: number): boolean {
+export function startsSentence(text: string, start: number): boolean {
   if (start > 0 && OPENING_QUOTE.test(text[start - 1]!)) return true
   let i = start - 1
   while (i >= 0 && SKIPPED_BEFORE.test(text[i]!)) {

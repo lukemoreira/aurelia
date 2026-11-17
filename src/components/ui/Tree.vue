@@ -109,8 +109,8 @@ const dropClass = (node: TreeNode) => {
       :style="{ paddingLeft: `${8 + (item.level - 1) * 14}px` }"
       :draggable="!!item.value.draggable && !!menu"
       :class="[
-        'group flex h-8 cursor-pointer items-center gap-1.5 rounded-[7px] pr-2 text-ink-2 hover:bg-raised data-[selected]:bg-gold-soft data-[selected]:font-semibold data-[selected]:text-gold-ink pointer-coarse:h-11',
-        item.value.draggable && menu && 'active:cursor-grabbing',
+        'group flex h-8 items-center gap-1.5 rounded-[7px] pr-2 text-ink-2 hover:bg-raised data-[selected]:bg-gold-soft data-[selected]:font-semibold data-[selected]:text-gold-ink pointer-coarse:h-11',
+        item.value.draggable && menu ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
         dropClass(item.value),
         // The row being carried is marked with a dashed frame, not faded (text is never dimmed).
         drag.dragging.value === item.value.id &&

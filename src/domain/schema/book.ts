@@ -19,6 +19,8 @@ export const bookSchema = z.looseObject({
   start: idOf('scn').optional(),
   outline: z.array(outlineEntry).optional(),
   dismissedFindings: z.array(z.string()).optional(),
+  // Capitalised words the author said are not names, so the Names panel stops offering them (ADR-0010).
+  notNames: z.array(z.string()).optional(),
   targets: z.looseObject({ words: z.number().int().nonnegative().optional() }).optional(),
 })
 

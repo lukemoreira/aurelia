@@ -36,6 +36,10 @@ export class FakeDav {
   folders = new Set<string>([''])
   /** false: every request is refused with 401, as when the login has expired. */
   authorized = true
+  /** The biggest file a PUT takes before the answer is 413. */
+  limit = DAV_LIMIT
+  /** A test can refuse a write of a file with a status (413, 500…): `null` lets it through. */
+  refuse?: (path: string) => number | null
   /** true: every request fails with 503. */
   down = false
   /** Every request, as `METHOD path`, in order. */
@@ -58,6 +62,10 @@ export class FakeDav {
   text(path: string): string | null {
     const f = this.files.get(clean(path))
     return f ? new TextDecoder().decode(f.bytes) : null
+  }
+  /** The bytes of a file, exactly (an image is not text), or null. */
+  bytes(path: string): Uint8Array<ArrayBuffer> | null {
+    return this.files.get(path)?.bytes.slice() ?? null
   }
   paths(prefix = ''): string[] {
     return [...this.files.keys()].filter((p) => p.startsWith(prefix)).sort()
@@ -122,7 +130,9 @@ export class FakeDav {
           this.unconditional.push(`PUT ${path}`)
         if (isFolder) return reply(405)
         if (!this.folders.has(parentOf(path))) return reply(409)
-        if ((req.body?.length ?? 0) > DAV_LIMIT) return reply(413)
+        const refused = this.refuse?.(path)
+        if (refused) return reply(refused)
+        if ((req.body?.length ?? 0) > this.limit) return reply(413)
         if (h['if-match'] !== undefined && file?.etag !== h['if-match']) return reply(412)
         if (h['if-none-match'] === '*' && file) return reply(412)
         this.put(path, req.body ?? new Uint8Array())

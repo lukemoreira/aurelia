@@ -374,6 +374,38 @@ describe('no IndexedDB', () => {
   })
 })
 
+describe('an image from another device (sync)', () => {
+  const IMAGE = 'universes/unv_a/media/med_0123456789.png'
+  const BYTES = new Uint8Array([0x89, 0x50, 0xff, 0xfe, 0x80]) as Uint8Array<ArrayBuffer>
+
+  it('is written as the bytes it is, only where there is nothing (null) or what the base says', async () => {
+    const p = makePipeline()
+    expect(await p.receiveBytes(IMAGE, BYTES, null)).toBe('applied')
+    expect([...(await adapter.readBytes(IMAGE))!]).toEqual([...BYTES])
+  })
+
+  it('is deferred, and writes nothing, when the file is not what the caller saw', async () => {
+    const p = makePipeline()
+    await adapter.writeBytes(IMAGE, new Uint8Array([1, 2, 3]))
+    expect(await p.receiveBytes(IMAGE, BYTES, null)).toBe('deferred') // there is a file, the caller saw none
+    expect(await p.receiveBytes(IMAGE, BYTES, await hashText('not these bytes'))).toBe('deferred')
+    expect([...(await adapter.readBytes(IMAGE))!]).toEqual([1, 2, 3])
+    expect(await p.receiveBytes('universes/unv_a/media/med_0000000001.png', BYTES, 'x')).toBe(
+      'deferred', // a hash was expected and there is no file
+    )
+    expect(await adapter.readBytes('universes/unv_a/media/med_0000000001.png')).toBeNull()
+  })
+
+  it('a removal of an image is compared on its bytes, not read as text', async () => {
+    const p = makePipeline()
+    await adapter.writeBytes(IMAGE, BYTES)
+    const { hashBytes } = await import('./hash')
+    expect(await p.receive(IMAGE, null, await hashBytes(new Uint8Array([9])))).toBe('deferred')
+    expect(await p.receive(IMAGE, null, await hashBytes(BYTES))).toBe('applied')
+    expect(await adapter.readBytes(IMAGE)).toBeNull()
+  })
+})
+
 describe('a text from another device (sync)', () => {
   it('goes to the file while the file is still what the base says, and is remembered', async () => {
     const p = await opened()

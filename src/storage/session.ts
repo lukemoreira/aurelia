@@ -38,6 +38,8 @@ export interface Note {
 export interface RemoteChange {
   path: string
   text: string | null
+  /** The file is not text (an image): these are its bytes, and `text` is empty. */
+  bytes?: Uint8Array<ArrayBuffer>
   /** Hash the file on disk must still have (null: there must be none). */
   expect: string | null
 }
@@ -555,7 +557,13 @@ export class WorkspaceSession {
       for (const c of changes) out.set(c.path, 'deferred')
       return out
     }
-    for (const c of changes) out.set(c.path, await this.pipeline.receive(c.path, c.text, c.expect))
+    for (const c of changes)
+      out.set(
+        c.path,
+        c.bytes
+          ? await this.pipeline.receiveBytes(c.path, c.bytes, c.expect)
+          : await this.pipeline.receive(c.path, c.text, c.expect),
+      )
     if ([...out.values()].includes('applied'))
       await this.refresh().catch((e: unknown) => this.onError(e)) // the files changed; a failed re-read is the next check's
     return out

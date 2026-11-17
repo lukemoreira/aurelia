@@ -202,6 +202,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(sheet.getByRole('heading', { name: 'Found in your writing' })).toBeVisible()
       await expect(sheet.getByText('“Elena” 2', { exact: false }).first()).toBeVisible()
       // Its notes are the same editor: [[ works there too.
+      await sheet.getByRole('tab', { name: 'Notes' }).click()
       const notes = sheet.getByRole('textbox', { name: /Notes/ })
       await expect(notes).toContainText('Owes everyone.')
       await caretAtEnd(page, 0)

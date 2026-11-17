@@ -13,19 +13,20 @@ describe('moveFile', () => {
     expect([...(await adapter.readBytes('b.md'))!]).toEqual([...bytes])
   })
 
-  it('leaves a file that is not UTF-8 where it is', async () => {
+  it('moves bytes that are not text (an image) byte for byte', async () => {
     const adapter = new MemoryAdapter()
-    adapter.putBytes('a.md', new Uint8Array([0xff, 0xfe, 0x41]) as Uint8Array<ArrayBuffer>)
-    await expect(moveFile(adapter, 'a.md', 'b.md')).rejects.toMatchObject({ code: 'unreadable' })
-    expect(await adapter.readBytes('a.md')).not.toBeNull()
-    expect(await adapter.readBytes('b.md')).toBeNull()
+    const bytes = new Uint8Array([0xff, 0xfe, 0x41, 0x00, 0x80]) as Uint8Array<ArrayBuffer>
+    adapter.putBytes('media/med_a.png', bytes)
+    await moveFile(adapter, 'media/med_a.png', 'trash/media/med_a.png')
+    expect(await adapter.readBytes('media/med_a.png')).toBeNull()
+    expect([...(await adapter.readBytes('trash/media/med_a.png'))!]).toEqual([...bytes])
   })
 
   it('keeps the original when the copy does not read back the same (a disk that corrupts)', async () => {
     const adapter = new MemoryAdapter({ 'a.md': 'the words' })
-    const write = adapter.write.bind(adapter)
-    adapter.write = (path, text) =>
-      write(path, path === 'b.md' ? `${text} and a flipped bit` : text)
+    const write = adapter.writeBytes.bind(adapter)
+    adapter.writeBytes = (path, bytes) =>
+      write(path, path === 'b.md' ? new Uint8Array([...bytes, 1]) : bytes)
     await expect(moveFile(adapter, 'a.md', 'b.md')).rejects.toMatchObject({ code: 'other' })
     expect((await adapter.read('a.md'))!.text).toBe('the words') // the original is untouched
   })

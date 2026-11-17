@@ -56,6 +56,14 @@ export function useBackupScreen() {
     return 'Copies this workspace to your own server, in a folder you can open without Aurelia.'
   })
 
+  /** Files the server would not take, in words: the rest is saved and nothing waits for them. */
+  const skippedText = computed(() => {
+    const names = view.value?.skipped ?? []
+    if (!names.length) return ''
+    const list = names.map((n) => `“${n}”`).join(', ')
+    return `Your server would not take ${list} (${names.length === 1 ? 'it is' : 'they are'} too big for it). Everything else is saved.`
+  })
+
   const twoVersions = computed(() => twoVersionsOf(ws.view).length)
 
   const syncTag = computed<{ label: string; tone: Tone }>(() => {
@@ -173,6 +181,7 @@ export function useBackupScreen() {
     syncing,
     tag,
     text,
+    skippedText,
     syncTag,
     syncText,
     devices,

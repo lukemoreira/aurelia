@@ -31,6 +31,9 @@ defineProps<{ screen: ReturnType<typeof useBackupScreen> }>()
           >
         </span>
         <span v-if="screen.text" class="text-[12.5px] text-ink-2">{{ screen.text }}</span>
+        <span v-if="screen.skippedText" role="status" class="text-[12.5px] font-medium text-warn">{{
+          screen.skippedText
+        }}</span>
       </div>
 
       <div

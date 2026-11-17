@@ -5,7 +5,7 @@
 import { RECORD_INFO } from '@/domain/record-types'
 import { bookScenes } from '@/domain/outline'
 import { colourOf } from '@/domain/scene-details'
-import type { RecordType } from '@/domain/schema/record'
+import { TEXT_FIELDS, type RecordType } from '@/domain/schema/record'
 import type { RecordDoc, SceneDoc, WorkspaceData } from '@/domain/workspace-data'
 import { needsId, parseLinks, type LinkRef } from './links'
 import {
@@ -17,6 +17,7 @@ import {
   type NameForm,
   type NameMatcher,
 } from './names'
+import { findNewNames, type NewName } from './new-names'
 import { fold } from './palette-search'
 import { linksTo, foundNames, nameUsage, openQuestions } from './reports'
 import { SearchIndex, type SearchHit } from './search'
@@ -397,6 +398,33 @@ export class WorkspaceIndex {
     return openQuestions(this, id)
   }
 
+  /**
+   * Capitalised words that recur in a book's scenes and are not a record yet (ADR-0010 §5): the
+   * words of every name already known, and the words the author said are not names, are left out.
+   */
+  newNames(bookId: string): NewName[] {
+    const data = this.data
+    const universe = this.bookUniverse.get(bookId)
+    const book = data?.books.find((b) => b.id === bookId)
+    if (!data || !book || !universe) return []
+    const known = new Set(
+      this.formsFor({ universe, book: bookId }).flatMap((f) =>
+        (f.text.match(/[\p{L}\p{M}\p{N}]+/gu) ?? []).map(fold),
+      ),
+    )
+    const texts = bookScenes(data, bookId).flatMap((s) => {
+      const doc = this.docs.get(s.meta.id)
+      const a = this.analysis(s.meta.id)
+      if (!doc || !a) return []
+      const skip = [
+        ...skipZones(doc.body, a.links),
+        ...a.mentions.map((m): [number, number] => [m.start, m.end]),
+      ]
+      return [{ id: doc.id, title: doc.title, body: doc.body, skip }]
+    })
+    return findNewNames(texts, known, new Set(book.notNames ?? []), fold)
+  }
+
   // ---- picking and searching ------------------------------------------------------------
 
   /** Records and scenes a `[[` can point at from `scope`, best match first. An empty query lists some. */
@@ -432,11 +460,12 @@ export class WorkspaceIndex {
     })
   }
 
-  /** What is searched of a file besides its title: its summary, then its text or notes. */
+  /** What is searched of a file besides its title: its summary, what its sheet says, then its text or notes. */
   private searchText(d: Doc): string {
     const summary =
       d.kind === 'record' ? (d.src as RecordDoc).summary : (d.src as SceneDoc).meta.summary
-    return [summary, d.body].filter(Boolean).join('\n\n')
+    const sheet = d.kind === 'record' ? sheetText((d.src as RecordDoc).meta) : undefined
+    return [summary, sheet, d.body].filter(Boolean).join('\n\n')
   }
 
   /** Full-text search over titles, other names, summaries, scenes and notes. */
@@ -455,6 +484,14 @@ export class WorkspaceIndex {
       return d && this.searchText(d)
     })
   }
+}
+
+/** The words of a record's sheet (its fields, its sources and what it is to others), so a search finds them. */
+function sheetText(meta: RecordDoc['meta']): string {
+  const fields = TEXT_FIELDS.map((k) => meta[k]).filter((v): v is string => !!v)
+  const sources = (meta.sources ?? []).flatMap((x) => [x.title, x.author, x.url, x.note])
+  const relations = (meta.relationships ?? []).map((r) => r.type)
+  return [...fields, ...sources, ...relations].filter(Boolean).join('\n')
 }
 
 const hits = (r: Resolution, id: string) => r.status === 'ok' && r.target.id === id

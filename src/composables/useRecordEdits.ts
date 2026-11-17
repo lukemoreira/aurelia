@@ -13,8 +13,12 @@ export function useRecordEdits() {
   const edits = useEditsStore()
   const router = useRouter()
 
-  /** `scope`: shared by the universe, or private to the open book. */
-  function newRecord(type: RecordType, scope: 'universe' | 'book' = 'universe') {
+  /** `scope`: shared by the universe, or private to the open book. `after` runs once the record is made, before its sheet opens. */
+  function newRecord(
+    type: RecordType,
+    scope: 'universe' | 'book' = 'universe',
+    opts: { after?: (id: string) => Promise<void> } = {},
+  ) {
     const session = ws.session
     const universe = ws.universe
     const book = ws.book
@@ -35,6 +39,7 @@ export function useRecordEdits() {
           universeId: universe.id,
           ...(scope === 'book' ? { bookId: book.id } : {}),
         })
+        await opts.after?.(id)
         await router.push({ path: viewPath(book.id, 'world'), query: { record: id } })
       },
     }

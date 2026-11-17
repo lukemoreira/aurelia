@@ -34,6 +34,7 @@ const KIND_WORD: Record<string, string> = {
   part: 'Part',
   book: 'Book',
   record: 'Record',
+  media: 'Image',
 }
 
 /** What a deleted thing was, in the author's words: "Chapter · 3 scenes" (never how many files). */
