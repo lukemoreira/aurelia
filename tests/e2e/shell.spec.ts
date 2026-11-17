@@ -204,6 +204,31 @@ test.describe('moving around', () => {
     await expect(heading(page, 'Curfew Bells')).toBeVisible()
   })
 
+  test('the page itself never scrolls: a long view scrolls inside the app, under a top bar that stays', async ({
+    page,
+  }) => {
+    await openSample(page)
+    await page
+      .getByRole('navigation', { name: 'Views' })
+      .getByRole('link', { name: 'Continuity' })
+      .click()
+    // Its tables hold hidden screen-reader text, which once made the whole page taller than the window.
+    for (const size of [
+      { width: 768, height: 1024 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(size)
+      await expect(heading(page, 'Continuity')).toBeVisible()
+      const sizes = await page.evaluate(() => {
+        const main = document.getElementById('main-content')!
+        const doc = document.documentElement
+        return { page: doc.scrollHeight - innerHeight, main: main.scrollHeight - main.clientHeight }
+      })
+      expect(sizes.main).toBeGreaterThan(0) // the view is long enough to scroll
+      expect(sizes.page).toBe(0)
+    }
+  })
+
   test('the filter narrows the navigator', async ({ page }) => {
     await openSample(page)
     await page.getByRole('searchbox', { name: 'Filter the navigator' }).fill('warden')

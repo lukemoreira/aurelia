@@ -68,7 +68,8 @@ watch(
 </script>
 
 <template>
-  <div class="flex h-dvh flex-col bg-canvas text-ink">
+  <div class="flex h-dvh flex-col overflow-clip bg-canvas text-ink">
+    <!-- overflow-clip: nothing inside may make the page itself scroll; the app is one screen. -->
     <template v-if="!layout.focus">
       <TopBar v-if="layout.wide" />
       <TopBarCompact v-else />
@@ -98,11 +99,12 @@ watch(
       <main class="relative flex min-w-0 flex-1 flex-col bg-canvas">
         <Breadcrumb v-if="layout.wide && !layout.focus" />
         <WorkspaceNotices />
-        <!-- Focusable so the keyboard can scroll the text. -->
+        <!-- Focusable so the keyboard can scroll the text. Relative, so hidden screen-reader text in it
+             scrolls (and is clipped) with it instead of making the page taller. -->
         <div
           :id="MAIN_CONTENT_ID"
           tabindex="0"
-          class="min-h-0 flex-1 scroll-pb-20 scroll-pt-20 overflow-y-auto"
+          class="relative min-h-0 flex-1 scroll-pb-20 scroll-pt-20 overflow-y-auto"
         >
           <RouterView />
         </div>
