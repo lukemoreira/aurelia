@@ -503,7 +503,14 @@ timeline.
 ### Release v0.4 "Protect and share"
 
 **M7 · History and export**
-- Snapshots per scene and per book, diff, restore.
+- [x] **M7a · History (built)** ([ADR-0013](docs/adr/0013-snapshots.md)): snapshots per scene and per book
+  (plain files in `.aurelia/snapshots/`, immutable, written last-file-last through the session), by hand
+  and as "Before restore"; compare with the text now or with another snapshot, word by word, marked in
+  words as well as colour; restore a scene or a whole book, which never deletes (a scene made since stays
+  and is named; a scene deleted since comes back; a conflict, a duplicate ID or a file still saving is
+  left as it is and named). History at the foot of the Scene and Book tabs; palette "Take snapshot of
+  this scene / book". Snapshots are backed up (current/, manifest, versions) and synced like any file,
+  tested. Left: removing a snapshot (it would go to the trash), snapshotting records.
 - Export: Markdown bundle, DOCX, EPUB, PDF (print stylesheet), export profiles. A
   branching book exports in outline order, with a "Choices" list (label → scene title)
   at the end of each scene.
@@ -721,3 +728,12 @@ backup — ADR-0009.)
   "This book / Whole universe" scope and a Timeline mode (calendars, eras, BCE, zoom, flashbacks, events,
   keyboard, table view), "Shows on X's progression" in the add-change board, birth dates and the Age and
   dates check, BCE in the story-time picker. See ADR-0006 "Built in M6b".
+- 2026-11-17 — M7a History (branch `feat/m7a-history`): per ADR-0013. A snapshot of a scene or a book is a
+  folder `.aurelia/snapshots/snp_…/` with `snapshot.json` (written last) and the files byte for byte; one
+  function (`takeSnapshot`) for the author's button, the palette and the "Before restore" that every
+  restore takes first (M8's Accept will call the same one). Restore puts back writing only, never deletes,
+  names what it kept, brought back or left, and refuses to write over a conflict. Compare is a word diff of
+  our own (`domain/word-diff.ts`, no dependency) drawn like the Review inbox, with "[Removed: …]" and
+  "[Added: …]" for a screen reader. Snapshots go into backup and versions and sync as ordinary files
+  (tests on both). Also: the Progression state card shows "Not yet: …" facts learned later in the story
+  (ADR-0006). Left: removing a snapshot, M7b (export and import, another branch).

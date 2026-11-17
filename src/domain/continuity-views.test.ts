@@ -218,6 +218,53 @@ describe('the state at a scene, in words', () => {
     ).toBe('ana: creditor')
   })
 
+  it('lists what a person learns LATER as "Not yet", with the scene, only when asked, and never what is already known', () => {
+    const { m: later } = story(
+      [
+        {
+          key: 'a',
+          ch: 'c1',
+          pov: 'ana',
+          changes: [{ who: 'ana', kind: 'knows', value: 'The gate is old' }],
+        },
+        {
+          key: 'b',
+          ch: 'c2',
+          pov: 'ana',
+          changes: [{ who: 'ana', kind: 'knows', value: 'Her mother is alive' }],
+        },
+        {
+          key: 'c',
+          ch: 'c3',
+          pov: 'ana',
+          changes: [
+            { who: 'ana', kind: 'knows', value: 'Her mother is alive' },
+            { who: 'bob', kind: 'knows', value: 'Bob’s own secret' },
+            { who: 'ana', kind: 'knows', value: 'The gate is old' },
+          ],
+        },
+      ],
+      { names },
+    )
+    const learned = (at: string, withLater = true) =>
+      stateRows(later, id.scn(at), id.chr('ana'), false, withLater).find(
+        (r) => r.label === 'Has learned',
+      )?.items
+    expect(learned('a')).toMatchObject([
+      { text: 'The gate is old' },
+      { text: 'Not yet: Her mother is alive', later: '2.1' },
+    ])
+    expect(learned('b')).toHaveLength(2) // the gate (known) and the mother (known): nothing is "not yet"
+    expect(learned('c')).toHaveLength(2)
+    expect(learned('a', false)).toHaveLength(1) // the inspector and the link card are unchanged
+    // nothing known yet: the row still shows the later facts
+    expect(
+      stateRows(later, id.scn('a'), id.chr('bob'), false, true).find(
+        (r) => r.label === 'Has learned',
+      )!.items,
+    ).toMatchObject([{ text: 'Not yet: Bob’s own secret', later: '3.1' }])
+  })
+
   it('puts the people on the page first, point of view first, with the findings about the scene', () => {
     const c = sceneContinuity(m, findings(), id.scn('b'))
     expect(c.people.map((p) => [p.name, p.pov])).toEqual([

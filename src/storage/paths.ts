@@ -7,6 +7,10 @@ export const AURELIA_DIR = '.aurelia/'
 const CONFLICTS_DIR = '.aurelia/conflicts'
 /** Where a deleted item waits to be restored: `.aurelia/trash/<stamp>/<its path>`, with a `manifest.json` beside. */
 export const TRASH_DIR = '.aurelia/trash'
+/** Snapshots of a scene or a book (ADR-0013): `.aurelia/snapshots/snp_…/snapshot.json` with the copied files under `files/`. */
+export const SNAPSHOTS_DIR = '.aurelia/snapshots'
+export const snapshotManifestPath = (id: string) => `${SNAPSHOTS_DIR}/${id}/snapshot.json`
+export const snapshotFilePath = (id: string, path: string) => `${SNAPSHOTS_DIR}/${id}/files/${path}`
 
 const book = (universe: string, id: string) => `universes/${universe}/books/${id}`
 export const universePath = (universe: string) => `universes/${universe}/universe.md`

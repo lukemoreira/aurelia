@@ -7,9 +7,11 @@ import { BackupStore } from './state'
 import { hashText } from '@/storage/hash'
 import { IdbJournal } from '@/storage/journal'
 import { WorkspaceSession } from '@/storage/session'
+import { takeSnapshot } from '@/storage/snapshots'
 import { readZip } from '@/storage/zip'
 import type { BackupEngine } from './engine'
 import { manifestSchema, type Manifest } from './manifest'
+import { fetchBackup } from './restore'
 
 /** A version's name without the short hash of its content: the tests ask when, and why. */
 const plain = (name: string | undefined) => name?.replace(/~[0-9a-f]{8}/, '')
@@ -55,6 +57,34 @@ describe('turning backup on', () => {
         '.aurelia/trash/2026-11-12T18-00-00-000Z/universes/unv_a/books/bok_a/chapters/chp_a.md',
       ]),
     )
+  })
+
+  it('backs up snapshots like any file (ADR-0013): in current/, in backup.json and in a version, and read back whole', async () => {
+    const rig = await backupRig()
+    const db = openDeviceDb(new IDBFactory())
+    const session = await WorkspaceSession.open(rig.adapter, {
+      journal: new IdbJournal(() => db),
+      debounceMs: 1e9,
+    })
+    const snap = await takeSnapshot(session, {
+      kind: 'book',
+      id: session.data.books[0]!.id,
+    })
+    const mine = (await rig.adapter.list()).filter((p) => p.startsWith('.aurelia/snapshots/'))
+    expect(mine).toContain(`.aurelia/snapshots/${snap.id}/snapshot.json`)
+    expect(mine.length).toBe(snap.files.length + 1)
+    const engine = track(await rig.open())
+    await engine.turnOn()
+    expect(current(rig.dav.paths(), rig.folder)).toEqual(expect.arrayContaining(mine))
+    expect(Object.keys(manifestOf(rig).files)).toEqual(expect.arrayContaining(mine))
+    const [version] = rig.dav.paths(`${rig.folder}/versions/`)
+    const inZip = readZip(new Uint8Array(rig.dav.files.get(version!)!.bytes)).map((e) =>
+      e.path.slice(e.path.indexOf('/') + 1),
+    )
+    expect(inZip).toEqual(expect.arrayContaining(mine))
+    const back = await fetchBackup(rig.store, rig.folder, 'current')
+    expect(back.problems).toEqual([])
+    expect([...back.files.keys()]).toEqual(expect.arrayContaining(mine))
   })
 
   it('copies every file to current/, writes a backup.json that matches, and saves a first version', async () => {

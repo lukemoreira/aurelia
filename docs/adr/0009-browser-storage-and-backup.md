@@ -165,3 +165,10 @@ stay in M10.
   of the upload and of the manifest, named in plain words on the Backup screen ("Your server would not
   take “The big map.png”… Everything else is saved."), and tried again on a later round. Images are
   limited to 48 MiB so this stays rare.
+
+## As built (M7a): snapshots in a version
+
+- **A version holds the snapshots too** (`.aurelia/snapshots/**` is ordinary text, so the zip takes it like the
+  trash), and `current/` and `backup.json` list them; a restore brings them back. The price is that a version
+  grows with the author's history. If that ever matters, the way out is the one images took above. See
+  [ADR-0013](0013-snapshots.md).

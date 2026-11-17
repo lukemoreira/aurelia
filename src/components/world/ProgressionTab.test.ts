@@ -154,11 +154,13 @@ describe('the scrubber', () => {
     expect(stateOf(w)).toContain('State at 1.1')
     expect(stateOf(w)).toContain('Find the key')
     expect(stateOf(w)).not.toContain('Injured')
-    expect(stateOf(w)).not.toContain('Her mother lives')
+    // what becomes true later is shown faintly, in words, with its scene: never as if it were known yet
+    expect(stateOf(w)).toContain('Not yet: Her mother lives · in 4.1')
     await scrub(w).setValue('1')
     expect(stateOf(w)).toContain('Injured — left hand')
     await scrub(w).setValue('3')
     expect(stateOf(w)).toContain('Her mother lives')
+    expect(stateOf(w)).not.toContain('Not yet')
     // a screen reader hears where it is
     expect(scrub(w).attributes('aria-valuetext')).toBe('4.1 · d')
   })

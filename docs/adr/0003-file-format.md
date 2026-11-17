@@ -35,7 +35,7 @@ MyWorkspace/
         …
       media/med_….<original ext> + med_….json   images as imported, and their captions/credits
   .aurelia/
-    snapshots/                         snapshot files (portable, optional to sync)
+    snapshots/snp_…/                   a scene or a book as it was: snapshot.json + the files, byte for byte (ADR-0013)
     backups/<fromVersion>/             copies made before a migration (rule 5)
     trash/<stamp>/                     deleted items, at their workspace paths, with a manifest.json
     conflicts/<stamp>/                 the file not kept when two versions or two IDs met
@@ -187,3 +187,9 @@ Every feature has a golden round-trip test.
 - Backup, restore and sync carry an image as bytes (`isMediaBinary` in `storage/paths.ts`, also for its
   copy in the trash); any other file that is not text is still left alone by sync.
 - `book.json` may carry `notNames` (ADR-0010).
+
+## As built (M7a): snapshots
+
+- `.aurelia/snapshots/snp_<10 chars>/snapshot.json` and `files/<workspace path>` for each copied file. A snapshot
+  is written once and never changed or removed; `snapshot.json` is written last, so a folder without one is not
+  a snapshot. They are backed up and synced like any other file. See [ADR-0013](0013-snapshots.md).
