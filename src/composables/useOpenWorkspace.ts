@@ -216,6 +216,7 @@ export function useOpenWorkspace() {
 
   return {
     rows,
+    loadRecents,
     message,
     busy,
     naming,

@@ -9,6 +9,7 @@ import { WorkspaceIndex } from '@/index/workspace-index'
 import { saltmarchSample } from '@/sample/saltmarch'
 import { openSession, recents, reopen, workspaceIdOf } from '@/storage/app'
 import type { StorageAdapter } from '@/storage/adapter'
+import { releaseBlock } from '@/storage/delete-workspace'
 import type { SessionView, WorkspaceSession } from '@/storage/session'
 import { StorageError } from '@/storage/errors'
 import { WORKSPACE_FILE } from '@/storage/paths'
@@ -145,6 +146,21 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  /** Before deleting a workspace: if it is open in this tab, save and close it (refused while it holds unsaved work). */
+  async function release(id: string) {
+    const open = session.value
+    if (!open || open.data.workspace.id !== id) return
+    await open.flush()
+    const why = releaseBlock(open.view())
+    if (why) throw new StorageError('other', why)
+    await detach()
+    data.value = bookId.value = sceneId.value = null // nothing is left to type into
+  }
+  /** A workspace was deleted or taken off the list: a reload must not try to reopen it. */
+  function forget(id: string) {
+    if (source.value === `recent:${id}`) source.value = ''
+  }
+
   let reopening: Promise<boolean> | undefined
   /** After a reload: open the recent workspace that was open. False when it needs the author (permission). */
   function reopenLast(key: string): Promise<boolean> {
@@ -251,6 +267,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadSample,
     attach,
     open,
+    release,
+    forget,
     ensureLoaded,
     editScene,
     addScene,

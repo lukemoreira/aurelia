@@ -9,7 +9,7 @@ import { moveFile, type AdapterKind, type StorageAdapter } from './adapter'
 import { checkWorkspaceName } from './create'
 import { applyParsed, parseFile, parsedId, removeById } from './entities'
 import { OpenError, StorageError, isPermissionError, wordsFor } from './errors'
-import { encode, hashText } from './hash'
+import { hashText } from './hash'
 import { guardWrites } from './guard-writes'
 import { withBody, newHead } from './frontmatter'
 import type { Journal } from './journal'
@@ -26,7 +26,7 @@ import { renameInWorkspaceJson, workspaceNameIn } from './rename-workspace'
 import { SavePipeline, type SaveSummary } from './save-pipeline'
 import { renameBlock } from './status'
 import { patchFrontmatter, type YamlPatch } from './yaml-edit'
-import { zipFiles } from './zip'
+import { zipWorkspace } from './export-copy'
 
 export interface Note {
   id: string
@@ -93,6 +93,9 @@ export interface SessionDeps {
   /** `navigator.locks`: one tab at a time writes a workspace. Missing: every tab may (as before). */
   locks?: LockManager
 }
+
+/** The Web Lock a tab holds while it may write this workspace. */
+export const workspaceLockName = (id: string) => `aurelia-workspace:${id}`
 
 const key = (items: object[]) => JSON.stringify(items)
 
@@ -198,7 +201,7 @@ export class WorkspaceSession {
   private async takeLock(): Promise<boolean> {
     const locks = this.deps.locks
     if (!locks) return true
-    const name = `aurelia-workspace:${this.data.workspace.id}`
+    const name = workspaceLockName(this.data.workspace.id)
     const hold = () => new Promise<void>((release) => (this.releaseLock = release))
     const got = await new Promise<boolean>((resolve) =>
       locks
@@ -815,16 +818,7 @@ export class WorkspaceSession {
   /** Every file in the workspace as a zip, including text not yet saved. */
   async exportZip(): Promise<Blob> {
     await this.flush()
-    const pending = this.pipeline.pendingEntries()
-    const paths = new Set([...(await this.adapter.list()), ...pending.keys()])
-    const root = this.data.workspace.name.replace(/[\\/:*?"<>|]+/g, '-')
-    const files = []
-    for (const path of paths) {
-      const text = pending.get(path)
-      const data = text !== undefined ? encode(text) : await this.adapter.readBytes(path)
-      if (data) files.push({ path: `${root}/${path}`, data })
-    }
-    return zipFiles(files)
+    return zipWorkspace(this.adapter, this.data.workspace.name, this.pipeline.pendingEntries())
   }
 
   dispose() {

@@ -72,7 +72,7 @@ test.describe('a workspace in this browser', () => {
     const next = await context.newPage()
     await next.goto('/')
     await expect(next.getByRole('heading', { level: 1, name: 'Welcome' })).toBeVisible()
-    await next.getByRole('button', { name: /My Writing/ }).click()
+    await next.getByRole('button', { name: /^My Writing/ }).click()
     await expect(sceneText(next)).toHaveText('These words must not be lost.')
     await expect(banner(next, 'Saved what was still waiting')).toBeVisible()
     await waitSaved(next)
@@ -115,7 +115,7 @@ test.describe('a workspace in this browser', () => {
   test('lists the workspace as recent on the Welcome screen', async ({ page }) => {
     await createBrowserWorkspace(page, 'The Saltmarch Draft')
     await page.goto('/')
-    const row = page.getByRole('button', { name: /The Saltmarch Draft/ })
+    const row = page.getByRole('button', { name: /^The Saltmarch Draft/ })
     await expect(row).toContainText('this browser')
     await expect(row).toContainText('opened today')
     expect(await seriousViolations(page)).toEqual([])
@@ -325,7 +325,7 @@ test.describe('one workspace in two tabs', () => {
     await waitSaved(page)
     const second = await context.newPage()
     await second.goto('/')
-    await second.getByRole('button', { name: /My Writing/ }).click()
+    await second.getByRole('button', { name: /^My Writing/ }).click()
     await expect(sceneText(second)).toHaveText('Words from the first tab.')
     await expect(banner(second, 'This workspace is open in another tab')).toContainText(
       'Close that tab to write here.',
@@ -357,7 +357,7 @@ test.describe('accessibility of the saving screens', () => {
       await expect(page.getByRole('button', { name: 'Download a copy (.zip)' })).toBeVisible()
       expect(await seriousViolations(page)).toEqual([])
       await page.goto('/') // Welcome, with the workspace in the recent list
-      await expect(page.getByRole('button', { name: /My Writing/ })).toBeVisible()
+      await expect(page.getByRole('button', { name: /^My Writing/ })).toBeVisible()
       expect(await seriousViolations(page)).toEqual([])
     })
   }

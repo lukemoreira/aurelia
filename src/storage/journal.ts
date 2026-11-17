@@ -32,6 +32,11 @@ export class IdbJournal implements Journal {
     await run(await this.db(), JOURNAL, 'readwrite', (s) => s.delete([workspaceId, path]))
   }
 
+  /** Forget every entry of one workspace (it is being deleted). Other workspaces' entries stay. */
+  async clear(workspaceId: string) {
+    for (const e of await this.list(workspaceId)) await this.remove(e.workspaceId, e.path)
+  }
+
   async list(workspaceId: string) {
     const all = await run(await this.db(), JOURNAL, 'readonly', (s) => s.getAll())
     return (all as JournalEntry[]).filter((e) => e.workspaceId === workspaceId)

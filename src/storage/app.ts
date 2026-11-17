@@ -10,7 +10,7 @@ import { Recents, type RecentWorkspace } from './recents'
 import { WorkspaceSession } from './session'
 
 export const recents = new Recents(deviceDb)
-const journal = new IdbJournal(deviceDb)
+export const journal = new IdbJournal(deviceDb)
 
 /** Open a workspace for real: read it, finish what the journal holds, and remember it as recent. */
 export async function openSession(adapter: StorageAdapter): Promise<WorkspaceSession> {
