@@ -121,14 +121,23 @@ export const setBookMode = (s: WorkspaceSession, bookId: string, mode: 'linear' 
 export function setDismissed(
   s: WorkspaceSession,
   bookId: string,
-  change: { add?: string; remove?: string; found: string[] },
+  change: {
+    add?: string
+    remove?: string
+    found: string[]
+    /** Which fingerprints `found` speaks for; the others are kept as they are (another list owns them). */
+    among?: (fingerprint: string) => boolean
+  },
 ) {
   return s.exclusive(async () => {
     const book = s.data.books.find((b) => b.id === bookId)
     if (!book) throw new StorageError('other', 'That book is no longer in the workspace.')
     const found = new Set(change.found)
     const list = (book.dismissedFindings ?? []).filter(
-      (f) => found.has(f) && f !== change.remove && f !== change.add,
+      (f) =>
+        f !== change.remove &&
+        f !== change.add &&
+        (found.has(f) || (!!change.among && !change.among(f))),
     )
     if (change.add && found.has(change.add)) list.push(change.add)
     await s.setFields(bookId, { dismissedFindings: list.length ? list : undefined })

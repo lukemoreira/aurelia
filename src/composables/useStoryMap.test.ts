@@ -78,6 +78,22 @@ describe('the story map of a real book', () => {
     expect(m.split.value.active.some((f) => f.check === 'unreachable')).toBe(true)
   })
 
+  it('marking a story finding intended keeps the marks the Continuity list owns', async () => {
+    const r = await storyRig()
+    await addChoice(r.session, r.start, { label: 'Go left', target: r.left })
+    // a mark of the Continuity list, which the story map does not find
+    await r.session.setFields(r.book, { dismissedFindings: ['two-places:chr_x,scn_a,scn_b'] })
+    const m = inComponent(() => useStoryMap())
+    const lost = m.split.value.active.find((f) => f.check === 'unreachable')!
+    await m.dismiss(lost, true)
+    expect(r.session.data.books[0]!.dismissedFindings).toEqual([
+      'two-places:chr_x,scn_a,scn_b',
+      lost.fingerprint,
+    ])
+    await m.dismiss(lost, false)
+    expect(r.session.data.books[0]!.dismissedFindings).toEqual(['two-places:chr_x,scn_a,scn_b'])
+  })
+
   it('a scene that goes while it is selected gives the selection back to the start', async () => {
     const r = await storyRig()
     const m = inComponent(() => useStoryMap())

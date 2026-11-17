@@ -6,6 +6,9 @@ import Icon from '@/components/ui/Icon.vue'
 import StatusDot from '@/components/ui/StatusDot.vue'
 import Tag from '@/components/ui/Tag.vue'
 import ItemDetails from './ItemDetails.vue'
+import SceneChanges from './SceneChanges.vue'
+import SceneState from './SceneState.vue'
+import SceneStoryTime from './SceneStoryTime.vue'
 import { sceneDetails } from '@/domain/scene-details'
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -53,7 +56,7 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
           <Icon name="place" :size="15" class="text-ink-3" />{{ d.location }}
         </dd>
       </template>
-      <template v-if="d.storyTime">
+      <template v-if="d.storyTime && !editable">
         <dt class="text-ink-3">Story time</dt>
         <dd class="m-0 flex items-center gap-2">
           <Icon name="calendar" :size="15" class="text-ink-3" />{{ d.storyTime }}
@@ -129,7 +132,8 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
       </ul>
     </div>
 
-    <div v-if="d.changes.length" :class="section">
+    <SceneChanges v-if="editable" />
+    <div v-else-if="d.changes.length" :class="section">
       <h3 :class="label">What changes here</h3>
       <dl class="m-0 grid grid-cols-[92px_minmax(0,1fr)] items-baseline gap-x-2.5 gap-y-[7px]">
         <template v-for="(c, i) in d.changes" :key="i">
@@ -140,6 +144,10 @@ const section = 'flex flex-col gap-2 border-t border-line pt-3.5'
         </template>
       </dl>
     </div>
+
+    <SceneState :id="ws.sceneId ?? undefined" />
+
+    <SceneStoryTime v-if="editable" :id="ws.sceneId ?? undefined" />
 
     <div v-if="!editable" :class="[section, 'flex-row items-center']">
       <h3 :class="label">Choices</h3>

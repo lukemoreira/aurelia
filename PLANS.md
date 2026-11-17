@@ -449,11 +449,13 @@ Do not scaffold future features early.
   with author overrides, story time as a sortable key with granularity, calendars and
   flashbacks. `stateAt()` folds in **reading order**; in branching books it is a
   fixed-point dataflow over the scene graph, and findings say "on every path" or "on
-  some paths". Dismissed findings are stored by fingerprint in `book.json`.
+  some paths". Dismissed findings are stored by fingerprint in `book.json`. **Done (M5b)**,
+  except BCE years and the "Age and dates" check ("Mark as change" is a shortcut and palette command,
+  not a toolbar button).
 - Continuity view: presence map, arc lanes, POV balance, story time vs reading order,
   pacing, and the checks list (dead-then-alive, two places at once, time order, item in
   two hands, setup without payoff, silent arc, long absence, broken links). Severities
-  are Error / Warning / Note.
+  are Error / Warning / Note. **Done (M5b)**, for one book; "Whole universe" is left.
 - Exit: plan and reorder a book without leaving the workspace; write and play a
   branching story start to end; every check in ADR-0006 has a test that finds it and a
   test that does not raise it on a clean story; a test with a flashback that reveals an
@@ -660,7 +662,7 @@ backup — ADR-0009.)
   pan, zoom, arrow keys), the four checks as Error / Warning words with "Mark intended" stored by
   fingerprint in `book.json`, and read-only Play mode. A book's mode is switched on its Book tab.
   The sample's Salt & Ash now has 11 scenes, 15 choices and 3 endings, and shows two warnings.
-  Left: continuity and story time (M5b), the editor's tables and footnotes, the "Choices" block in
+  Left: continuity and story time (M5b, below), the editor's tables and footnotes, the "Choices" block in
   the editor and in exports, a chapter checklist.
 - 2026-11-16 — M3b Links, backlinks, search and names found automatically (branch
   `feat/m3b-links-names`): the index (`src/index/`), `[[`/embed/hover-card/names in the editor as
@@ -672,3 +674,22 @@ backup — ADR-0009.)
   Storage learned bytes: `StorageAdapter.writeBytes`, binary-safe moves to the trash, restore and
   sync of images (never read as text, never rewritten). Left for M6b (needs Continuity): the
   character Progression view and the timeline with real dates and calendars.
+- 2026-11-16 — M5b Continuity (branch `feat/m5b-continuity`): per ADR-0006. A scene records changes
+  from the inspector's "Add" board (who, what happens, the details, in plain words; a relationship
+  shows what it was as of the scene) and a story time (a calendar of the universe, a key to the
+  minute, an end, a label, and in order / flashback / flash-forward). `stateAt()` folds the changes in
+  reading order; a branching book runs a fixed point over the scene graph with one set of values per
+  fact, so findings say "on every path" or "on some paths" (tests: a loop and a hub, a flashback that
+  reveals an earlier death raising nothing before it). Presence is the tagged names and links of the
+  index, the point of view and `characters.add`, less `characters.remove` (those are "Mentioned").
+  Eight checks plus the story map's, each a pure function with a test that finds it and one that
+  does not raise it on a clean story; "Mark intended" keeps the fingerprint in `book.json` (a list
+  drops only the stale marks it owns). The Continuity view: presence map and arc lanes as real
+  tables (a stretch of 24 chapters, sticky headers, rows drawn a window at a time, "Table view"),
+  story time against reading order, POV balance, pacing and the findings list; 120 chapters and 200
+  characters read and drawn in ~15 ms (the view mounts in ~0.2 s). The inspector shows the state at
+  the scene and the findings about it; a character's link card shows their state at the scene.
+  Left for the next wave: "Whole universe" scope and "Shows on X's progression" (with the M6 sheet),
+  a toolbar button for "Mark as change" (the editor toolbar belongs to the tables worker), BCE years,
+  "Age and dates" (needs the M6 sheet fields),
+  "Knows before learning", "Whole universe" scope, the Progression view (M6).

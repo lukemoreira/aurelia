@@ -148,3 +148,36 @@ findings. Every input to a finding lives in the folder.
 - Checks run in a Web Worker, off the typing path, and re-run only for touched scenes.
 - The domain, index and continuity layers are plain TypeScript, so the MCP server runs
   the same checks in Node (ADR-0008).
+
+## Built in M5b (decisions the first version left open)
+
+- **Where the stored fields sit.** A `location` change names the place in `with`; a payoff names its
+  set-up in `of`; a change may carry the `quote` it was marked on. A relationship's `value` is
+  "was → now" and is read as what follows the last arrow. A scene may be `flashback` or
+  `flashForward`; a calendar may carry `era` and `months`, which only decide how a key is written
+  out ("14 Thaw 412 TR, 18:00").
+- **State per fact.** The dataflow keeps, for every fact (a person's status, an item's holders,
+  one thing a person has learned…), the set of values it has on the paths that reach a scene. For a
+  rule about one fact this is exact; none of the checks relates two facts.
+- **Presence** also counts a scene's point of view. A person named in the text but unticked is
+  "Mentioned": spoken of, not there.
+- **A flash-forward's changes stay in its own scene.** They show what will be true later and apply at
+  their story time, so they hold in the flash-forward itself and in no scene after it in reading
+  order (a prologue that shows a death raises nothing on the chapters that follow). A flashback's
+  changes carry on as before: what it reveals is known to the reader from there.
+- **Unreachable scenes** (a branching book) start from the empty state, and a scene a reader can get
+  to hears only from scenes a reader can get to, so what an orphan scene does is never taken for
+  something that happened on a path from the start. Scenes of no chapter ("Unfiled") are not read
+  after the last chapter: each starts from nothing, and they are not counted as chapters.
+- **The fingerprint carries the evidence** (the scenes that make the death, the holders of the item,
+  whether a link is missing or ambiguous), so a mark of "intended" does not hide a new or worse
+  problem of the same kind. A set-up written by hand without an ID is told apart by what it says.
+- **A main character** has the point of view in at least two chapters, or is on the page in a fifth of
+  them. A thread that goes quiet after its last beat is an arc that has ended, not a silent one.
+- **Marking intended** is allowed for every finding except a choice to nowhere, Errors included
+  (a ghost may walk on purpose).
+- **Thresholds.** A thread is silent after 6 chapters with no beat and no scene advancing it; a main
+  character (point of view somewhere, or on the page in a fifth of the chapters) has been away after
+  8.
+- **Not yet:** the "Age and dates" check (it needs sheet fields from M6), BCE years, a time order
+  across flashbacks in a branching book beyond a scene and its direct way in.

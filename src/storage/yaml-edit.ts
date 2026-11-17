@@ -97,10 +97,16 @@ function frame(parts: NonNullable<ReturnType<typeof splitDocument>>, yaml: strin
   return `${parts.head.slice(0, start)}${yaml}${parts.yaml ? tail.replace(/^\r?\n/, '') : tail}${parts.body}`
 }
 
-/** One change to one item of a list of small objects with IDs (a scene's `choices`). */
+/**
+ * One change to one item of a list of small objects (a scene's `choices`, with IDs; its `changes`,
+ * which have none, so they are found by their place in the list). An `update` with a field set to
+ * `undefined` takes that field away.
+ */
 export type ListEdit =
   | { op: 'update'; id: string; fields: Record<string, unknown> }
+  | { op: 'update'; at: number; fields: Record<string, unknown> }
   | { op: 'remove'; id: string }
+  | { op: 'remove'; at: number }
   | { op: 'add'; item: Record<string, unknown> }
 
 /** An item as the text of one flow map: `{ id: "x", label: "y" }`. */
@@ -135,9 +141,17 @@ export function patchListItem(text: string, key: string, edit: ListEdit): string
   if (!seq || !isSeq(seq) || seq.flow || !seq.items.length || !seq.items.every((i) => isMap(i)))
     return undefined
   const items = seq.items as YAML.YAMLMap[]
-  const at = edit.op === 'add' ? items.length - 1 : items.findIndex((i) => i.get('id') === edit.id)
+  const at =
+    edit.op === 'add'
+      ? items.length - 1
+      : 'at' in edit
+        ? edit.at
+        : items.findIndex((i) => i.get('id') === edit.id)
   const item = items[at]
   if (!item?.range) return undefined
+  // An item that ends in a block scalar (`quote: |`) already owns its line break: the line-based
+  // edits below would take the next item with it. The caller sets the whole list instead.
+  if (source[item.range[1] - 1] === '\n') return undefined
   const lineStart = source.lastIndexOf('\n', item.range[0] - 1) + 1
   const lineEnd = source.indexOf('\n', item.range[1]) + 1
   let yaml: string
@@ -151,5 +165,17 @@ export function patchListItem(text: string, key: string, edit: ListEdit): string
     const prefix = source.slice(lineStart, item.range[0]) // "  - ": the list's own indentation
     yaml = source.slice(0, lineEnd) + prefix + itemText(edit.item) + eol + source.slice(lineEnd)
   }
-  return yaml === source ? text : frame(parts, yaml)
+  if (yaml === source) return text
+  // Never write what does not read back as exactly the list that was meant.
+  const was = items.map((i) => i.toJSON() as Record<string, unknown>)
+  const meant =
+    edit.op === 'update'
+      ? was.map((x, i) => (i === at ? { ...x, ...edit.fields } : x))
+      : edit.op === 'remove'
+        ? was.filter((_, i) => i !== at)
+        : [...was, edit.item]
+  const now = YAML.parseDocument(yaml)
+  const list = isMap(now.contents) ? now.contents.get(key) : undefined
+  if (now.errors[0] || JSON.stringify(list) !== JSON.stringify(meant)) return undefined
+  return frame(parts, yaml)
 }

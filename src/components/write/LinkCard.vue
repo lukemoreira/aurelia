@@ -5,6 +5,7 @@ import Avatar from '@/components/ui/Avatar.vue'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Kbd from '@/components/ui/Kbd.vue'
+import { useCardState } from '@/composables/useCardState'
 import { altLabel, modLabel } from '@/composables/useKeyboardShortcuts'
 import type { CardView } from '@/editor/link-env'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -22,13 +23,15 @@ const emit = defineEmits<{ hold: []; leave: []; close: [] }>()
 const ws = useWorkspaceStore()
 const root = ref<HTMLElement | null>(null)
 
-const style = computed(() => placeNear(props.card.rect, 334, 260))
+const style = computed(() => placeNear(props.card.rect, 334, 340))
 
 const first = computed(() => (props.card.targets.length === 1 ? props.card.targets[0] : undefined))
 const linkedFrom = computed(() =>
   first.value && props.card.kind !== 'ask' ? ws.index.backlinks(first.value.id).length : 0,
 )
 const heading = computed(() => cardHeading(props.card))
+// A character's state at the open scene (what they are, who they stand with, what they hold).
+const state = useCardState(() => (props.card.kind !== 'ask' ? first.value?.id : undefined))
 
 /** "Someone or somewhere else…": pick another record, and that one is the answer. */
 const other = ref(false)
@@ -88,6 +91,15 @@ function onKeydown(e: KeyboardEvent) {
       <p v-else-if="card.status === 'missing'" class="m-0">
         Nothing in this workspace has that name yet.
       </p>
+      <dl
+        v-if="state.lines.value.length"
+        class="m-0 grid grid-cols-[88px_minmax(0,1fr)] gap-x-2.5 gap-y-1 border-t border-line pt-2"
+      >
+        <template v-for="l in state.lines.value" :key="l.label">
+          <dt class="text-ink-3">{{ l.label }}</dt>
+          <dd class="m-0 text-ink">{{ l.text }}</dd>
+        </template>
+      </dl>
       <p v-if="linkedFrom" class="m-0 text-ink-3">
         Linked from {{ linkedFrom }} {{ linkedFrom === 1 ? 'place' : 'places' }}
       </p>

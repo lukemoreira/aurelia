@@ -5,7 +5,7 @@ import type { Universe } from '@/domain/schema/universe'
 import type { SceneDoc, WorkspaceData } from '@/domain/workspace-data'
 import { sampleId } from './ids'
 import { CURFEW_BELLS, placeholder } from './prose'
-import { arc, bok, calendar, chr, plc, SAMPLE_START, unv, wsp } from './saltmarch-ids'
+import { arc, bok, calendar, chr, itm, plc, SAMPLE_START, stp, unv, wsp } from './saltmarch-ids'
 import { records } from './saltmarch-records'
 
 export { SAMPLE_START }
@@ -186,7 +186,7 @@ curfew.body = CURFEW_BELLS
 curfew.meta = {
   ...curfew.meta,
   location: plc.gate,
-  time: { calendar, at: '412-03-14T18:00', label: '14 Thaw 412 TR · Dusk' },
+  time: { calendar, at: '412-03-14T18:00', label: 'Dusk' },
   objective: 'Get through the gate before curfew without being recognised.',
   conflict: 'The warden knows her face — and her father’s debt.',
   outcome: 'She gets in, but now owes him a favour.',
@@ -195,7 +195,7 @@ curfew.meta = {
   target: 1800,
   changes: [
     { kind: 'relation', who: chr.tomas, with: chr.elena, value: 'stranger → creditor' },
-    { kind: 'setup', value: 'Elena owes the warden a favour' },
+    { kind: 'setup', id: stp.favour, value: 'Elena owes the warden a favour' },
     { kind: 'knows', who: chr.tomas, value: 'Elena is alive' },
   ],
 }
@@ -255,6 +255,54 @@ for (const [title, arcs] of Object.entries(advances)) {
   scene.meta = { ...scene.meta, arcs: Array.from(new Set([...(scene.meta.arcs ?? []), ...arcs])) }
 }
 
+// Story time and what changes, for the Lantern Gate: enough for the Continuity view to have something
+// to show — a time line that rises, a few changes, a set-up paid off and one left open, and Tomas in
+// two places at the same minute (Curfew Bells and The Customs House), which is a Warning.
+const at = (when: string, label?: string) => ({ calendar, at: when, ...(label ? { label } : {}) })
+const story: Record<string, Partial<Scene>> = {
+  'Salt in the Ledger': {
+    time: at('412-03-12T09:00', 'Morning'),
+    changes: [
+      { kind: 'knows', who: chr.elena, value: 'Her father’s name is in the drowned ledger' },
+      { kind: 'setup', id: stp.lantern, value: 'The key under the lantern' },
+      { kind: 'beat', who: arc.debt, value: 'The debt comes to light' },
+    ],
+  },
+  'The Chandler’s Daughter': {
+    time: at('412-03-12T15:00', 'Afternoon'),
+    characters: { add: [chr.mirela] },
+    changes: [
+      { kind: 'relation', who: chr.elena, with: chr.mirela, value: 'stranger → uneasy ally' },
+    ],
+  },
+  'Low Water': { time: at('412-03-13') },
+  Ropewalk: { time: at('412-03-13T20:00') },
+  'Tar and Twine': {
+    time: at('412-03-14T10:00'),
+    changes: [{ kind: 'holds', who: chr.elena, item: itm.key }],
+  },
+  'The Customs House': { time: at('412-03-14T18:00', 'Dusk'), location: plc.customs },
+  'Tide Bell': { time: at('412-03-14T18:00', 'Dusk') },
+  'The Warden’s Price': {
+    time: at('412-03-15T09:00'),
+    changes: [{ kind: 'payoff', of: stp.favour }],
+  },
+  Stitches: {
+    time: at('412-03-16'),
+    changes: [{ kind: 'condition', who: chr.elena, value: 'Injured — left hand' }],
+  },
+  'Mirela’s Window': {
+    time: at('412-03-16T22:00'),
+    changes: [
+      { kind: 'beat', who: arc.letters, value: 'A light in the window that should be dark' },
+    ],
+  },
+}
+for (const [title, extra] of Object.entries(story)) {
+  const scene = byTitle(title)
+  scene.meta = { ...scene.meta, ...extra }
+}
+
 const universes: Universe[] = [
   {
     title: 'Saltmarch',
@@ -262,7 +310,27 @@ const universes: Universe[] = [
     id: unv.saltmarch,
     kind: 'shared',
     books: [bok.lantern, bok.tidebound, bok.saltash],
-    calendars: [{ id: calendar, name: 'Tidal Reckoning' }],
+    calendars: [
+      {
+        id: calendar,
+        name: 'Tidal Reckoning',
+        era: 'TR',
+        months: [
+          'Deepwinter',
+          'Frostfall',
+          'Thaw',
+          'Bloom',
+          'Highsun',
+          'Harvest',
+          'Fallow',
+          'Gale',
+          'Tide',
+          'Brine',
+          'Ember',
+          'Longnight',
+        ],
+      },
+    ],
   },
   {
     title: 'The Long Winter of 1709',

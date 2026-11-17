@@ -77,14 +77,21 @@ watch(
 )
 
 // A search result opened at its words: select them once this file's text is on screen.
-function showFound() {
+function showFound(tries = 0) {
   const found = review.found
   if (!found || found.id !== props.docId) return
-  focusFound(editor.view, found.term)
-  review.found = null
+  // Kept until the editor is in the page and has found the words: a scene opened just now may not be on
+  // screen yet, so a few more looks (a frame apart) before it is let go.
+  if (editor.view.dom.isConnected && focusFound(editor.view, found.term)) review.found = null
+  else if (tries < 20) setTimeout(() => showFound(tries + 1), 50)
+  else review.found = null
 }
-watch(() => review.found, showFound)
-onMounted(showFound)
+watch(
+  () => review.found,
+  () => showFound(),
+)
+// A scene opened at its words (a search result, a finding): once the editor is in the page.
+onMounted(() => showFound())
 
 const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.toolbarTarget)
 </script>

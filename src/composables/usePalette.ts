@@ -12,6 +12,7 @@ import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { altLabel, focusLabel, modLabel } from './useKeyboardShortcuts'
 import { useNavigation } from './useNavigation'
+import { useAddChange } from './useAddChange'
 import { useNewScene } from './useNewScene'
 import { useOutlineEdits } from './useOutlineEdits'
 import { useRecordEdits } from './useRecordEdits'
@@ -68,6 +69,7 @@ export function usePalette() {
   const edits = useEditsStore()
   const editor = useEditorStore()
   const review = useReviewStore()
+  const addChange = useAddChange()
 
   /** Switch the open book to a branching story, and go to its map. */
   async function makeBranching() {
@@ -86,9 +88,11 @@ export function usePalette() {
   watch(
     () => layout.paletteOpen,
     (open) => {
+      if (open) addChange.rememberSelection() // before the palette takes the keyboard
       if (open) query.value = ''
       highlighted.value = undefined
     },
+    { flush: 'sync' },
   )
 
   const entryItem = (e: Entry, group: string): PaletteItem => ({
@@ -157,6 +161,21 @@ export function usePalette() {
               sub: `Write · ${chapter.title}`,
               icon: 'plus' as const,
               run: () => void newScene(),
+            },
+          ]
+        : []),
+      // Continuity: words selected in the text become the quote of the change.
+      ...(addChange.available.value
+        ? [
+            {
+              id: 'action:add-change',
+              title: edits.selectedText
+                ? 'Mark selected text as a change…'
+                : 'Add a change to this scene…',
+              sub: `Continuity · ${modLabel} ${altLabel} M`,
+              icon: 'continuity' as const,
+              afterClose: true,
+              run: addChange.fromRemembered,
             },
           ]
         : []),

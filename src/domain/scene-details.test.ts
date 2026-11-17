@@ -13,7 +13,7 @@ describe('sceneDetails', () => {
       label: '7.2',
       status: 'draft',
       location: 'The Lantern Gate',
-      storyTime: '14 Thaw 412 TR · Dusk',
+      storyTime: '14 Thaw 412 TR, 18:00 · Dusk',
       words: 1240,
       target: 1800,
     })
@@ -31,9 +31,9 @@ describe('sceneDetails', () => {
 
   it('writes changes in plain words', () => {
     expect(d.changes).toEqual([
-      { kind: 'Relationship', text: 'Tomas Brandt → Elena Vasquez: stranger → creditor' },
+      { kind: 'Relationship', text: 'Tomas Brandt sees Elena Vasquez as creditor (was: stranger)' },
       { kind: 'Set-up', text: 'Elena owes the warden a favour' },
-      { kind: 'Learns', text: 'Tomas Brandt: Elena is alive' },
+      { kind: 'Learns', text: 'Tomas Brandt learns: Elena is alive' },
     ])
   })
 
