@@ -3,6 +3,9 @@
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import HistoryList from '@/components/history/HistoryList.vue'
+import Button from '@/components/ui/Button.vue'
+import { smallCapsHeading } from '@/components/ui/fieldStyles'
+import Icon from '@/components/ui/Icon.vue'
 import Tabs from '@/components/ui/Tabs.vue'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -82,6 +85,15 @@ const TABS = [
               :target="{ kind: 'book', id: ws.bookId }"
               class="border-t border-line pt-4"
             />
+            <div class="flex flex-col gap-1.5 border-t border-line pt-4">
+              <h3 :class="smallCapsHeading">Export and import</h3>
+              <Button @click="layout.exportOpen = true"
+                ><Icon name="download" :size="14" />Export this book…</Button
+              >
+              <Button v-if="!ws.view?.readOnly && ws.session" @click="layout.importOpen = true"
+                ><Icon name="upload" :size="14" />Import a book…</Button
+              >
+            </div>
           </div>
         </template>
       </Tabs>

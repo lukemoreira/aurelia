@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, shallowRef, watch } from 'vue'
 import { leavePanelFocus } from '@/composables/useFocusMain'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useResizablePanel } from '@/composables/useResizablePanel'
@@ -28,6 +28,12 @@ export const useLayoutStore = defineStore('layout', () => {
   /** What the palette does once it has closed and given focus back, so a dialog it opens remembers the right opener. */
   const paletteThen = ref<(() => void) | null>(null)
   const backupOpen = ref(false)
+  const exportOpen = ref(false)
+  const importOpen = ref(false)
+  /** What had focus when the Export dialog opened: where focus goes back to when the print view closes. */
+  const printReturn = shallowRef<Element | null>(null)
+  /** The book laid out for a PDF (its page, its styles, its name): the print view is open while this is set. */
+  const print = shallowRef<{ title: string; css: string; html: string } | null>(null)
   const renameOpen = ref(false)
   /** Focus mode: the panels, the bars and the counts go, and the text stays. Not kept: every visit starts normal. */
   const focus = ref(false)
@@ -74,6 +80,10 @@ export const useLayoutStore = defineStore('layout', () => {
     paletteOpen,
     paletteThen,
     backupOpen,
+    exportOpen,
+    importOpen,
+    printReturn,
+    print,
     renameOpen,
     focus,
     toggleFocus,

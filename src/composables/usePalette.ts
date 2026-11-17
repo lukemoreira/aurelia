@@ -209,6 +209,31 @@ export function usePalette() {
             },
           ]
         : []),
+      // Export works on any open book (the sample too); import makes a new book, so it needs a workspace that can be written to.
+      ...(book
+        ? [
+            {
+              id: 'action:export',
+              title: 'Export this book…',
+              sub: `Book · ${book.title}`,
+              icon: 'download' as const,
+              afterClose: true,
+              run: () => (layout.exportOpen = true),
+            },
+          ]
+        : []),
+      ...(edit.canEdit.value
+        ? [
+            {
+              id: 'action:import',
+              title: 'Import a book…',
+              sub: 'Workspace',
+              icon: 'upload' as const,
+              afterClose: true,
+              run: () => (layout.importOpen = true),
+            },
+          ]
+        : []),
       // Backup belongs to a real workspace; the sample has none.
       ...(ws.view
         ? [

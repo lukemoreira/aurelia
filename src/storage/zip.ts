@@ -19,21 +19,35 @@ export function crc32(data: Uint8Array): number {
 }
 
 /** MS-DOS date and time, which is what zip stores (2-second steps, years from 1980). */
-function dosStamp(d: Date): { time: number; date: number } {
+function dosStamp(d: Date, utc: boolean): { time: number; date: number } {
+  const [y, mo, day, h, mi, s] = utc
+    ? [
+        d.getUTCFullYear(),
+        d.getUTCMonth(),
+        d.getUTCDate(),
+        d.getUTCHours(),
+        d.getUTCMinutes(),
+        d.getUTCSeconds(),
+      ]
+    : [d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()]
   return {
-    time: (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1),
-    date: ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(),
+    time: (h! << 11) | (mi! << 5) | (s! >> 1),
+    date: ((y! - 1980) << 9) | ((mo! + 1) << 5) | day!,
   }
 }
+
+/** The one stamp every export file carries: the zip's own start (1 Jan 1980), so a book is the same bytes on any day. */
+export const FIXED_ZIP_STAMP = new Date(Date.UTC(1980, 0, 1))
 
 /**
  * A zip of these files, stored without compression. Plain text compresses well, but a stored
  * zip is valid everywhere, needs no library and is simple enough to check by eye; a workspace
- * is small. File names are UTF-8 (flag bit 11).
+ * is small. File names are UTF-8 (flag bit 11). `utc` reads the stamp in UTC instead of the
+ * machine's zone: an export passes it with `FIXED_ZIP_STAMP`, so no machine changes a byte.
  */
-export function zipFiles(files: ZipFile[], now = new Date()): Blob {
+export function zipFiles(files: ZipFile[], now = new Date(), utc = false): Blob {
   if (files.length > 0xffff) throw new Error('Too many files for one zip.')
-  const { time, date } = dosStamp(now)
+  const { time, date } = dosStamp(now, utc)
   const names = files.map((f) => new TextEncoder().encode(f.path))
   const parts: BlobPart[] = []
   const central: BlobPart[] = []

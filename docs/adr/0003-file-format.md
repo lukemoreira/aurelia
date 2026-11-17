@@ -39,6 +39,7 @@ MyWorkspace/
     backups/<fromVersion>/             copies made before a migration (rule 5)
     trash/<stamp>/                     deleted items, at their workspace paths, with a manifest.json
     conflicts/<stamp>/                 the file not kept when two versions or two IDs met
+    export-profiles.json               saved export settings (ADR-0014)
 ```
 
 Device-only state (search index, panel layout, recovery journal, sync state, media

@@ -3,6 +3,9 @@
 import { watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import BackupDialog from '@/components/backup/BackupDialog.vue'
+import ExportDialog from '@/components/export/ExportDialog.vue'
+import ImportDialog from '@/components/export/ImportDialog.vue'
+import PrintView from '@/components/export/PrintView.vue'
 import Sheet from '@/components/ui/Sheet.vue'
 import ActionToast from '@/components/outline/ActionToast.vue'
 import MoveSceneDialog from '@/components/outline/MoveSceneDialog.vue'
@@ -134,6 +137,9 @@ watch(
     /></Sheet>
     <CommandPalette />
     <BackupDialog />
+    <ExportDialog />
+    <ImportDialog v-model:open="layout.importOpen" into="workspace" />
+    <PrintView />
     <RenameWorkspaceDialog />
     <NameDialog />
     <ChangeBoard />

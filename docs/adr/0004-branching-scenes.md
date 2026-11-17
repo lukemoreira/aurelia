@@ -36,6 +36,7 @@ branches: scene A leads to B or C. The spec only has a straight-line outline.
    [ADR-0006](0006-continuity-model.md) §2.
 10. **Export.** An export of a branching book uses outline order and renders a
     "Choices" list (label → scene title) at the end of each scene.
+    Built in M7b: [ADR-0014](0014-export-and-import.md).
 
 ## Later (not v1)
 

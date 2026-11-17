@@ -4,6 +4,7 @@ import { computed, onMounted } from 'vue'
 import LogoMark from '@/components/shell/LogoMark.vue'
 import Icon from '@/components/ui/Icon.vue'
 import RestoreDialog from '@/components/backup/RestoreDialog.vue'
+import ImportDialog from '@/components/export/ImportDialog.vue'
 import NewWorkspaceDialog from '@/components/welcome/NewWorkspaceDialog.vue'
 import { INSECURE_REASON, openedWhen, useOpenWorkspace } from '@/composables/useOpenWorkspace'
 import { useRestore } from '@/composables/useRestore'
@@ -14,7 +15,7 @@ const restore = useRestore()
 onMounted(() => void restore.probe())
 
 interface Option {
-  id: 'folder' | 'browser' | 'restore' | 'sample'
+  id: 'folder' | 'browser' | 'import' | 'restore' | 'sample'
   title: string
   tag: string
   text: string
@@ -49,6 +50,17 @@ const options = computed<Option[]>(() => {
         ? 'Not possible on an http page.'
         : 'Nothing to set up, and it works offline. The browser holds the only copy, so download a copy now and then.',
       run: open.keepInBrowser,
+    },
+    {
+      id: 'import',
+      title: 'Import a book',
+      tag: blocked ? 'Needs https' : 'Only in this browser',
+      recommended: false,
+      unavailable: blocked,
+      text: blocked
+        ? 'Not possible on an http page.'
+        : 'Bring in Markdown files or a Twine story. You see what will be made first.',
+      run: () => (open.importing.value = true),
     },
     // Only where Aurelia runs next to the author's own storage server.
     ...(restore.serverState === 'available' || restore.serverState === 'sign-in'
@@ -241,6 +253,7 @@ const POINTS: { icon: IconName; lead: string; text: string }[] = [
       </p>
     </main>
     <RestoreDialog :restore="restore" />
+    <ImportDialog v-model:open="open.importing.value" into="new" :make="open.importPlan" />
     <NewWorkspaceDialog
       :where="open.naming.value"
       :busy="open.busy.value"

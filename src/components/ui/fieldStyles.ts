@@ -4,3 +4,7 @@ export const fieldControlClass =
   'h-8 w-full rounded-control border border-field bg-surface px-2.5 text-[13px] text-ink ' +
   'placeholder:text-ink-3 disabled:cursor-not-allowed disabled:border-line-2 disabled:bg-raised ' +
   'disabled:text-ink-3 aria-[invalid=true]:border-danger pointer-coarse:h-11'
+
+/** The small capital heading of a group of settings in a dialog or a panel. */
+export const smallCapsHeading =
+  'm-0 text-[11px] font-semibold uppercase tracking-[.09em] text-ink-3'
