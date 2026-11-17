@@ -14,39 +14,45 @@ const name = computed(() => d.target.value?.recent.name ?? '')
 const title = computed(() =>
   d.folder.value ? `Remove “${name.value}” from the list?` : `Delete “${name.value}”?`,
 )
+// The key sentence is the dialog's description, so a screen reader hears it on opening.
+const description = computed(() =>
+  d.folder.value
+    ? 'The folder and its files stay on your disk.'
+    : 'This removes it from this browser. It cannot be undone.',
+)
 const plural = (n: number, one: string) => `${n.toLocaleString('en')} ${one}${n === 1 ? '' : 's'}`
 const contents = computed(() => {
   const g = d.glance.value
   if (g === undefined) return 'Reading what is in it…'
-  const opened = `last opened ${openedWhen(d.target.value?.recent.lastOpened ?? 0)}`
+  const opened = openedWhen(d.target.value?.recent.lastOpened ?? 0)
   return g
-    ? `${plural(g.books, 'book')} · ${plural(g.words, 'word')} · ${opened}`
-    : `Aurelia could not read what is in it, so it cannot show you. It was ${opened}. You can still delete it.`
+    ? `${plural(g.books, 'book')} · ${plural(g.words, 'word')} · last opened ${opened}`
+    : `Aurelia could not read what is in it. Last opened ${opened}. You can still delete it.`
 })
 </script>
 
 <template>
-  <Dialog v-model:open="d.isOpen.value" :title="title" :locked="d.busy.value">
+  <Dialog
+    v-model:open="d.isOpen.value"
+    :title="title"
+    :description="description"
+    :locked="d.busy.value"
+  >
     <div v-if="d.folder.value" class="flex flex-col gap-3">
-      <p class="m-0">
-        The folder and the files in it stay on your disk. You can open it again with “Choose a
-        folder”.
-      </p>
+      <p class="m-0">You can open it again with “Choose a folder”.</p>
     </div>
     <div v-else class="flex flex-col gap-3">
       <p class="m-0 font-medium">{{ contents }}</p>
-      <p class="m-0">
-        This removes it from this browser. It cannot be undone, and Aurelia cannot get it back.
+      <p v-if="d.hasUnsaved.value" class="m-0">
+        It has changes that were never saved to its files. The copy includes them.
       </p>
       <p v-if="d.hasBackup.value" class="m-0 text-ink-2">
-        This device backs it up to your server. That copy is kept, and you can bring it back with
-        “Restore from a backup” on this screen.
+        The last backup on your server is kept. You can bring it back with “Restore from a backup”.
       </p>
       <div class="flex flex-wrap items-center gap-3">
         <Button :loading="d.copying.value" @click="d.download()">Download a copy first</Button>
-        <p v-if="d.copied.value" role="status" class="m-0 text-ink-2">
-          The copy is in your downloads.
-        </p>
+        <!-- Always in the DOM, so a screen reader hears the text arrive. -->
+        <p role="status" class="m-0 text-ink-2">{{ d.copied.value ? 'Copy downloaded.' : '' }}</p>
       </div>
     </div>
     <p

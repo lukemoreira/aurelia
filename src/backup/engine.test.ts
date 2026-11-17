@@ -268,6 +268,26 @@ describe('what goes up', () => {
     await await version
   })
 
+  it('idle() waits for the round in flight after dispose(), and no round starts again', async () => {
+    const rig = await backupRig()
+    const engine = track(await rig.open())
+    await engine.turnOn()
+    let land!: () => void
+    rig.onFlush(() => new Promise<void>((resolve) => (land = resolve)))
+    const round = engine.run(true)
+    await new Promise((r) => setTimeout(r, 20))
+    engine.dispose()
+    let idle = false
+    const waiting = engine.idle().then(() => (idle = true))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(idle).toBe(false) // the round is still under way
+    land()
+    await Promise.all([round, waiting])
+    rig.dav.log.length = 0
+    await engine.run(true) // a disposed engine starts nothing
+    expect(rig.dav.log).toEqual([])
+  })
+
   it('waits while the workspace is read-only or settling, and goes when it is not', async () => {
     const rig = await backupRig()
     const engine = track(await rig.open())

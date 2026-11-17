@@ -69,8 +69,12 @@ describe('the Welcome screen', () => {
         throw new DOMException('closed', 'AbortError')
       }
       await welcome()
-      expect(document.querySelectorAll('main [role="status"]')).toHaveLength(1)
-      expect(document.querySelector('main [role="status"]')?.textContent?.trim()).toBe(REASON)
+      // The empty live region for messages is always there; only one status has words in it.
+      const said = [...document.querySelectorAll('main [role="status"]')].filter((e) =>
+        e.textContent?.trim(),
+      )
+      expect(said).toHaveLength(1)
+      expect(said[0]?.textContent?.trim()).toBe(REASON)
       expect(card('Choose a folder').textContent).toContain('Needs https')
       expect(card('Choose a folder').textContent).not.toContain('Needs Chrome or Edge')
       expect(card('Keep it in this browser').textContent).toContain('Needs https')

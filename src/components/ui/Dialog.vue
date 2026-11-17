@@ -43,7 +43,7 @@ const hold = (event: Event) => props.locked && event.preventDefault()
     <DialogPortal>
       <DialogOverlay class="fixed inset-0 z-40 bg-black/40" />
       <DialogContent
-        :aria-describedby="description ? undefined : ''"
+        v-bind="description ? {} : { 'aria-describedby': '' }"
         :class="[
           'fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-dialog border border-line bg-surface text-ink shadow-card',
           SIZES[size],

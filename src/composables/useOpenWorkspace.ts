@@ -31,13 +31,21 @@ export interface Message {
   text: string
 }
 
-/** "today", "yesterday" or "Nov 12": when a workspace was last opened, in words. */
+/** "today at 2:32 PM", "yesterday at 9:10 AM" or "Nov 12 at 2:32 PM": when a workspace was last opened, in words. */
 export function openedWhen(ms: number, now = Date.now()): string {
   const day = (t: number) => new Date(t).setHours(0, 0, 0, 0)
   const days = Math.round((day(now) - day(ms)) / 86_400_000)
-  if (days <= 0) return 'today'
-  if (days === 1) return 'yesterday'
-  return new Date(ms).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+  const date =
+    days <= 0
+      ? 'today'
+      : days === 1
+        ? 'yesterday'
+        : new Date(ms).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+  // A narrow no-break space before AM/PM in newer browsers: a plain space reads and matches the same everywhere.
+  const time = new Date(ms)
+    .toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })
+    .replace(/\u202f/g, ' ')
+  return `${date} at ${time}`
 }
 
 /** On an http page the browser gives no file access at all: not a folder, not browser storage. */

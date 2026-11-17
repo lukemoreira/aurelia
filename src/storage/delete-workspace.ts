@@ -3,14 +3,15 @@
 // a folder workspace is only taken off the list, and its folder is never touched.
 import type { StorageAdapter } from './adapter'
 import { StorageError } from './errors'
+import { zipWorkspace } from './export-copy'
 import type { IdbJournal } from './journal'
 import { loadWorkspace } from './load'
 import type { RecentWorkspace, Recents } from './recents'
 import { workspaceLockName, type SessionView } from './session'
 
 export interface DeleteDeps {
-  recents: Pick<Recents, 'remove'>
-  journal: Pick<IdbJournal, 'clear'>
+  recents: Pick<Recents, 'get' | 'remove'>
+  journal: Pick<IdbJournal, 'clear' | 'list'>
   /** This device's backup state for the workspace (never the backup on the server). */
   backup: { clear(workspaceId: string): Promise<void> }
   /** Remove the browser-storage directory of this workspace ID, recursively. */
@@ -32,6 +33,29 @@ export function releaseBlock(view: SessionView): string | null {
   if (view.save.kind !== 'saved' || view.conflicts.length || view.journalFailed || view.settling)
     return `${view.name} has changes that are not saved yet. Open it, let it finish saving or settle the conflict, then try again.`
   return null
+}
+
+/** Words that only the recovery journal holds (never reached their files): path → the file as it should be. */
+export async function unsavedWords(
+  journal: Pick<IdbJournal, 'list'>,
+  id: string,
+): Promise<Map<string, string>> {
+  return new Map((await journal.list(id)).map((e) => [e.path, e.content]))
+}
+
+/** A zip of a workspace that is not open: its files, with what only the journal holds put in. */
+export async function copyOfStored(
+  adapter: StorageAdapter,
+  recent: RecentWorkspace,
+  journal: Pick<IdbJournal, 'list'>,
+) {
+  return zipWorkspace(adapter, recent.name, await unsavedWords(journal, recent.key))
+}
+
+/** The list the row came from may be old: refuse unless the stored entry is still the same kind. */
+async function assertSameKind(recent: RecentWorkspace, deps: DeleteDeps) {
+  if ((await deps.recents.get(recent.key))?.kind !== recent.kind)
+    throw new StorageError('other', `${recent.name} changed since this list was shown. Try again.`)
 }
 
 /** What helps tell two workspaces of one name apart. */
@@ -80,8 +104,10 @@ async function whileUnlocked(
 export async function deleteBrowserWorkspace(recent: RecentWorkspace, deps: DeleteDeps) {
   if (recent.kind !== 'browser')
     throw new StorageError('other', 'Only a workspace kept in this browser can be deleted.')
+  await assertSameKind(recent, deps) // before this tab's session is closed for a row that is out of date
   await deps.release?.(recent.key)
   await whileUnlocked(deps.locks, recent, async () => {
+    await assertSameKind(recent, deps)
     try {
       await deps.removeDirectory(recent.key)
     } catch (e) {
@@ -98,6 +124,7 @@ export async function deleteBrowserWorkspace(recent: RecentWorkspace, deps: Dele
 export async function removeFolderFromList(recent: RecentWorkspace, deps: DeleteDeps) {
   if (recent.kind !== 'folder')
     throw new StorageError('other', 'Only a folder workspace is taken off the list.')
+  await assertSameKind(recent, deps)
   await deps.recents.remove(recent.key)
   deps.forget?.(recent.key)
 }
