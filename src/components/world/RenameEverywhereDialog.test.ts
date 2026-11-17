@@ -99,7 +99,8 @@ describe('the Rename everywhere dialog', () => {
   it('after the change, lists the places that were left as they are', async () => {
     const { ws } = await open(2)
     button(/^Change 2 places/)!.click()
-    for (let i = 0; i < 20; i++) {
+    // Until the change is done, not a fixed count: the writes take more turns on a slow machine.
+    for (let i = 0; i < 500 && !dom().textContent!.includes('Changed 2 places'); i++) {
       await flushPromises()
       await vi.advanceTimersByTimeAsync(20)
     }
