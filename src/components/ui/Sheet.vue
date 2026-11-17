@@ -39,7 +39,7 @@ const returnFocus = useReturnFocus(open)
             <IconButton icon="close" label="Close" size="lg" :tooltip="false" />
           </DialogClose>
         </header>
-        <div class="min-h-0 flex-1 overflow-y-auto"><slot /></div>
+        <div class="min-h-0 flex-1 relative overflow-y-auto"><slot /></div>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>

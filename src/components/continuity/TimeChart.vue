@@ -126,7 +126,7 @@ const summary = computed(
         >
       </p>
     </template>
-    <div v-else class="max-h-72 overflow-auto rounded-card border border-line bg-surface">
+    <div v-else class="max-h-72 relative overflow-auto rounded-card border border-line bg-surface">
       <table class="w-full border-collapse text-xs">
         <caption class="sr-only">
           Story time of each scene, in reading order.

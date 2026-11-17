@@ -60,7 +60,7 @@ const heading = 'm-0 text-sm font-semibold'
 
     <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
       <TimelinePanel v-if="mode === 'timeline'" :t="timeline" />
-      <div v-else class="flex min-w-0 flex-1 flex-col gap-4 p-5 lg:overflow-y-auto">
+      <div v-else class="flex min-w-0 flex-1 flex-col gap-4 p-5 relative lg:overflow-y-auto">
         <ul
           class="m-0 grid list-none grid-cols-2 gap-2.5 p-0 md:grid-cols-4"
           aria-label="At a glance"

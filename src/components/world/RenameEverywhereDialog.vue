@@ -49,7 +49,7 @@ const filters = computed(() => [
         role="region"
         aria-label="Places left as they are"
         tabindex="0"
-        class="max-h-[38vh] overflow-auto rounded-control border border-line bg-canvas"
+        class="max-h-[38vh] relative overflow-auto rounded-control border border-line bg-canvas"
       >
         <ul class="m-0 list-none p-0">
           <li
@@ -112,7 +112,7 @@ const filters = computed(() => [
           role="region"
           aria-label="Places that would change"
           tabindex="0"
-          class="max-h-[38vh] overflow-auto rounded-control border border-line bg-canvas"
+          class="max-h-[38vh] relative overflow-auto rounded-control border border-line bg-canvas"
         >
           <p v-if="!visible.length" class="m-0 p-3 text-ink-2">Nothing is uncertain.</p>
           <div v-for="g in visible" :key="g.where">

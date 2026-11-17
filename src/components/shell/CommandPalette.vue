@@ -153,7 +153,7 @@ const iconStyle = (item: PaletteItem) =>
           <ComboboxContent
             position="inline"
             aria-label="Results"
-            class="min-h-0 flex-1 overflow-y-auto"
+            class="min-h-0 flex-1 relative overflow-y-auto"
           >
             <ComboboxViewport class="p-1.5 px-2">
               <ComboboxGroup v-for="g in groups" :key="g.label" :aria-label="g.label">

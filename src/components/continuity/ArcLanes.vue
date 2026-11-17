@@ -22,7 +22,7 @@ const c = props.c
         <span class="block text-ink-2">{{ laneWords(lane, c.chapters.value) }}</span>
       </li>
     </ul>
-    <div v-else class="overflow-auto rounded-card border border-line bg-surface">
+    <div v-else class="relative overflow-auto rounded-card border border-line bg-surface">
       <table class="w-full min-w-max border-collapse text-xs">
         <caption class="sr-only">
           How each arc moves, chapter by chapter.

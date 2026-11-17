@@ -65,7 +65,7 @@ const hold = (event: Event) => props.locked && event.preventDefault()
             ><IconButton icon="close" label="Close" size="sm" :tooltip="false" :disabled="locked"
           /></DialogClose>
         </header>
-        <div class="overflow-auto px-5 py-2 text-[13px]"><slot /></div>
+        <div class="relative overflow-auto px-5 py-2 text-[13px]"><slot /></div>
         <!-- A div, not a footer: a footer in a dialog is a second page footer (landmark) to a screen reader. -->
         <div v-if="$slots.footer" class="flex flex-wrap justify-end gap-2 px-5 pb-4 pt-3">
           <slot name="footer" />

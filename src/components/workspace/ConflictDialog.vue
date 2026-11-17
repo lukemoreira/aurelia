@@ -27,7 +27,7 @@ const detailsDiffer = computed(
     props.conflict?.theirs != null && headOf(props.conflict.mine) !== headOf(props.conflict.theirs),
 )
 const pane =
-  'min-h-32 max-h-[40vh] overflow-auto whitespace-pre-wrap rounded-control border border-line bg-canvas p-3 font-prose text-[17px] leading-[1.6] text-ink'
+  'min-h-32 max-h-[40vh] relative overflow-auto whitespace-pre-wrap rounded-control border border-line bg-canvas p-3 font-prose text-[17px] leading-[1.6] text-ink'
 </script>
 
 <template>

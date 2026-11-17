@@ -100,7 +100,7 @@ const summaryClass =
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-1 flex-col gap-4 p-5 lg:overflow-y-auto">
+  <div class="flex min-w-0 flex-1 flex-col gap-4 p-5 relative lg:overflow-y-auto">
     <div class="flex flex-wrap items-center gap-2.5">
       <div class="mr-auto min-w-[200px]">
         <h2 id="timeline-title" class="m-0 text-sm font-semibold">Timeline</h2>
@@ -138,7 +138,7 @@ const summaryClass =
       <div
         v-if="list"
         :ref="setScroller"
-        class="max-h-[480px] overflow-auto rounded-card border border-line bg-surface"
+        class="max-h-[480px] relative overflow-auto rounded-card border border-line bg-surface"
       >
         <table class="w-full border-collapse text-xs" :aria-rowcount="count + 1">
           <caption class="sr-only">

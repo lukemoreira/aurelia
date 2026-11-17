@@ -82,7 +82,7 @@ const mark = (id: string) => {
       </span>
     </div>
 
-    <div ref="root" class="min-h-0 flex-1 overflow-auto px-5 pb-5 pt-4">
+    <div ref="root" class="min-h-0 flex-1 relative overflow-auto px-5 pb-5 pt-4">
       <p v-if="!c.shown.value.length" class="m-0 text-[13px] text-ink-2">No chapters yet.</p>
       <div
         class="grid gap-3.5"

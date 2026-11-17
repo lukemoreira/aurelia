@@ -31,7 +31,7 @@ const row =
   <div
     :ref="setScroller"
     :data-window="windowed || undefined"
-    :class="windowed ? 'max-h-[360px] overflow-y-auto' : ''"
+    :class="windowed ? 'max-h-[360px] relative overflow-y-auto' : ''"
   >
     <ol class="m-0 ml-3 flex list-none flex-col gap-px border-l-2 border-line p-0 pl-2">
       <li v-if="windowed" aria-hidden="true" :style="{ height: `${before}px` }" />
