@@ -14,6 +14,8 @@
 
 html {
   color-scheme: light dark;
+  /* An app, not a page: scrolling past the end of a pane does not drag the whole window. */
+  overscroll-behavior-y: none;
 }
 
 html[data-theme='light'] {
