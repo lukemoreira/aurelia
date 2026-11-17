@@ -9,7 +9,7 @@ import { createMemoryHistory } from 'vue-router'
 import { FakeDirectory } from '../../tests/helpers/fake-directory'
 import App from '@/App.vue'
 import { useAppUpdate } from '@/composables/useAppUpdate'
-import { createAppRouter } from '@/router'
+import { createAppRouter, scenePath } from '@/router'
 import type { StorageAdapter } from '@/storage/adapter'
 import { createWorkspace } from '@/storage/create'
 import { openDeviceDb } from '@/storage/device-db'
@@ -131,6 +131,70 @@ const type = async (text: string) => {
   editor.view.dispatch(editor.state.tr.insertText(text, 1, end))
   await flushPromises()
 }
+
+describe('the Markdown source of a scene', () => {
+  const sceneFile = async (adapter: StorageAdapter) =>
+    (await adapter.list()).find((p) => p.includes('/scenes/'))!
+  const toggle = async () => {
+    const label = [...document.querySelectorAll('label')].find((l) =>
+      l.textContent?.includes('Markdown source'),
+    )!
+    document.getElementById(label.htmlFor)!.click()
+    await flushPromises()
+  }
+  const area = () =>
+    document.querySelector<HTMLTextAreaElement>('textarea[aria-label^="Scene text"]')
+
+  it('is a plain text area, and switching to it and back writes nothing', async () => {
+    const { ws, adapter } = await open()
+    await type('Plain words typed in the editor.')
+    await ws.flush()
+    const before = (await adapter.read(await sceneFile(adapter)))!.text
+    await toggle()
+    expect(sceneText()).toBeNull()
+    expect(area()!.value).toBe(ws.scene!.body)
+    expect(area()!.value).toContain('Plain words typed in the editor.')
+    expect(document.activeElement).toBe(area())
+    await toggle()
+    expect(area()).toBeNull()
+    expect(sceneText()).not.toBeNull()
+    await ws.flush()
+    await flushPromises()
+    expect((await adapter.read(await sceneFile(adapter)))!.text).toBe(before)
+    expect(footer()).toContain('Saved')
+  })
+
+  it('saves exactly what is typed in it, and the editor shows it when switched back', async () => {
+    const { ws, adapter } = await open()
+    await toggle()
+    const text =
+      '## A heading\n\n| a |  b |\n|--|--:|\n| 1 | 2 |\n\nWord[^1].\n\n[^1]: Odd   spacing,\ttabs  \n'
+    area()!.value = text
+    area()!.dispatchEvent(new Event('input', { bubbles: true }))
+    await ws.flush()
+    await flushPromises()
+    expect(ws.scene!.body).toBe(text)
+    expect((await adapter.read(await sceneFile(adapter)))!.text.endsWith(`\n${text}`)).toBe(true)
+    await toggle()
+    expect(sceneText()!.querySelector('table')).not.toBeNull()
+    expect(sceneText()!.querySelector('[data-footnote-ref]')).not.toBeNull()
+    await ws.flush()
+    // Reading it again changed no byte of what was typed.
+    expect(ws.scene!.body).toBe(text)
+  })
+
+  it('opens a scene as written text again when another scene is opened', async () => {
+    const { ws, router } = await open()
+    await toggle()
+    expect(area()).not.toBeNull()
+    const chapter = ws.context!.chapter.chapter
+    const second = await ws.addScene(chapter.id)
+    await router.push(scenePath(chapter.book, second!))
+    await flushPromises()
+    expect(area()).toBeNull()
+    expect(sceneText()).not.toBeNull()
+  })
+})
 
 describe('a real workspace on screen', () => {
   it('says Saving… while words wait, Saved once they are in the file, and counts them live', async () => {

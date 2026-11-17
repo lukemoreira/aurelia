@@ -107,7 +107,7 @@ describe('keeping what cannot be edited yet', () => {
     expect(JSON.stringify(ed.getJSON())).not.toContain('bold')
   })
 
-  it('keeps a table and a footnote as text while the paragraph beside them is typed in', () => {
+  it('keeps a table and a footnote as they are while the paragraph beside them is typed in', () => {
     const body = 'Before.\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\nAfter [^1].\n\n[^1]: A note.\n'
     const ed = start(body)
     ed.commands.focus('start')
@@ -129,7 +129,7 @@ describe('keeping what cannot be edited yet', () => {
     backspace()
     expect(editor.state.doc.firstChild?.type.name).toBe('paragraph')
 
-    const full = start('| a |\n| - |\n')
+    const full = start('```\ncode\n```\n')
     full.commands.focus('start')
     backspace()
     expect(full.state.doc.firstChild?.type.name).toBe('rawBlock')

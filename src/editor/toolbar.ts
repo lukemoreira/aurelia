@@ -14,6 +14,8 @@ export interface ToolbarItem {
   /** Whether the thing under the caret is already this: shows the button as pressed. */
   active?: (editor: Editor) => boolean
   can?: (editor: Editor) => boolean
+  /** Drawn only while this is true (an action that makes sense only sometimes). */
+  show?: (editor: Editor) => boolean
   run: (editor: Editor) => void
   /** Kept on the phone's bar, which has room for six. */
   phone?: boolean
@@ -101,6 +103,32 @@ export const TOOLBAR_GROUPS: ToolbarItem[][] = [
   ],
   [
     {
+      id: 'table',
+      label: 'Table',
+      shortcut: 'Mod+Alt+T',
+      icon: 'table',
+      active: (e) => e.isActive('table'),
+      can: (e) => !e.isActive('table') && !e.isActive('footnoteDef'),
+      run: (e) => void chain(e).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+    },
+    {
+      id: 'footnote',
+      label: 'Footnote',
+      shortcut: 'Mod+Alt+F',
+      icon: 'footnote',
+      can: (e) => e.can().insertFootnote(),
+      run: (e) => void chain(e).insertFootnote().run(),
+    },
+    {
+      id: 'renumberFootnotes',
+      label: 'Renumber footnotes',
+      icon: 'list-ordered',
+      show: (e) => e.can().renumberFootnotes(),
+      run: (e) => void chain(e).renumberFootnotes().run(),
+    },
+  ],
+  [
+    {
       id: 'undo',
       label: 'Undo',
       shortcut: 'Mod+Z',
@@ -119,6 +147,88 @@ export const TOOLBAR_GROUPS: ToolbarItem[][] = [
       phone: true,
     },
   ],
+]
+
+/** What the "Table" menu does to the table under the caret: rows, columns, alignment. */
+export const TABLE_ACTIONS: {
+  id: string
+  label: string
+  danger?: boolean
+  separated?: boolean
+  can: (editor: Editor) => boolean
+  run: (editor: Editor) => void
+}[] = [
+  {
+    id: 'addRowBefore',
+    label: 'Add row above',
+    can: (e) => e.can().addRowBefore(),
+    run: (e) => void chain(e).addRowBefore().run(),
+  },
+  {
+    id: 'addRowAfter',
+    label: 'Add row below',
+    can: (e) => e.can().addRowAfter(),
+    run: (e) => void chain(e).addRowAfter().run(),
+  },
+  {
+    id: 'addColumnBefore',
+    label: 'Add column before',
+    can: (e) => e.can().addColumnBefore(),
+    run: (e) => void chain(e).addColumnBefore().run(),
+  },
+  {
+    id: 'addColumnAfter',
+    label: 'Add column after',
+    can: (e) => e.can().addColumnAfter(),
+    run: (e) => void chain(e).addColumnAfter().run(),
+  },
+  {
+    id: 'alignLeft',
+    label: 'Align column left',
+    separated: true,
+    can: (e) => e.can().setColumnAlign('left'),
+    run: (e) => void chain(e).setColumnAlign('left').run(),
+  },
+  {
+    id: 'alignCenter',
+    label: 'Centre column',
+    can: (e) => e.can().setColumnAlign('center'),
+    run: (e) => void chain(e).setColumnAlign('center').run(),
+  },
+  {
+    id: 'alignRight',
+    label: 'Align column right',
+    can: (e) => e.can().setColumnAlign('right'),
+    run: (e) => void chain(e).setColumnAlign('right').run(),
+  },
+  {
+    id: 'alignNone',
+    label: 'No alignment',
+    can: (e) => e.can().setColumnAlign(null),
+    run: (e) => void chain(e).setColumnAlign(null).run(),
+  },
+  {
+    id: 'deleteRow',
+    label: 'Delete row',
+    separated: true,
+    danger: true,
+    can: (e) => e.can().deleteRow(),
+    run: (e) => void chain(e).deleteRow().run(),
+  },
+  {
+    id: 'deleteColumn',
+    label: 'Delete column',
+    danger: true,
+    can: (e) => e.can().deleteColumn(),
+    run: (e) => void chain(e).deleteColumn().run(),
+  },
+  {
+    id: 'deleteTable',
+    label: 'Delete table',
+    danger: true,
+    can: (e) => e.can().deleteTable(),
+    run: (e) => void chain(e).deleteTable().run(),
+  },
 ]
 
 /** The paragraph styles in the "Text style" menu, and their headings' levels. */

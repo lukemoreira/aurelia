@@ -53,6 +53,9 @@ export const icons: Record<IconName, string> = {
   quote:
     'M3 21c3 0 7-1 7-8V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h4M15 21c3 0 7-1 7-8V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h4',
   callout: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+  footnote: 'M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9',
+  table:
+    'M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 10h18M3 15h18M9 4v16',
   embed: 'M16 18l6-6-6-6M8 6l-6 6 6 6',
   filter: 'M22 3H2l8 9.46V19l4 2v-8.54z',
   flag: 'M4 22V4M4 4h13l-2 4 2 4H4',

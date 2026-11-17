@@ -44,6 +44,8 @@ export type IconName =
   | 'checklist'
   | 'quote'
   | 'callout'
+  | 'table'
+  | 'footnote'
   | 'embed'
   | 'filter'
   | 'flag'

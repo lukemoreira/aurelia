@@ -197,15 +197,27 @@ describe('renaming Elena', () => {
     expect(planRename(shared, id('chr', 1), OLD, FORMS).places).toHaveLength(5)
   })
 
-  it('leaves raw HTML, tables and fences as written', () => {
+  it('leaves raw HTML and fences as written, and renames in the cells of a table and in a footnote', () => {
     const body = [
       'Elena ran.',
       '<div>Elena in html</div>',
       '| Elena | table |\n|---|---|\n| Elena | x |',
       '```\nElena in code\n```',
-      'Elena again.',
+      'Elena again.[^1]',
+      '[^1]: Elena’s note.',
     ].join('\n\n')
-    expect(plan([body]).places.map((x) => x.start)).toEqual([0, body.lastIndexOf('Elena')])
+    const cells = [...body.matchAll(/\| (Elena) \|/g)].map((m) => m.index! + 2)
+    expect(plan([body]).places.map((x) => x.start)).toEqual([
+      0,
+      ...cells,
+      body.indexOf('Elena again'),
+      body.indexOf('Elena’s'),
+    ])
+  })
+
+  it('never rewrites a footnote’s label, though the words of the note are renamed', () => {
+    const body = 'Elena ran[^Elena] and[^Elena].\n\n[^Elena]: Elena’s note.\n'
+    expect(plan([body]).places.map((x) => x.start)).toEqual([0, body.indexOf('Elena’s')])
   })
 
   it('writes a name Markdown would read escaped, in text; and not into a link that cannot hold it', () => {

@@ -5,7 +5,7 @@ import { Editor } from '@tiptap/vue-3'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { editorExtensions } from '@/editor/extensions'
 import { bodyToDoc, docToBody } from '@/editor/markdown/body'
-import { separateTableCells } from '@/editor/paste'
+import { pasteProps } from '@/editor/paste'
 
 export interface ManuscriptOptions {
   /** The scene's text as the workspace holds it. A change not made here is an outside change. */
@@ -17,6 +17,10 @@ export interface ManuscriptOptions {
   extensions?: AnyExtension[]
   /** Attributes of the editable element: its accessible name. */
   attributes: () => Record<string, string>
+  /** Words typed in the source mode that the workspace had not taken: shown, and sent again. */
+  held?: string | null
+  /** Where to put the caret when the editor opens: a block of the text, and how far into it. */
+  place?: { block: number; offset: number } | null
 }
 
 /** Where the caret is: which top-level block, and how far into it. */
@@ -51,7 +55,7 @@ export function useManuscriptEditor(options: ManuscriptOptions) {
     attributes: options.attributes(),
     scrollMargin: 88,
     scrollThreshold: 88,
-    transformPastedHTML: separateTableCells,
+    ...pasteProps,
   })
   /** Counts every change of the document or the selection, for the toolbar to read. */
   const tick = ref(0)
@@ -62,21 +66,27 @@ export function useManuscriptEditor(options: ManuscriptOptions) {
    * moment). It stays on screen, is never replaced by an outside change, and is sent again when
    * the editor can write.
    */
-  let pending: string | null = null
+  let pending: string | null = options.held != null && options.held !== known ? options.held : null
 
   const created = new Editor({
     extensions: [...editorExtensions, ...(options.extensions ?? [])],
-    content: bodyToDoc(known),
+    content: bodyToDoc(pending ?? known),
     editable: options.editable(),
     editorProps: editorProps(),
     onTransaction: () => tick.value++,
-    onUpdate: ({ editor: ed }) => {
+    onUpdate: ({ editor: ed, transaction }) => {
+      // Something the editor itself added (the empty line after a table, a table made whole) and
+      // that the author did not do: not an edit, and focusing a scene writes nothing.
+      if (!transaction.docChanged) return
       const body = docToBody(ed.state.doc)
       if (body === (pending ?? known)) return
       pending = body === known ? null : body
       options.onEdit(body)
     },
   })
+
+  if (options.place) placeCaret(created, options.place)
+  if (pending !== null && options.editable()) options.onEdit(pending)
 
   watch(options.body, (next) => {
     if (pending !== null) {
@@ -107,5 +117,5 @@ export function useManuscriptEditor(options: ManuscriptOptions) {
   watch(options.attributes, () => created.setOptions({ editorProps: editorProps() }))
   onBeforeUnmount(() => created.destroy())
 
-  return { editor: created, tick }
+  return { editor: created, tick, pending: () => pending }
 }

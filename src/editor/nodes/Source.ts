@@ -12,6 +12,8 @@ export const TOP_LEVEL_TYPES = [
   'callout',
   'sceneBreak',
   'rawBlock',
+  'table',
+  'footnoteDef',
 ]
 
 /**

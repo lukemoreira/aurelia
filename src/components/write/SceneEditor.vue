@@ -29,8 +29,20 @@ const props = withDefaults(
     inputId?: string
     /** `notes`: a record's notes, drawn as notes and not as the page of a book. */
     variant?: 'scene' | 'notes'
+    /** Words typed in the source mode that the workspace had not taken: shown, and sent again. */
+    held?: string | null
+    /** Where the caret starts (coming back from the source mode). */
+    place?: { block: number; offset: number } | null
   }>(),
-  { docId: undefined, names: true, label: 'Scene text', inputId: 'scene-text', variant: 'scene' },
+  {
+    docId: undefined,
+    names: true,
+    label: 'Scene text',
+    inputId: 'scene-text',
+    variant: 'scene',
+    held: null,
+    place: null,
+  },
 )
 const emit = defineEmits<{ edit: [body: string]; blur: [] }>()
 const layout = useLayoutStore()
@@ -42,7 +54,9 @@ const card = ref<InstanceType<typeof LinkCard> | null>(null)
 link.onCardFocus(() => card.value?.focus() ?? false)
 
 // Named "Scene text" and by the scene's own title (it points at itself for the first part).
-const { editor, tick } = useManuscriptEditor({
+const { editor, tick, pending } = useManuscriptEditor({
+  held: props.held,
+  place: props.place,
   body: () => props.body,
   editable: () => !props.readonly,
   onEdit: (body) => emit('edit', body),
@@ -92,6 +106,13 @@ watch(
 )
 // A scene opened at its words (a search result, a finding): once the editor is in the page.
 onMounted(() => showFound())
+
+/** Give the text the keyboard where its caret is, without moving the page (the source mode hands it back here). */
+defineExpose({
+  focus: () => editor.commands.focus(null, { scrollIntoView: false }),
+  /** Typed here and not yet taken by the workspace. */
+  pending,
+})
 
 const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.toolbarTarget)
 </script>

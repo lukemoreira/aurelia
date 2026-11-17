@@ -10,11 +10,16 @@ import { parseMarkdown } from './parse'
 // Every other block must come out byte for byte and in order; the changed block keeps every
 // character, its type and the number of blocks; and the result must itself be a file that is
 // read exactly and written back unchanged. `FUZZ_SEEDS=1,2,3` and `FUZZ_RUNS=2000` try more.
-// The generator is deliberately dense in Markdown's own characters. On 100,000 files it still
-// finds about one case in 10,000, all of them odd corners of `marked` or of CommonMark itself:
-// an indented code block, a tab-indented line or a footnote definition straight after a list in
-// a quote or a callout (written back it continues the list), and a tag or an address that
-// `marked` reads differently once a neighbouring mark moves. The default seeds are clean.
+// Tables (alignment, escaped pipes, marks in cells, short and loose rows) and footnotes
+// (references in text, notes of several lines, paragraphs and lists, several to a paragraph) are
+// generated, and typing goes into a table cell or a note as it does into a paragraph.
+// The generator is deliberately dense in Markdown's own characters. On 120,000 files (40 seeds
+// of 3,000) it still finds about one case in 20,000, all of them odd corners of `marked` or of
+// CommonMark itself that the editor before tables and footnotes met just as often (8 on the same
+// files): an indented code block, a tab-indented line or a footnote definition straight after a
+// list in a quote or a callout (written back it continues the list), a tag or an address that
+// `marked` reads differently once a neighbouring mark moves, and `*` straight after an address.
+// The default seeds are clean.
 
 const toBody = (doc: JSONContent) => docToBody(schema.nodeFromJSON(doc))
 const forget = (b: JSONContent) => {
@@ -86,7 +91,11 @@ function generate(r: () => number): string {
   const words = () => Array.from({ length: 1 + Math.floor(r() * 6) }, () => pick(WORDS)).join(' ')
   const inline = () => {
     const w = words()
-    switch (Math.floor(r() * 10)) {
+    switch (Math.floor(r() * 12)) {
+      case 10:
+        return `${w}[^${pick(['1', 'note', 'a-b'])}]`
+      case 11:
+        return `${w}[^1]: ${words()}`
       case 0:
         return `**${w}**`
       case 1:
@@ -110,8 +119,74 @@ function generate(r: () => number): string {
     }
   }
   const para = () => Array.from({ length: 1 + Math.floor(r() * 3) }, inline).join(' ')
+  // A cell without the characters that would make the table something else, so most are tables.
+  const CELLS = [
+    'the',
+    'bells',
+    'Elena',
+    '**b**',
+    '*i*',
+    '~~s~~',
+    '[l](u)',
+    'a \\| b',
+    'é',
+    'x_',
+    '3 * 4',
+    '',
+    '<u>u</u>',
+    'a<b',
+    '`c`',
+    '[^1]',
+    '[[E]]',
+    '&amp;',
+    '#',
+    '-',
+    '>',
+    '\\',
+    '😀',
+  ]
+  const table = () => {
+    const cols = 1 + Math.floor(r() * 3)
+    // Without a pipe at the edge a one-column table is no table.
+    const outer = cols === 1 || r() < 0.7
+    const line = (n: number, cells: () => string) => {
+      const text = Array.from({ length: n }, cells).join(r() < 0.5 ? ' | ' : '|')
+      return outer ? `| ${text} |` : text
+    }
+    const rule = () => pick(['---', ':--', '--:', ':-:', '-'])
+    const rows = Array.from({ length: Math.floor(r() * 4) }, () =>
+      line(r() < 0.8 ? cols : 1 + Math.floor(r() * cols), () => pick(CELLS)),
+    )
+    return [line(cols, () => pick(CELLS)), line(cols, rule).replace(/ /g, ''), ...rows].join('\n')
+  }
+  const note = (): string => {
+    const label = pick(['1', '2', 'note', 'a-b'])
+    switch (Math.floor(r() * 6)) {
+      case 0:
+        return `[^${label}]: ${para()}\n[^x${label}]: ${para()}`
+      case 1:
+        return `[^${label}]: ${para()}\n\n    ${para()}\n\n    - ${para()}`
+      case 2:
+        return `[^${label}]: ${para()}\n    ${words()}`
+      case 3:
+        return `[^${label}]: https://e.com`
+      case 4:
+        return `[^${label}]:\n    ${para()}`
+      default:
+        return `[^${label}]: ${para()}`
+    }
+  }
   const block = (): string => {
-    switch (Math.floor(r() * 22)) {
+    switch (Math.floor(r() * 28)) {
+      case 22:
+      case 23:
+        return table()
+      case 24:
+      case 25:
+      case 26:
+        return note()
+      case 27:
+        return `${para()}\n\n${note()}\n\n${para()}`
       case 0:
         return `${'#'.repeat(1 + Math.floor(r() * 6))} ${para()}`
       case 1:

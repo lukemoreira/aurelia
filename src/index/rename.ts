@@ -144,7 +144,7 @@ export function planRename(
     }
     const found: RenamePlace[] = []
     const add = (start: number, end: number, inLink: boolean, uncertain?: string) => {
-      // Raw HTML, tables, fences: kept as written, never rewritten.
+      // Raw HTML, fences, link definitions: kept as written, never rewritten.
       if (raw.some(([a, b]) => start >= a && start < b)) return
       const text = doc.body.slice(start, end)
       const form = changing.get(fold(text))
@@ -223,7 +223,7 @@ const sees = (
 /** Backslash-escape what Markdown would read in a name written into plain text. */
 const escapeMarkdown = (name: string) => name.replace(/[\\`*_~<>[\]|]/g, '\\$&')
 
-/** Where the file keeps text as written: raw HTML, a table, a fence, a footnote. */
+/** Where the file keeps text as written: raw HTML, a fence, a link definition. A table's cells and a footnote's words are text like any other. */
 function keptAsWritten(body: string): Range[] {
   if (!/[<|`~]|\[\^/.test(body)) return []
   const { blocks, exact } = parseMarkdown(body)

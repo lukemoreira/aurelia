@@ -100,9 +100,14 @@ export function startsSentence(text: string, start: number): boolean {
   return i < 0 || '.!?…'.includes(text[i]!)
 }
 
-/** Zones where no name is looked for: code, links (the link decides), web and email addresses. */
+/**
+ * Zones where no name is looked for: code, links (the link decides), web and email addresses, and
+ * a footnote's label (`[^Elena]` is the file's own, and renaming it would tie a note to nothing).
+ */
 export function skipZones(text: string, links: LinkRef[]): Range[] {
   const zones = [...codeRanges(text), ...links.map((l): Range => [l.start, l.end])]
+  if (text.includes('[^'))
+    for (const m of text.matchAll(/\[\^[^\]\n]*\]/g)) zones.push([m.index, m.index + m[0].length])
   if (text.includes('@') || text.includes('://') || text.includes(']('))
     for (const m of text.matchAll(
       /\b[a-z][a-z0-9+.-]*:\/\/\S+|\]\([^)\s]*\)|[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g,

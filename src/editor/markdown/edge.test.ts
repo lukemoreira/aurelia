@@ -103,10 +103,10 @@ describe('a list', () => {
 describe('a checklist item whose text begins with a bracket', () => {
   // `marked` reads the item's text once more with the checkbox still in it (found by the fuzz).
   it.each([
-    ['- [ ] [\n|||\n-|-\n[x] t', '[|||\n-|-\n[x] t'],
     ['- [ ] [\n[x] t\n', '[\n[x] t'],
+    ['- [ ] [\nmore\n[x] t', '[\nmore\n[x] t'],
     // A box typed as text after the real one is a word, and is kept once.
-    ['- [x] [ ] [\n|||\n-|-\n', '[ ] [|||\n-|-'],
+    ['- [x] [ ] [\nmore\n', '[ ] [\nmore'],
   ])('does not take the checkbox into its words: %j', (md, words) => {
     expect(text(md)).toEqual([words])
     expect(text(touch(md, 0))).toEqual([words])
@@ -131,7 +131,7 @@ describe('an item with lazy lines that `marked` reads with a blank line in them'
 describe('a paragraph that starts like a footnote’s definition', () => {
   it('is written with its colon escaped, so it reads back as the paragraph it is', () => {
     const out = toBody({ type: 'doc', content: [para(t('[^1]: not a note'))] })
-    expect(out).toBe('[^1]\\: not a note\n')
+    expect(out).toBe('\\[^1\\]: not a note\n')
     expect(types(out)).toEqual(['paragraph'])
     expect(text(out)).toEqual(['[^1]: not a note'])
   })

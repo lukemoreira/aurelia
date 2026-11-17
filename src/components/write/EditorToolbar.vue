@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon.vue'
 import Menu from '@/components/ui/Menu.vue'
 import { isMac, modLabel } from '@/composables/useKeyboardShortcuts'
 import {
+  TABLE_ACTIONS,
   TEXT_STYLES,
   TOOLBAR_GROUPS,
   currentTextStyle,
@@ -31,8 +32,21 @@ const enabled = (item: ToolbarItem) => props.tick < 0 || (item.can?.(props.edito
 const styleName = () => (props.tick >= 0 ? currentTextStyle(props.editor) : '')
 const title = (item: ToolbarItem) =>
   item.shortcut ? `${item.label} (${item.shortcut.replace('Mod', modLabel)})` : item.label
+const shown = (item: ToolbarItem) => props.tick < 0 || (item.show?.(props.editor) ?? true)
 const groups = () =>
-  TOOLBAR_GROUPS.map((g) => g.filter((i) => !props.compact || i.phone)).filter((g) => g.length)
+  TOOLBAR_GROUPS.map((g) => g.filter((i) => (!props.compact || i.phone) && shown(i))).filter(
+    (g) => g.length,
+  )
+// With the caret in a table: one more button, for its rows, columns and alignment.
+const inTable = () => props.tick >= 0 && props.editor.isActive('table')
+const tableItems = () =>
+  TABLE_ACTIONS.map((a) => ({
+    id: a.id,
+    label: a.label,
+    danger: a.danger,
+    separated: a.separated,
+    disabled: !a.can(props.editor),
+  }))
 </script>
 
 <template>
@@ -84,6 +98,23 @@ const groups = () =>
       </ToolbarButton>
       <!-- The link sits with the marks, before the lists. -->
       <EditorLinkButton v-if="g === 0" :editor="editor" :tick="tick" :class="button" />
+    </template>
+    <template v-if="inTable()">
+      <ToolbarSeparator class="mx-1 h-[18px] w-px bg-line" />
+      <Menu
+        :items="tableItems()"
+        :return-focus-to="() => editor.commands.focus()"
+        @select="(id) => TABLE_ACTIONS.find((a) => a.id === id)?.run(editor)"
+      >
+        <template #trigger>
+          <ToolbarButton
+            aria-label="Table actions"
+            class="flex h-[30px] items-center gap-1.5 rounded-[7px] border-0 bg-transparent pl-2.5 pr-2 text-[12.5px] font-medium text-ink outline-ink hover:bg-raised pointer-coarse:h-11"
+          >
+            Table<Icon name="chevron-down" :size="13" class="text-ink-3" />
+          </ToolbarButton>
+        </template>
+      </Menu>
     </template>
     <!-- On a phone: puts the keyboard away (Phone board). -->
     <template v-if="compact">

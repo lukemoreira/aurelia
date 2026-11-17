@@ -1,17 +1,20 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import Icon from '@/components/ui/Icon.vue'
+import Switch from '@/components/ui/Switch.vue'
 import { useKeyboardInset } from '@/composables/useKeyboardInset'
 import { useNewScene } from '@/composables/useNewScene'
 import { sceneEyebrow } from '@/domain/outline'
+import { blockAt } from '@/editor/source-caret'
 import { sceneDetails } from '@/domain/scene-details'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 import SceneChoices from './SceneChoices.vue'
 import NamesToggle from './NamesToggle.vue'
 import SceneEditor from './SceneEditor.vue'
+import SourceEditor from './SourceEditor.vue'
 
 const ws = useWorkspaceStore()
 const layout = useLayoutStore()
@@ -31,6 +34,39 @@ const bottomBar = ref<HTMLElement | null>(null)
 const bar = computed(() => (layout.wide ? topBar.value : bottomBar.value))
 // On a phone the bar rides above the on-screen keyboard.
 const keyboard = useKeyboardInset()
+
+// The scene's Markdown as plain text, for the scene that is open: another scene opens as written text.
+const source = ref(false)
+watch(
+  () => ctx.value?.scene.meta.id,
+  () => (source.value = false),
+)
+// Switching puts the caret in the text it switched to; nothing is written by switching.
+const rich = ref<InstanceType<typeof SceneEditor> | null>(null)
+const area = ref<InstanceType<typeof SourceEditor> | null>(null)
+/** Words the workspace had not taken, typed in the one that is going away: the other shows them. */
+const held = ref<string | null>(null)
+const place = ref<{ block: number; offset: number } | null>(null)
+async function showSource(on: boolean) {
+  // The page stays where it was, and the caret near where it was.
+  const scroller = document.getElementById('main-content')
+  const top = scroller?.scrollTop ?? 0
+  const body = ctx.value?.scene.body ?? ''
+  if (on) {
+    held.value = rich.value?.pending() ?? null
+    place.value = null
+  } else {
+    held.value = area.value?.pending() ?? null
+    place.value = blockAt(held.value ?? body, area.value?.caret() ?? 0)
+  }
+  source.value = on
+  await nextTick()
+  held.value = null // taken by the one that opened
+  place.value = null
+  if (scroller) scroller.scrollTop = top
+  if (on) document.getElementById('scene-text')?.focus({ preventScroll: true })
+  else rich.value?.focus()
+}
 </script>
 
 <template>
@@ -54,11 +90,29 @@ const keyboard = useKeyboardInset()
         class="mb-[30px] mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 font-ui text-[13px] leading-normal text-ink-3"
       >
         <p class="m-0">{{ meta }}</p>
-        <NamesToggle />
+        <div class="flex flex-wrap items-center justify-end gap-x-5 gap-y-1">
+          <NamesToggle v-if="!source" />
+          <Switch :model-value="source" label="Markdown source" @update:model-value="showSource" />
+        </div>
       </div>
+      <SourceEditor
+        v-if="source"
+        ref="area"
+        :key="`source-${ctx.scene.meta.id}`"
+        :held="held"
+        input-id="scene-text"
+        :body="ctx.scene.body"
+        :readonly="!canEdit"
+        @edit="ws.editScene(ctx.scene.meta.id, $event)"
+        @blur="ws.flush()"
+      />
       <!-- One editor per scene: switching scenes starts a fresh one on the new text. -->
       <SceneEditor
+        v-else
+        ref="rich"
         :key="ctx.scene.meta.id"
+        :held="held"
+        :place="place"
         :doc-id="ctx.scene.meta.id"
         :body="ctx.scene.body"
         title-id="scene-title"

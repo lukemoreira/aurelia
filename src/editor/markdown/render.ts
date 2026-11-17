@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { Mark, Node } from '@tiptap/pm/model'
+import { Fragment, type Mark, type Node } from '@tiptap/pm/model'
 
 /** Marks outermost first, so one text always opens its marks in the same order. */
 const MARK_ORDER = ['link', 'underline', 'bold', 'italic', 'strike', 'verbatim']
@@ -40,11 +40,11 @@ function closing(m: Mark): string {
 }
 
 /**
- * Written as typed: a wiki link, an embed, a footnote reference, a block ID. A name with a mark's
+ * Written as typed: a wiki link, an embed, a block ID. (A footnote's reference is a node; the words `[^1]` as text are escaped, so they stay words.) A name with a mark's
  * own characters in it (`*`, a backtick, `<`, `~`, `\`, or `_` at its edge) is not one, and is escaped.
  */
 const KEPT_AS_WRITTEN =
-  /(!?\[\[(?:[^\]\n`*<>\\~_]|(?<=[\p{L}\p{N}])_(?=[\p{L}\p{N}]))*\]\]|\[\^[\w-]+\]|\^blk-[\w-]+)/u
+  /(!?\[\[(?:[^\]\n`*<>\\~_]|(?<=[\p{L}\p{N}])_(?=[\p{L}\p{N}]))*\]\]|\^blk-[\w-]+)/u
 const WORD = /[\p{L}\p{N}]/u
 
 /** Plain text with what would read as Markdown escaped. Text edges count as the middle of a word. */
@@ -77,7 +77,7 @@ function escapeLineStart(whole: string): string {
       .replace(/^(\d{1,9})([.)])(?=\s|$)/, '$1\\$2')
       .replace(/^(>)/, '\\$1')
       // A line that starts like a footnote's definition would read back as a kept block.
-      .replace(/^(\[\^[\w-]+\]):/, '$1\\:')
+      .replace(/^(\[\^[^\]\s\\[*`<>~]+\]):/, '$1\\:')
       // A line of only equals or dashes under text makes a heading; dashes, colons and bars, a table.
       .replace(/^(=)(?=[= \t]*$)/, '\\$1')
       .replace(/^([ \t]*)(?=[|:\- \t]*-[|:\- \t]*$)([|:-])/, '$1\\$2')
@@ -134,8 +134,12 @@ interface Open {
   inside: number
 }
 
-/** The text of a paragraph or a heading: its marks as Markdown, its words escaped. */
-export function renderInline(block: Node): string {
+/**
+ * The text of a paragraph or a heading: its marks as Markdown, its words escaped. `inCell`: the
+ * words of a table cell, which is never the start of a line (nothing there reads as a list, a
+ * quote or a heading), and which holds no line break.
+ */
+export function renderInline(block: Node, inCell = false): string {
   const segments: Segment[] = []
   block.forEach((child) => {
     const marks = sortMarks(child.marks)
@@ -147,6 +151,9 @@ export function renderInline(block: Node): string {
       })
     else if (child.type.name === 'hardBreak')
       segments.push({ text: '', marks, raw: true, br: true })
+    // A footnote's reference is written as typed, like a wiki link.
+    else if (child.type.name === 'footnoteRef')
+      segments.push({ text: `[^${child.attrs.label}]`, marks, raw: true })
   })
   // `<u>` and `</u>` written as text would pair up into an underline: they are escaped.
   const tags = segments.filter((s) => s.raw && /^<\/?u>$/.test(s.text))
@@ -203,7 +210,13 @@ export function renderInline(block: Node): string {
   for (const [n, seg] of segments.entries()) {
     // A tag kept as written that opens the paragraph and starts an HTML block would end it
     // there: it is written as text instead (escaped, the same words).
-    if (seg.raw && !seg.br && out === '' && startsHtmlBlock(seg.text, segments.slice(n + 1)))
+    if (
+      !inCell &&
+      seg.raw &&
+      !seg.br &&
+      out === '' &&
+      startsHtmlBlock(seg.text, segments.slice(n + 1))
+    )
       seg.raw = false
     let { text } = seg
     // Spaces at the start of a block are dropped by Markdown, and written first they would make
@@ -255,14 +268,17 @@ export function renderInline(block: Node): string {
       out +=
         (/\n[ \t]{0,3}$/.test(out) && startsHtmlBlock(text, segments.slice(n + 1)) ? '    ' : '') +
         lines
-    } else if (text.startsWith(':') && /(^|\n)\[\^[\w-]+\]$/.test(out)) {
+    } else if (text.startsWith(':') && /(^|\n)\[\^[^\]\s\\[*`<>~]+\]$/.test(out)) {
       // `[^1]` kept as written, then a colon, at the start of a line: a footnote's definition.
       out += `\\:${escapeText(text.slice(1), false, manyTildes)}`
+    } else if (/^[(]/.test(text) && /\[\^[^\]\s\\[*`<>~]+\]$/.test(out)) {
+      // `[^1](x)` would be a link whose words are `^1`.
+      out += `\\(${escapeText(text.slice(1), false, manyTildes)}`
     } else if (ENDS_IN_ADDRESS.test(out)) {
       // Straight after a bare address a backslash is part of the address: its run is not escaped.
       const run = /^\S*/.exec(text)![0]
       out += run + escapeText(text.slice(run.length), false, manyTildes)
-    } else out += escapeText(text, /(^|\n)[ \t]*$/.test(out), manyTildes)
+    } else out += escapeText(text, !inCell && /(^|\n)[ \t]*$/.test(out), manyTildes)
     plainTail = !seg.raw
   }
   closeFrom(0)
@@ -410,6 +426,79 @@ export const LIST_MARKERS: Record<string, string[]> = {
   ordered: ['.', ')'],
 }
 
+/** The words of a table cell on one line: a line break is a space, and a `|` is escaped. */
+function cellText(cell: Node): string {
+  const paragraph = cell.firstChild
+  if (!paragraph) return ''
+  const { schema } = paragraph.type
+  const kids: Node[] = []
+  paragraph.forEach((child) => {
+    if (child.type.name === 'hardBreak') kids.push(schema.text(' '))
+    else if (child.isText && child.text!.includes('\n'))
+      kids.push(schema.text(child.text!.replace(/\s*\n\s*/g, ' '), child.marks))
+    else kids.push(child)
+  })
+  // A `|` is escaped. One that already follows a lone backslash (code that holds `\|`, which
+  // Markdown cannot write in a cell) would be read as the cell's end once escaped again, so it is
+  // written as `&#124;`: the table stays whole, and the words are all there.
+  return renderInline(paragraph.copy(Fragment.fromArray(kids)), true).replace(
+    /(\\*)\|/g,
+    (_m, slashes: string) => `${slashes}${slashes.length % 2 ? '&#124;' : '\\|'}`,
+  )
+}
+
+/** A column is padded to its widest cell, but not past this: one long cell does not stretch the rest. */
+const COLUMN_PAD_LIMIT = 40
+const width = (text: string) => [...text].length
+
+/**
+ * A table in a tidy GFM form: its cells padded into columns, and the alignment of a column
+ * (`:--`, `:-:`, `--:`) as the header cell says.
+ */
+function renderTable(table: Node): string {
+  const rows: string[][] = []
+  const aligns: (string | null)[] = []
+  table.forEach((row, _offset, r) => {
+    const cells: string[] = []
+    row.forEach((cell, _o, c) => {
+      cells.push(cellText(cell))
+      if (r === 0) aligns[c] = (cell.attrs.align as string | null) ?? null
+    })
+    rows.push(cells)
+  })
+  const columns = Math.max(...rows.map((r) => r.length))
+  const widths = Array.from({ length: columns }, (_, c) =>
+    Math.min(COLUMN_PAD_LIMIT, Math.max(3, ...rows.map((r) => width(r[c] ?? '')))),
+  )
+  const pad = (text: string, c: number) => {
+    const gap = Math.max(0, widths[c]! - width(text))
+    if (aligns[c] === 'right') return ' '.repeat(gap) + text
+    if (aligns[c] === 'center') return ' '.repeat(gap >> 1) + text + ' '.repeat(gap - (gap >> 1))
+    return text + ' '.repeat(gap)
+  }
+  const line = (cells: string[]) =>
+    `| ${Array.from({ length: columns }, (_, c) => pad(cells[c] ?? '', c)).join(' | ')} |`
+  const rule = widths.map((w, c) => {
+    const align = aligns[c]
+    if (align === 'left') return `:${'-'.repeat(w - 1)}`
+    if (align === 'right') return `${'-'.repeat(w - 1)}:`
+    return align === 'center' ? `:${'-'.repeat(w - 2)}:` : '-'.repeat(w)
+  })
+  return [line(rows[0]!), `| ${rule.join(' | ')} |`, ...rows.slice(1).map(line)].join('\n')
+}
+
+/** `[^1]: ` and the note's blocks: the first line after the label, the others indented under it. */
+function renderFootnote(note: Node): string {
+  const lines = renderChildren(note).split('\n')
+  // A first line that starts with space (code) would lose it after the label: it starts the next line.
+  const apart = /^[ \t]/.test(lines[0]!)
+  const first = apart ? '' : lines.shift()!
+  return [
+    `[^${note.attrs.label}]:${first ? ` ${first}` : ''}`,
+    ...lines.map((l) => (l ? `    ${l}` : l)),
+  ].join('\n')
+}
+
 /**
  * One block as Markdown, without the blank lines that follow it. `marker` is the list marker
  * chosen so that a list beside a list of its own family does not read back as one list.
@@ -423,6 +512,10 @@ export function renderBlock(node: Node, marker?: string, shape?: ListShape): str
       return '* * *'
     case 'rawBlock':
       return node.textContent
+    case 'table':
+      return renderTable(node)
+    case 'footnoteDef':
+      return renderFootnote(node)
     case 'bulletList':
     case 'orderedList':
     case 'taskList':
