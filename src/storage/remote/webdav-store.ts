@@ -13,6 +13,11 @@ const PROPFIND_BODY =
 const encodePath = (path: string) => path.split('/').map(encodeURIComponent).join('/')
 const trim = (path: string) => path.replace(/^\/+|\/+$/g, '')
 const parentOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf('/')))
+/**
+ * A response's tag, strong. A proxy that compresses on the way (Cloudflare does) marks the server's
+ * strong tag weak (`W/"…"`), and If-Match never matches a weak tag: every later write would be refused.
+ */
+const tagOf = (res: Response) => res.headers.get('ETag')?.replace(/^W\//, '') ?? null
 
 /** What a PROPFIND answered, as entries (the folder asked about comes first). Namespace-aware. */
 export function parseMultistatus(xml: string, base = SERVER_BASE): RemoteEntry[] {
@@ -111,7 +116,7 @@ export class WebDavStore implements RemoteStore {
     if (res.status !== 200) this.fail('GET', path, res)
     return {
       bytes: new Uint8Array(await res.arrayBuffer()),
-      etag: res.headers.get('ETag'),
+      etag: tagOf(res),
     }
   }
 
@@ -131,7 +136,7 @@ export class WebDavStore implements RemoteStore {
       res = await put()
     }
     if (![200, 201, 204].includes(res.status)) this.fail('PUT', path, res)
-    return res.headers.get('ETag')
+    return tagOf(res)
   }
 
   async remove(path: string, options: { ifMatch?: string } = {}): Promise<void> {
