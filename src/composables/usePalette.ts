@@ -169,8 +169,9 @@ export function usePalette() {
         ? [
             {
               id: 'action:add-change',
+              // Both names start "Add a change": the writer finds it the same way, words selected or not.
               title: edits.selectedText
-                ? 'Mark selected text as a change…'
+                ? 'Add a change from the selected text…'
                 : 'Add a change to this scene…',
               sub: `Continuity · ${modLabel} ${altLabel} M`,
               icon: 'continuity' as const,
