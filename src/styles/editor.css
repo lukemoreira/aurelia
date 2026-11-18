@@ -520,3 +520,16 @@
   text-indent: 0;
   margin-top: 0.6em;
 }
+
+/* The assistant's suggestions in the text (ADR-0015): a frame on the paragraphs a suggestion would change,
+   and its card after them. Drawn only: the text itself is untouched until the author accepts. */
+.manuscript .ProseMirror > .suggestion-target {
+  outline: 2px dashed var(--gold-line);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.manuscript .ProseMirror > .suggestion-card {
+  text-indent: 0;
+  white-space: normal;
+  cursor: auto;
+}

@@ -1,12 +1,14 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import AssistantPanel from '@/components/assistant/AssistantPanel.vue'
 import HistoryList from '@/components/history/HistoryList.vue'
 import Button from '@/components/ui/Button.vue'
 import { smallCapsHeading } from '@/components/ui/fieldStyles'
 import Icon from '@/components/ui/Icon.vue'
 import Tabs from '@/components/ui/Tabs.vue'
+import { useAssistant } from '@/composables/useAssistant'
 import type { IconName } from '@/domain/ui-names'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -27,13 +29,29 @@ watch(
 )
 // Notes arrive with the feature they show; until then it is not offered. History is a section at
 // the foot of the Scene and Book tabs. Icons with tooltips, so the strip fits the panel unscrolled.
-const TABS: { value: string; label: string; icon: IconName }[] = [
+const BASE_TABS: { value: string; label: string; icon: IconName }[] = [
   { value: 'scene', label: 'Scene', icon: 'scene' },
   { value: 'names', label: 'Names', icon: 'user' },
   { value: 'links', label: 'Links', icon: 'link' },
   { value: 'chapter', label: 'Chapter', icon: 'chapter' },
   { value: 'book', label: 'Book', icon: 'book' },
 ]
+// The assistant's tab is there only when this server runs one (ADR-0015).
+const assistant = useAssistant()
+const TABS = computed(() =>
+  assistant.state.value === 'absent'
+    ? BASE_TABS
+    : [...BASE_TABS, { value: 'assistant', label: 'Assistant', icon: 'spark' as const }],
+)
+watch(
+  () => layout.assistantWanted,
+  (wanted) => {
+    if (!wanted) return
+    tab.value = 'assistant'
+    layout.assistantWanted = false
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -59,6 +77,7 @@ const TABS: { value: string; label: string; icon: IconName }[] = [
           </div>
         </template>
         <template #names><NamesTab /></template>
+        <template #assistant><AssistantPanel /></template>
         <template #links><LinksList v-if="ws.sceneId" :id="ws.sceneId" /></template>
         <template #chapter>
           <div class="flex flex-col gap-5">

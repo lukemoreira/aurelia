@@ -13,6 +13,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { altLabel, focusLabel, modLabel } from './useKeyboardShortcuts'
 import { useNavigation } from './useNavigation'
 import { useAddChange } from './useAddChange'
+import { useAssistant } from './useAssistant'
 import { useNewScene } from './useNewScene'
 import { useOutlineEdits } from './useOutlineEdits'
 import { useRecordEdits } from './useRecordEdits'
@@ -59,6 +60,7 @@ const VIEWS: { view: ViewName; label: string; icon: IconName }[] = [
 export function usePalette() {
   const ws = useWorkspaceStore()
   const layout = useLayoutStore()
+  const assistant = useAssistant()
   const shortcuts = useShortcutsStore()
   const nav = useNavigation()
   const newScene = useNewScene()
@@ -231,6 +233,19 @@ export function usePalette() {
               icon: 'upload' as const,
               afterClose: true,
               run: () => (layout.importOpen = true),
+            },
+          ]
+        : []),
+      // The assistant, when this server runs one (ADR-0015).
+      ...(assistant.state.value !== 'absent' && ws.view
+        ? [
+            {
+              id: 'action:ask-assistant',
+              title: 'Ask the assistant',
+              sub: 'Assistant · suggestions you review',
+              icon: 'spark' as const,
+              afterClose: true,
+              run: () => layout.askAssistant(),
             },
           ]
         : []),

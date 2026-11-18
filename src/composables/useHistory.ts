@@ -14,6 +14,8 @@ import { useWorkspaceStore } from '@/stores/workspace'
 
 /** Ticks when a snapshot is made or a restore is done, so every list on screen looks again. */
 const changed = ref(0)
+/** A snapshot was made elsewhere (Accept of a suggestion): the lists look again. */
+export const noteSnapshot = () => void changed.value++
 
 /** Take a snapshot and say so in a toast. The one door for the buttons and the palette. */
 export async function takeWithToast(target: SnapshotTarget, name?: string): Promise<boolean> {

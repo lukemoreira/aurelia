@@ -309,6 +309,30 @@ describe('snapshots (ADR-0013)', () => {
   })
 })
 
+describe('the assistant’s proposals (ADR-0015)', () => {
+  it('a proposal the assistant puts in current/ reaches the device; once decided, it is gone everywhere and stays gone', async () => {
+    world = await syncWorld()
+    const a = world.devices[0]!
+    const b = await world.join('Safari on iOS')
+    const path = '.aurelia/proposals/prp_abcdefghjk.json'
+    await new WebDavStore('/dav/', davFetch(world.dav)).write(
+      `${world.folder}/current/${path}`,
+      new TextEncoder().encode('{"proposal":1}\n'),
+      { ifNoneMatch: '*' },
+    )
+    await a.round()
+    expect((await a.adapter.read(path))?.text).toBe('{"proposal":1}\n')
+    await a.adapter.remove(path) // Accept or Reject on A
+    await a.round()
+    expect(onServer()).not.toContain(path)
+    await b.round()
+    await a.round()
+    expect(await b.adapter.read(path)).toBeNull()
+    expect(await a.adapter.read(path)).toBeNull()
+    expect(await copies(a)).toEqual([])
+  })
+})
+
 describe('derived files, the trash and the set-aside texts', () => {
   const bookOf = (d: SimDevice) => d.session.data.books[0]!.id
   const outlineFiles = async (d: SimDevice) =>

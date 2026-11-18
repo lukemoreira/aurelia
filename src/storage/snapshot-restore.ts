@@ -60,8 +60,12 @@ async function usable(s: WorkspaceSession, snapshotId: string, kind?: Snapshot['
   return { snap, texts: await readSnapshot(s.adapter, snap) }
 }
 
-/** Why this scene must be left as it is right now, in words, or undefined. Saves what is waiting first. */
-async function blocker(s: WorkspaceSession, id: string, path: string): Promise<string | undefined> {
+/** Why this scene must be left as it is right now, in words, or undefined. Saves what is waiting first. Shared with the assistant's Accept. */
+export async function blocker(
+  s: WorkspaceSession,
+  id: string,
+  path: string,
+): Promise<string | undefined> {
   if (s.view().duplicates.some((d) => d.id === id)) return 'two files have its ID. Choose one first'
   if (s.view().conflicts.some((c) => c.path === path))
     return 'two versions are waiting. Choose one first'
@@ -70,7 +74,7 @@ async function blocker(s: WorkspaceSession, id: string, path: string): Promise<s
   return undefined
 }
 
-const bodyNow = (s: WorkspaceSession, id: string) =>
+export const bodyNow = (s: WorkspaceSession, id: string) =>
   s.data.scenes.find((x) => x.meta.id === id)?.body
 
 /**
@@ -78,7 +82,13 @@ const bodyNow = (s: WorkspaceSession, id: string) =>
  * reads as `was`, the text the "Before restore" snapshot was made from: words typed meanwhile are in
  * no snapshot, and writing over them would lose them. The check and the edit have nothing awaited between.
  */
-async function put(s: WorkspaceSession, id: string, body: string, path: string, was: string) {
+export async function put(
+  s: WorkspaceSession,
+  id: string,
+  body: string,
+  path: string,
+  was: string,
+) {
   if (bodyNow(s, id) !== was) return 'moved' as const
   await s.editScene(id, body)
   await s.flushPaths([path])

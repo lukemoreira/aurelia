@@ -1,10 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { EditorContent } from '@tiptap/vue-3'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, h, onMounted, ref, render, watch } from 'vue'
+import SuggestionInText from '@/components/assistant/SuggestionInText.vue'
 import { useLinkEnv } from '@/composables/useLinkEnv'
 import { useManuscriptEditor } from '@/composables/useManuscriptEditor'
+import { useProposals } from '@/composables/useProposals'
 import { createLinks, focusFound, focusName, refreshLinks } from '@/editor/links'
+import { createSuggestions, setSuggestions } from '@/editor/suggestions'
 import { useEditorStore } from '@/stores/editor'
 import { useLayoutStore } from '@/stores/layout'
 import { useReviewStore } from '@/stores/review'
@@ -53,6 +56,16 @@ const link = useLinkEnv(() => props.docId, { names: props.names })
 const card = ref<InstanceType<typeof LinkCard> | null>(null)
 link.onCardFocus(() => card.value?.focus() ?? false)
 
+// The assistant's suggestions for this scene, drawn in the text as cards (a scene only, not a record's notes).
+const app = getCurrentInstance()!.appContext
+const mountSuggestion = (el: HTMLElement, id: string) => {
+  const vnode = h(SuggestionInText, { id })
+  vnode.appContext = app
+  render(vnode, el)
+  return () => render(null, el)
+}
+const inScene = props.docId && props.variant === 'scene'
+
 // Named "Scene text" and by the scene's own title (it points at itself for the first part).
 const { editor, tick, pending } = useManuscriptEditor({
   held: props.held,
@@ -60,7 +73,10 @@ const { editor, tick, pending } = useManuscriptEditor({
   body: () => props.body,
   editable: () => !props.readonly,
   onEdit: (body) => emit('edit', body),
-  extensions: props.docId ? [createLinks(link.env)] : [],
+  extensions: [
+    ...(props.docId ? [createLinks(link.env)] : []),
+    ...(inScene ? [createSuggestions(mountSuggestion)] : []),
+  ],
   attributes: () => ({
     id: props.inputId,
     role: 'textbox',
@@ -72,6 +88,20 @@ const { editor, tick, pending } = useManuscriptEditor({
   }),
 })
 editor.on('blur', () => emit('blur'))
+
+if (inScene) {
+  const proposals = useProposals()
+  watch(
+    () =>
+      proposals.forScene(props.docId!).map((p) => ({
+        id: p.id,
+        anchors:
+          p.kind === 'edit' ? p.changes.filter((c) => c.block !== 'end').map((c) => c.before) : [],
+      })),
+    (items) => setSuggestions(editor.view, items),
+    { immediate: true, deep: true },
+  )
+}
 
 // A name, a title or an answer changed outside the editor: draw the text again.
 watch(
