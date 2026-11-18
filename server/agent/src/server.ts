@@ -15,6 +15,8 @@ export interface AgentOptions {
   /** The store's WebDAV root inside the container network, e.g. http://aurelia-store:8081/dav/ */
   storeUrl: string
   log?: (line: string) => void
+  /** How often a quiet stream sends a blank line (default 30 s). */
+  keepAliveMs?: number
 }
 
 const BODY_LIMIT = 256 * 1024
@@ -50,13 +52,19 @@ const json = (res: ServerResponse, status: number, body: unknown) => {
   res.end(JSON.stringify(body))
 }
 
-/** A stream of JSON lines, sent as they come (nginx is told not to buffer). */
-function stream(res: ServerResponse) {
+/**
+ * A stream of JSON lines, sent as they come (nginx is told not to buffer). A blank line every so often
+ * keeps a quiet stream open: Cloudflare closes one that says nothing for 100 s, and a sign-in waiting
+ * for its code, or a long answer, can be that quiet. The app skips blank lines.
+ */
+function stream(res: ServerResponse, keepAliveMs: number) {
   res.writeHead(200, {
     'Content-Type': 'application/x-ndjson; charset=utf-8',
     'Cache-Control': 'no-store',
     'X-Accel-Buffering': 'no',
   })
+  const beat = setInterval(() => res.write('\n'), keepAliveMs)
+  res.on('close', () => clearInterval(beat))
   return (event: unknown) => res.write(`${JSON.stringify(event)}\n`)
 }
 
@@ -74,6 +82,7 @@ export function createAgentServer({
   data,
   storeUrl,
   log = console.log,
+  keepAliveMs = 30_000,
 }: AgentOptions): Server {
   /** One login and one question at a time per person, keyed like their folder. */
   const logins = new Map<string, ChildProcess>()
@@ -96,7 +105,7 @@ export function createAgentServer({
       logins.get(key)?.kill('SIGTERM')
       const child = await startLogin(data, email, body.console === true)
       logins.set(key, child)
-      const send = stream(res)
+      const send = stream(res, keepAliveMs)
       const timer = setTimeout(() => child.kill('SIGTERM'), LOGIN_LIMIT_MS)
       // Claude Code's own words, passed on as they come: never read, kept or logged here.
       const relay = (chunk: Buffer) => send({ t: 'out', text: chunk.toString('utf8') })
@@ -138,7 +147,7 @@ export function createAgentServer({
       busy.add(key)
       const abort = new AbortController()
       res.on('close', () => abort.abort())
-      const send = stream(res)
+      const send = stream(res, keepAliveMs)
       try {
         const context = typeof body.context === 'string' ? body.context.slice(0, 500) : ''
         for await (const e of ask(data, email, {

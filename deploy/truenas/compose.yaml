@@ -85,6 +85,8 @@ services:
     image: ghcr.io/lukemoreira/aurelia-agent:latest
     pull_policy: always
     restart: unless-stopped
+    # An init process reaps the Claude Code and tool processes each question starts (node is not one).
+    init: true
     user: '568:568'
     read_only: true
     tmpfs:

@@ -53,12 +53,13 @@ expect "no agent: /agent/ is 502" 502 "http://127.0.0.1:$app_port/agent/status"
 expect "no agent: the app works" 200 "http://127.0.0.1:$app_port/"
 
 # 3. The agent, hardened: 401 everywhere without a valid login, except /agent/healthz.
-docker run -d --name aurelia-agent --network "$net" --network-alias aurelia-agent --read-only --tmpfs /tmp \
+docker run -d --init --name aurelia-agent --network "$net" --network-alias aurelia-agent --read-only --tmpfs /tmp \
   --cap-drop ALL --security-opt no-new-privileges --mount "type=volume,src=$vol,dst=/data" \
   -e CF_ACCESS_TEAM_DOMAIN=smoke.cloudflareaccess.com -e CF_ACCESS_AUD=smoke \
   -e AURELIA_AGENT_SKIP_INSTALL=1 -p "127.0.0.1:$agent_port:8082" "$agent_image" >/dev/null
 wait_for "http://127.0.0.1:$agent_port/agent/healthz"
 docker exec aurelia-agent id -u | grep -qx 568 && ok "runs as 568" || bad "does not run as 568"
+[ "$(docker exec aurelia-agent cat /proc/1/comm)" != node ] && ok "an init process is PID 1 (reaps children)" || bad "node is PID 1: no init"
 expect "healthz needs no login" 200 "http://127.0.0.1:$agent_port/agent/healthz"
 expect "no token" 401 "http://127.0.0.1:$agent_port/agent/status"
 expect "garbage token" 401 -H 'Cf-Access-Jwt-Assertion: a.b.c' "http://127.0.0.1:$agent_port/agent/status"

@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { binOf, eventsOf, homeOf } from '../src/claude.ts'
+import { ask, binOf, eventsOf, homeOf } from '../src/claude.ts'
 import { createAgentServer } from '../src/server.ts'
 import { ALLOWED_TOOLS } from '../src/tools.ts'
 import { FOLDER } from './helpers.ts'
@@ -26,6 +26,10 @@ if (cmd === 'auth' && sub === 'login') {
     if (String(d) === 'good-code\\n') { fs.writeFileSync(flag, ''); console.log('Login successful'); process.exit(0) }
     console.log('Invalid code'); process.exit(1)
   })
+} else if (cmd === '-p' && fs.existsSync(path.join(path.dirname(process.argv[1]), 'die'))) {
+  process.exit(3) // dies at once, its input never read
+} else if (cmd === '-p' && fs.existsSync(path.join(path.dirname(process.argv[1]), 'hang'))) {
+  setTimeout(() => {}, 60_000) // answers nothing until it is stopped
 } else if (cmd === '-p') {
   let prompt = ''
   process.stdin.on('data', (d) => (prompt += d))
@@ -59,6 +63,7 @@ beforeEach(async () => {
     data,
     storeUrl: 'http://store.invalid/dav/',
     log: () => undefined,
+    keepAliveMs: 100,
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
@@ -86,8 +91,8 @@ const state = async (jwt: string) =>
   ((await (await call('/agent/status', jwt)).json()) as { state: string }).state
 const lines = async (res: Response) =>
   (await res.text())
-    .trim()
     .split('\n')
+    .filter((l) => l.trim())
     .map((l) => JSON.parse(l) as { t: string; text?: string; label?: string; ok?: boolean })
 const runs = async (email: string) =>
   (await readFile(join(homeOf(data, email), 'runs.jsonl'), 'utf8'))
@@ -220,5 +225,49 @@ describe('reading Claude Code’s stream', () => {
         }),
       ),
     ).toEqual([{ t: 'end', ok: false, error: 'Not logged in · Please run /login' }])
+  })
+})
+
+describe('a run that goes wrong', () => {
+  const opts = { storeUrl: 'http://store.invalid/dav/', folder: FOLDER, token: 't' }
+  const all = async (gen: AsyncGenerator<unknown>) => {
+    const out: unknown[] = []
+    for await (const e of gen) out.push(e)
+    return out
+  }
+
+  it('a program that dies before reading a 100 KB prompt does not take the server down', async () => {
+    await install()
+    await writeFile(join(dirname(binOf(data)), 'die'), '')
+    const events = await all(
+      ask(data, 'alice@example.com', { ...opts, prompt: 'x'.repeat(100_000) }),
+    )
+    expect(events).toEqual([
+      { t: 'end', ok: false, error: 'The assistant stopped before it finished.' },
+    ])
+    expect((await call('/agent/healthz', null)).status).toBe(200) // still up
+  })
+
+  it('stops at once when it was asked to stop before the run began', async () => {
+    await install()
+    await writeFile(join(dirname(binOf(data)), 'hang'), '')
+    const abort = new AbortController()
+    abort.abort()
+    const started = Date.now()
+    const events = await all(
+      ask(data, 'alice@example.com', { ...opts, prompt: 'hi', signal: abort.signal }),
+    )
+    expect(Date.now() - started).toBeLessThan(5_000)
+    expect(events).toMatchObject([{ t: 'end', ok: false }])
+  })
+
+  it('a quiet answer keeps its stream open with blank lines, which the app skips', async () => {
+    await install()
+    await writeFile(join(dirname(binOf(data)), 'slow'), '')
+    const text = await (
+      await call('/agent/ask', 'jwt-alice', { folder: FOLDER, message: 'Hi.' })
+    ).text()
+    expect(text.split('\n').filter((l) => l === '').length).toBeGreaterThan(1)
+    expect(text).toContain('"t":"end","ok":true')
   })
 })
