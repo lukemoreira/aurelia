@@ -85,15 +85,9 @@ const description = computed(() =>
             >Choose a folder…</Button
           >
         </div>
-        <!-- Hidden, driven by the buttons: the browser's own pickers. -->
-        <input
-          ref="files"
-          type="file"
-          multiple
-          accept=".md,.markdown,.mdown,.txt,.zip,.tw,.twee,.html,.htm"
-          class="hidden"
-          @change="chosen($event, 'files')"
-        />
+        <!-- Hidden, driven by the buttons: the browser's own pickers. No `accept` filter: a picker can grey
+             out a file it should offer (a zip, on the owner's Mac), and the import names any file it cannot read. -->
+        <input ref="files" type="file" multiple class="hidden" @change="chosen($event, 'files')" />
         <input
           v-if="canFolder"
           ref="folder"
