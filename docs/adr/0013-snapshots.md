@@ -84,7 +84,8 @@ A restore is a write like any other (compare-and-write through the save pipeline
   part deleted on purpose, with nothing returning into it, stays deleted. **A scene that is in Recently
   deleted is left there** and named ("Put it back first"): restoring would give it the older words and
   block Put back, which never writes over a file in its place. The
-  book's own details, the records and everything else are not touched. A book in the trash is refused
+  story base's sections the snapshot has come back (ADR-0016; one written since and empty in the
+  snapshot stays); the book's other details, the records and everything else are not touched. A book in the trash is refused
   ("Put it back first"). First the whole book as it is now is snapshotted.
 - **A file that cannot be written over safely is left as it is, and named:** one with two versions waiting
   (a conflict), one whose ID two files carry, one that is still saving. A scene restore refuses with that

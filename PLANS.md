@@ -547,6 +547,11 @@ own account
   and a per-block 3-way merge; Ask for changes. Left for M8: ChatGPT, API keys, the Claude Desktop/MCP
   path, the scope picker and the "what will be sent" sheet, `propose_record`, and the open owner item on
   Anthropic's Commercial Terms (ADR-0015).
+- **Story base and guided start (M8b, [ADR-0016](docs/adr/0016-story-base.md)):** each book has a story
+  base (objectives, world and history, main narrative in `book.json`; main characters as Character
+  records), edited by hand on the Book tab. "Set up the story base with the assistant" asks one short
+  question at a time and proposes each area (`propose_story_base`, `propose_character`), reviewed like any
+  suggestion; Claude reads `get_story_base` first on every question.
 - One tool registry (read tools + propose tools, no direct writes) shared by the MCP
   server and the in-app agent.
 - Review inbox: every AI proposal is a diff (inserted text highlighted) the author
@@ -783,3 +788,11 @@ backup — ADR-0009.)
   inbox and in-text cards: Accept (snapshot first, per-block 3-way merge, refused when the text changed),
   Reject, Ask for changes (the revision replaces the old one). Also: the store's login check returns the
   token's claims, and a few classes in src/ lost TypeScript parameter properties so Node can strip their types.
+- 2026-11-18 — M8b Story base and guided start (branch `feat/m8-guided-start`, ADR-0016): `storyBase` in
+  `book.json` (objectives, world, narrative; no migration), a "Story base" section on the Book tab that
+  lists the world's characters, and "Set up the story base with the assistant" (Assistant tab before the first
+  message, and the Book tab once the book is synced). New tools: `get_story_base` (read first on every
+  question, fenced), `propose_story_base` (each section with the text it replaces; Accept refused when one
+  changed, a book snapshot first when it replaces the author's text) and `propose_character` (a new
+  Character record; refused for a name the world has, so a second Accept makes none). Restoring a book
+  snapshot now puts the story base's sections back too.
