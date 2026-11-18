@@ -38,8 +38,7 @@ export const CHARACTER_FIELDS = [
 export type CharacterField = (typeof CHARACTER_FIELDS)[number]
 
 /** A section that is not text (written elsewhere) reads as its JSON, so replacing it counts as replacing. */
-const textOf = (v: unknown) =>
-  typeof v === 'string' ? v : v === undefined ? '' : JSON.stringify(v)
+const textOf = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : JSON.stringify(v))
 
 /** The base as it stands: only the three sections, each a string ('' when not written). */
 export const baseOf = (book: Pick<Book, 'storyBase'> | undefined): Record<BaseSection, string> => ({

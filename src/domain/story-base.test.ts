@@ -31,6 +31,8 @@ describe('the story base', () => {
     // A section that is not text reads as its JSON: a suggestion over it counts as replacing it.
     expect(baseOf(odd)).toEqual({ ...EMPTY, objectives: 'Long text', world: '{"draft":"x"}' })
     expect(odd.storyBase).toEqual({ objectives: 'Long text', world: { draft: 'x' } })
+    // An empty value is not written yet, not the word "null".
+    expect(baseOf(bookSchema.parse({ ...book, storyBase: { world: null } }))).toEqual(EMPTY)
   })
 
   it('a name is the same whatever its case and spaces', () => {
