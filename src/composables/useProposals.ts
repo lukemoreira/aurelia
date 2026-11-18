@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, effectScope, ref, shallowRef, watch } from 'vue'
+import { deleteWords } from '@/components/assistant/proposal-view'
 import type { Proposal } from '@/domain/proposals'
 import { wordsFor } from '@/storage/errors'
 import {
@@ -20,6 +21,7 @@ function acceptedWords(p: Proposal, snapshot: boolean): string {
   if (p.kind === 'scene') return `“${p.title}” is in the book.`
   if (p.kind === 'character') return `“${p.name}” is in the world, with their sheet filled in.`
   if (p.kind === 'base') return `The story base of “${p.bookTitle}” is updated.${saved}`
+  if (p.kind === 'delete-record') return `Moved “${p.title}” to Recently deleted.`
   return `Accepted for “${p.sceneTitle}”.${saved}`
 }
 
@@ -78,6 +80,12 @@ function createProposals() {
     )
   }
 
+  /** A delete card's notice: where the record goes, and what links to it (the index knows already). */
+  const noticeFor = (p: Proposal) =>
+    p.kind === 'delete-record'
+      ? (void ws.indexVersion, deleteWords(ws.index.backlinks(p.recordId)))
+      : undefined
+
   async function act(p: Proposal, work: () => Promise<void>) {
     if (working.value) return
     working.value = p.id
@@ -116,7 +124,7 @@ function createProposals() {
         throw new Error(assistant.turns.value.at(-1)?.error ?? 'The assistant did not answer.')
     })
 
-  return { all, working, outOfDate, refresh, forScene, accept, reject, askChanges }
+  return { all, working, outOfDate, refresh, forScene, noticeFor, accept, reject, askChanges }
 }
 
 const shared = new WeakMap<object, ReturnType<typeof createProposals>>()

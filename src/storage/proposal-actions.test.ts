@@ -2,16 +2,25 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { outlineRig } from '../../tests/helpers/outline-rig'
 import { newId } from '@/domain/ids'
-import { anchorOf, proposalPath, sceneBlocks, type Proposal } from '@/domain/proposals'
+import {
+  anchorOf,
+  proposalPath,
+  recordFingerprint,
+  sceneBlocks,
+  type Proposal,
+} from '@/domain/proposals'
 import { hashText } from './hash'
 import {
   NOT_CLEARED,
   OUT_OF_DATE,
+  RECORD_CHANGED,
   acceptProposal,
   listProposals,
   rejectProposal,
   stillApplies,
 } from './proposal-actions'
+import { addRecord } from './record-actions'
+import { listTrash } from './set-aside'
 import { listSnapshots, readSnapshot } from './snapshots'
 import type { WorkspaceSession } from './session'
 
@@ -195,5 +204,92 @@ describe('the inbox', () => {
     const listed = (await listProposals(s.adapter)).map((p) => p.id).sort()
     expect(listed).toEqual([edit.id, scene.id, other.id].sort())
     expect(await s.adapter.read(proposalPath(scene.id))).not.toBeNull()
+  })
+})
+
+describe('Accept of a suggested record delete', () => {
+  /** A character with details and notes, written as the author would, and a suggestion to delete it. */
+  async function recordAndProposal(s: WorkspaceSession, title = 'Archie Collins') {
+    const universeId = s.data.universes[0]!.id
+    const id = await addRecord(s, { type: 'character', title, universeId })
+    await s.setFields(id, { role: 'Clerk', summary: 'Counts the crates.' })
+    await s.editNotes(id, 'He keeps a ledger.')
+    await s.flush()
+    const r = s.data.records.find((x) => x.meta.id === id)!
+    const p = await write(s, {
+      schemaVersion: 1,
+      id: newId('prp'),
+      createdAt: new Date().toISOString(),
+      by: 'Claude',
+      why: 'A duplicate of Archie.',
+      kind: 'delete-record',
+      recordId: id,
+      recordType: 'character',
+      title,
+      fingerprint: recordFingerprint(r),
+    })
+    return { id, p }
+  }
+
+  it('reads the record as the server does: a fresh load gives the same fingerprint as the edited one', async () => {
+    const s = rig.session
+    const { id, p } = await recordAndProposal(s)
+    const fresh = await rig.open()
+    expect(recordFingerprint(fresh.data.records.find((x) => x.meta.id === id)!)).toBe(
+      p.kind === 'delete-record' && p.fingerprint,
+    )
+    expect(stillApplies(fresh, p)).toBe(true)
+  })
+
+  it('moves the record to Recently deleted and drops the suggestion; a second Accept deletes nothing', async () => {
+    const s = rig.session
+    const { id, p } = await recordAndProposal(s)
+    expect(stillApplies(s, p)).toBe(true)
+    expect(await acceptProposal(s, p)).toMatchObject({ id, cleared: true })
+    expect(s.data.records.some((x) => x.meta.id === id)).toBe(false)
+    expect(await listTrash(s.adapter)).toEqual([
+      expect.objectContaining({ kind: 'record', label: 'Archie Collins' }),
+    ])
+    expect(await s.adapter.read(proposalPath(p.id))).toBeNull()
+    expect(stillApplies(s, p)).toBe(false)
+    await expect(acceptProposal(s, p)).rejects.toThrow(RECORD_CHANGED)
+    expect(await listTrash(s.adapter)).toHaveLength(1)
+  })
+
+  it('is out of date, and changes nothing, when the record was edited since', async () => {
+    const s = rig.session
+    const { id, p } = await recordAndProposal(s)
+    await s.editNotes(id, 'He keeps two ledgers.')
+    expect(stillApplies(s, p)).toBe(false)
+    await expect(acceptProposal(s, p)).rejects.toThrow(RECORD_CHANGED)
+    expect(s.data.records.some((x) => x.meta.id === id)).toBe(true)
+    expect(await listTrash(s.adapter)).toEqual([])
+    expect(await s.adapter.read(proposalPath(p.id))).not.toBeNull()
+  })
+
+  it('deletes the record it names, not another of the same title', async () => {
+    const s = rig.session
+    const { id, p } = await recordAndProposal(s)
+    const twin = await addRecord(s, {
+      type: 'character',
+      title: 'Archie Collins',
+      universeId: s.data.universes[0]!.id,
+    })
+    await acceptProposal(s, p)
+    expect(s.data.records.map((x) => x.meta.id)).toContain(twin)
+    expect(s.data.records.map((x) => x.meta.id)).not.toContain(id)
+  })
+
+  it('never deletes a scene, even when one is named', async () => {
+    const s = rig.session
+    const { p } = await recordAndProposal(s)
+    const scene = sceneOf(s)
+    const bad = { ...p, recordId: scene } as Proposal
+    await s.adapter.write(proposalPath(p.id), JSON.stringify(bad))
+    expect(await listProposals(s.adapter)).toEqual([]) // not a record: the file does not read
+    expect(stillApplies(s, bad)).toBe(false)
+    await expect(acceptProposal(s, bad)).rejects.toThrow(RECORD_CHANGED)
+    expect(s.data.scenes.some((x) => x.meta.id === scene)).toBe(true)
+    expect(await listTrash(s.adapter)).toEqual([])
   })
 })

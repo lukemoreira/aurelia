@@ -56,19 +56,33 @@
   book's universe with those details; only those keys can be set (others are stripped when read). A name the
   universe already has (case and spaces aside) is refused by the tool, shows the card as out of date ("a
   character with this name is already in this world") and is refused by Accept, so a second Accept makes no second record. Nothing is overwritten, so no snapshot.
+- `propose_delete_record(recordId)` writes a `delete-record` proposal (owner, 2026-11-18: "I want the agent
+  to be able to delete records when needed"): the record's ID, its type and title as Claude read them, and a
+  fingerprint of its details and notes (`recordFingerprint`: FNV-1a over them, keys sorted, so the app and
+  the server read one record alike). Records only: the schema refuses any ID that is not a record's (a
+  scene, chapter, part, book, image), and the tool refuses one not in the world of a book of this
+  workspace. The title comes from the record, never from Claude. The system prompt keeps it for a
+  duplicate, a record the author asked to remove, or one that contradicts the story base when the author
+  agrees. The card reads "Delete character: “Archie Collins”", the why, that Accept moves it to Recently
+  deleted, and how many scenes and records link to it (from the app's index). Accept moves it there through
+  the ordinary `deleteItem`, and only while the record still has that ID, type and fingerprint, checked
+  inside the delete's own turn; else the card is out of date ("this record was changed or deleted") and
+  Accept refuses, so a second Accept deletes nothing. No snapshot: Recently deleted is the way back.
 - A section's `before` has no length limit (the author's text can be long; a proposal over a limit would
   be skipped as unreadable). Every fence tag in story text, written with spaces, a line break or
   attributes, is made harmless.
-- Both are reviewed in the Review inbox with Accept, Reject and Ask for changes; no accept-all. They are
+- All three are reviewed in the Review inbox with Accept, Reject and Ask for changes; no accept-all. They are
   the book's, not a scene's, so they are not shown inside the text. A revision `replaces` only a proposal of
   the same kind for the same book.
-- No direct writes, deletes or web, as before. Changing an existing character is not offered (YAGNI): the
+- No direct writes, deletes or web, as before: a delete is only ever a suggestion. Changing an existing character is not offered (YAGNI): the
   author edits the sheet, or asks in words.
 
 ## Tests
 
 `src/domain/story-base.test.ts` (reading, merge, kinds), `src/storage/story-base-actions.test.ts` (by hand,
 Accept with and without a snapshot, refused when changed, no second record, restore),
-`server/agent/test/tools.test.ts` (the three tools, the fence), `server/agent/test/server.test.ts` (allowed
+`src/storage/proposal-actions.test.ts` (a record delete: to Recently deleted, refused when changed or gone,
+never a scene),
+`server/agent/test/tools.test.ts` (the four tools, the fence), `server/agent/test/server.test.ts` (allowed
 tools and the prompt), `src/components/assistant/AssistantPanel.test.ts` (the guided start's message, the
 Book tab) and `tests/e2e/story-base.spec.ts`.

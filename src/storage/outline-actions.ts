@@ -276,10 +276,16 @@ export interface Deleted {
  * chapter that is still whole in the outline), a part takes only itself (its chapters stay, loose),
  * a book takes its folder. The last book of a workspace stays.
  */
-export async function deleteItem(s: WorkspaceSession, id: string): Promise<Deleted> {
+export async function deleteItem(
+  s: WorkspaceSession,
+  id: string,
+  /** Throws to refuse, checked first inside the delete's turn (an assistant's suggestion: still the one read). */
+  guard?: () => void,
+): Promise<Deleted> {
   let done!: Deleted
   const book = bookOf(s.data, id)
   await s.exclusive(async () => {
+    guard?.()
     const d = s.data
     const own = s.pathOf(id)
     if (!own) throw new StorageError('other', 'That is no longer in the workspace.')

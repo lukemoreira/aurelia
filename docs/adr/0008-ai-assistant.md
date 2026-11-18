@@ -7,6 +7,10 @@
   owner's own server running Claude Code for each person, each with their own Claude account. Fact 1
   below still holds for Aurelia's own code: it never offers a Claude login or keeps a Claude token; the
   person signs in through Claude Code's own sign-in. Every safety rule here stays.
+- Amended 2026-11-18 (owner: "I want the agent to be able to delete records when needed"): the assistant
+  may *suggest* deleting a record (`propose_delete_record`, ADR-0016). It still deletes nothing itself; the
+  author's Accept moves the record to Recently deleted, where it can come back. Scenes and the outline stay
+  out of its reach.
 
 ## Goal
 

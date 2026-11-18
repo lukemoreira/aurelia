@@ -196,6 +196,7 @@ describe('asking', () => {
         'mcp__aurelia__get_story_base',
         'mcp__aurelia__propose_story_base',
         'mcp__aurelia__propose_character',
+        'mcp__aurelia__propose_delete_record',
       ]),
     )
     expect(SYSTEM_PROMPT).toMatch(/First, on every question, read the story base/)

@@ -8,9 +8,12 @@ import {
   mergeChanges,
   proposalPath,
   proposalSchema,
+  recordFingerprint,
+  type DeleteRecordProposal,
   type Proposal,
 } from '@/domain/proposals'
 import { baseOf, sameName, universeOfBook } from '@/domain/story-base'
+import type { WorkspaceData } from '@/domain/workspace-data'
 import type { StorageAdapter } from './adapter'
 import { StorageError } from './errors'
 import { deleteItem, renameItem } from './outline-actions'
@@ -21,6 +24,8 @@ import { writeSnapshot } from './snapshots'
 import { storedBase, writeBase } from './story-base-actions'
 
 export const OUT_OF_DATE = 'The text changed after this was suggested — ask again.'
+export const RECORD_CHANGED =
+  'This record was changed or deleted after this was suggested, so it was left as it is.'
 
 /**
  * Every readable proposal, newest first. A revision replaces the one it names: the older file is
@@ -55,17 +60,31 @@ export async function listProposals(adapter: StorageAdapter): Promise<Proposal[]
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
 }
 
-/** What a suggestion is about: one scene's text, a new scene in one chapter, a book's story base or its characters. */
+/** What a suggestion is about: one scene's text, a new scene in one chapter, a book's story base or its characters, one record. */
 const targetOf = (p: Proposal) =>
   p.kind === 'edit'
     ? `edit:${p.sceneId}`
     : p.kind === 'scene'
       ? `scene:${p.chapterId}`
-      : `${p.kind}:${p.bookId}`
+      : p.kind === 'delete-record'
+        ? `delete-record:${p.recordId}`
+        : `${p.kind}:${p.bookId}`
+
+/**
+ * The record a delete suggestion names, while it is still the one that was read (type, details, notes).
+ * Two files sharing its ID wait for the author to choose one: then which file would go is a guess.
+ */
+function recordToDelete(d: WorkspaceData, p: DeleteRecordProposal) {
+  const [r, ...more] = d.records.filter((x) => x.meta.id === p.recordId)
+  return r && !more.length && r.meta.type === p.recordType && recordFingerprint(r) === p.fingerprint
+    ? r
+    : undefined
+}
 
 /** Whether Accept would apply as things stand (an edit's blocks, a base's sections still read as they did). */
 export function stillApplies(s: WorkspaceSession, p: Proposal): boolean {
   if (p.kind === 'scene') return s.data.chapters.some((c) => c.id === p.chapterId)
+  if (p.kind === 'delete-record') return !!recordToDelete(s.data, p)
   if (p.kind === 'character') {
     const universe = universeOfBook(s.data, p.bookId)
     return !!universe && !hasCharacter(s, universe, p.name)
@@ -105,8 +124,9 @@ export const rejectProposal = (s: WorkspaceSession, id: string) =>
  * (refused, with nothing changed, when an anchored block changed or is gone, or the scene cannot be
  * written safely right now). A new scene is added at the end of its chapter: nothing is overwritten, so
  * there is nothing to snapshot. A story-base suggestion snapshots the book first when it replaces text
- * the author had; a new character is a new record, so nothing to snapshot. The proposal file goes once
- * the change is in.
+ * the author had; a new character is a new record, so nothing to snapshot. A record delete moves it to
+ * Recently deleted (it can come back from there), and only while it is still the record that was read.
+ * The proposal file goes once the change is in.
  */
 export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<Accepted> {
   if (p.kind === 'scene') {
@@ -132,6 +152,13 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
     return { id, cleared: await clear(s, p.id) }
   }
   if (p.kind === 'base') return { ...(await acceptBase(s, p)), cleared: await clear(s, p.id) }
+  if (p.kind === 'delete-record') {
+    // Checked inside the delete's own turn, so an edit queued before it is seen.
+    await deleteItem(s, p.recordId, () => {
+      if (!recordToDelete(s.data, p)) throw new StorageError('other', RECORD_CHANGED)
+    })
+    return { id: p.recordId, cleared: await clear(s, p.id) }
+  }
   if (p.kind === 'character') {
     const universeId = universeOfBook(s.data, p.bookId)
     if (!universeId) throw new StorageError('other', 'That book is no longer in the workspace.')
