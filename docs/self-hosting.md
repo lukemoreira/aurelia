@@ -175,3 +175,50 @@ so they would only break the page.
    `AURELIA_STORE_INSECURE_NO_AUTH` line.
 7. After the first backup, look in `/mnt/MainPool/aurelia-books` on the NAS. Your book
    folders are there, and your next snapshot includes them.
+
+## 10. The assistant (optional)
+
+The assistant reads your story and suggests changes, fixes and new text. It uses **your own Claude
+account**: each person who uses Aurelia connects their own account, in Aurelia, and nobody's plan is
+used for anybody else. It can only read and suggest. Every suggestion waits until you accept it, and
+accepting saves a snapshot first. See [ADR-0015](adr/0015-assistant-on-your-server.md).
+
+The third container, `aurelia-agent`, runs Anthropic's own program, Claude Code, for each person. It is
+not inside Aurelia's image: on its first start, the container downloads and installs it with
+Anthropic's installer, into its own dataset.
+
+**You need:** a Claude Pro or Max plan (or an Anthropic Console account), and sync turned on for the
+workspace (the assistant reads the copy on your server).
+
+1. In TrueNAS, create a second dataset, for example `MainPool/aurelia-assistant`. Give the `apps`
+   user (uid `568`) the **Modify** permission on it, as in section 4. It holds Claude Code and each
+   person's own Claude sign-in. Do **not** use the books dataset, and do not share this dataset over
+   SMB or NFS.
+2. In **Apps** → `aurelia` → **Edit**, make sure the YAML has the `aurelia-agent` service from
+   [`deploy/truenas/compose.yaml`](../deploy/truenas/compose.yaml), with your two `CF_ACCESS_` values
+   (the same as the storage server) and your dataset path. **Put no token or API key in the YAML**: the
+   assistant ignores them. Save.
+3. Wait until `aurelia-agent` shows **Running**. The first start installs Claude Code; it needs to reach
+   `claude.ai` and `downloads.claude.ai`. Its log says `Claude Code … installed`.
+4. In Aurelia, open a scene. In the inspector on the right, open the **Assistant** tab (or press the
+   command palette and type **Ask the assistant**).
+5. Select **Sign in with Claude**. Claude Code's own sign-in shows a link. Open it, sign in to Claude, and
+   copy the code Claude shows. Paste it into **Code from Claude's page** and select **Send code**.
+   (With an Anthropic Console account, select **Use an Anthropic Console account** instead.)
+6. Ask something, for example "Check Tomas's continuity in chapter 7". The tab lists what the assistant
+   read. Its suggestions appear in the **Review inbox** below the chat and inside the text, each with
+   **Accept**, **Reject** and **Ask for changes**.
+
+**To disconnect:** **Disconnect Claude** in the Assistant tab signs you out (Claude Code's own logout).
+
+**Each person signs in alone.** Aurelia tells people apart by their Cloudflare login email. Someone else
+you let in sees the **Sign in with Claude** step and uses their own account. Your sign-in is kept in a
+folder of your own in the assistant's dataset, written there by Claude Code itself. Aurelia never shows,
+reads, logs or sends it.
+
+**Check it:** on a computer in your home network, run `curl -i http://<NAS IP>:30080/agent/status`. The
+first line must be `HTTP/1.1 401 Unauthorized`. `502` means the assistant does not run.
+
+**To change the Claude Code version:** the image sets `CLAUDE_CODE_VERSION`. A newer Aurelia image may
+raise it; the container then installs that version on its next start. Claude Code does not update
+itself here.

@@ -540,6 +540,13 @@ timeline.
 
 **M8 · Assistant** ([ADR-0008](docs/adr/0008-ai-assistant.md)) — opt-in, the author's
 own account
+- **Built first (M8a, [ADR-0015](docs/adr/0015-assistant-on-your-server.md)):** the owner's own server
+  runs Claude Code (installed at start by Anthropic's installer, never in Aurelia's image) for each person,
+  each signed in with their own Claude account through Claude Code's own sign-in; read and propose tools
+  over the synced copy; the Review inbox and the same cards inside the text; Accept with a snapshot first
+  and a per-block 3-way merge; Ask for changes. Left for M8: ChatGPT, API keys, the Claude Desktop/MCP
+  path, the scope picker and the "what will be sent" sheet, `propose_record`, and the open owner item on
+  Anthropic's Commercial Terms (ADR-0015).
 - One tool registry (read tools + propose tools, no direct writes) shared by the MCP
   server and the in-app agent.
 - Review inbox: every AI proposal is a diff (inserted text highlighted) the author
@@ -766,3 +773,13 @@ backup — ADR-0009.)
   is only taken off the list: the folder and its files are never touched. `storage/delete-workspace.ts`
   refuses while another tab holds the workspace's Web Lock or this tab holds unsaved work, then removes the
   OPFS directory first and, only after that works, the journal rows, backup state and list entry of that key.
+- 2026-11-18 — M8a The assistant on your own server (branch `feat/m8-agent`, ADR-0015): a third container,
+  `aurelia-agent`, runs the unmodified Claude Code program (`claude -p`, no built-in tools, only Aurelia's
+  MCP tools, no settings, nothing kept) for each person with their own Claude account, signed in through
+  Claude Code's own `claude auth login` relayed from the Assistant tab, in a folder of their own (by a hash
+  of their Cloudflare email). The Agent SDK is not used: its licence is not open source (ADR-0005). Tools read
+  the synced copy through the store as the asker, with the app's own loader, index and continuity code in
+  plain Node; `propose_edit` and `propose_scene` write `.aurelia/proposals/prp_….json` only. The Review
+  inbox and in-text cards: Accept (snapshot first, per-block 3-way merge, refused when the text changed),
+  Reject, Ask for changes (the revision replaces the old one). Also: the store's login check returns the
+  token's claims, and a few classes in src/ lost TypeScript parameter properties so Node can strip their types.
