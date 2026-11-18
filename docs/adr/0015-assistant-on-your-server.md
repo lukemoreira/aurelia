@@ -50,11 +50,12 @@ check covers the server's own dependencies (all open source) and says why Claude
 
 - People are told apart by the `email` claim of their Cloudflare Access token. Each person has their own
   folder in the volume, named by a hash of the email, with their own `HOME` and `CLAUDE_CONFIG_DIR`.
-- **Connect your Claude account** in Aurelia runs Claude Code's own `claude auth login` (or
-  `--console` for an Anthropic Console account) for that person. Aurelia passes the program's text to the
-  page as it comes (a web address is shown as a link) and the line the person types to the program as typed.
-  It does not read, keep, log or send the code or any token. Claude Code writes the sign-in into that
-  person's folder. **Disconnect** runs `claude auth logout`.
+- **Claude Code on this server** (the Assistant tab) runs Claude Code's own `claude auth login` (or
+  `--console` for an Anthropic Console account) for that person: "Start Claude Code sign-in". Aurelia
+  offers no Claude login of its own; it passes the program's text to the page as it comes (a web address
+  is shown as a link) and the line the person types to the program as typed. Aurelia's code does not read,
+  keep, log or send the code or any token. Claude Code writes the sign-in into that person's folder, which
+  the server's owner can read (the page says so). "Sign out of Claude Code" runs `claude auth logout`.
 - Claude Code always runs with an environment built from nothing: no token or API key in the container's
   environment can reach a run. A test proves that one person's request never runs with another's folder.
 - Nobody's plan is used for anybody else. That is also why there is no shared token: an owner who lets a
@@ -67,7 +68,9 @@ check covers the server's own dependencies (all open source) and says why Claude
 --output-format stream-json --verbose --max-turns 40 --system-prompt <Aurelia's>` with
 `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`. So it has no built-in tool (no files, no shell, no web), only the MCP
 server below, no settings or `CLAUDE.md`, and keeps nothing on disk. The prompt goes in on stdin. One
-question at a time per person; a run stops after 10 minutes. The panel keeps the conversation and sends it
+question at a time per person; a run stops after 10 minutes. A quiet answer or sign-in sends a blank line
+every 30 seconds, since Cloudflare closes a connection that says nothing for 100 seconds. The container
+runs with an init process, which reaps the processes each question starts. The panel keeps the conversation and sends it
 with each question.
 
 ### The tools (ADR-0008's registry, first part)
@@ -84,6 +87,8 @@ CI test runs the real MCP server in plain Node.
   draft text at the end of a chapter). Each writes one new file, `.aurelia/proposals/prp_….json`, with
   `If-None-Match: *`. Nothing else is ever written. `propose_record` is not built (YAGNI).
 - Every result that holds story text is fenced as untrusted data, and the fence cannot be closed from inside.
+  Titles are inside the fence too. The activity-log line, which the model also sees, quotes a title cut to
+  80 characters, with the fence tags made harmless.
 - The system prompt: Claude may critique, fix and draft, and everything it writes is a proposal.
 
 ### Proposals, Accept and the Review inbox
@@ -92,14 +97,19 @@ CI test runs the real MCP server in plain Node.
   proposal's block ID is `b<index>-<fingerprint>` of a paragraph as the assistant read it, and the proposal
   keeps that paragraph's text (`before`) and the scene's `baseHash`. Nothing is written into the scene.
 - **Accept is a per-block 3-way merge** (`domain/proposals.ts`): every changed paragraph must still read as
-  `before` (at its place, else the one paragraph that reads so); everything else may have changed and stays.
+  `before`, and be the same one of the paragraphs that read so (the proposal stores which, and how many there
+  were; if their number changed, which one is a guess, so it is refused); everything else may have changed and
+  stays. An insertion that is already there (an earlier Accept whose file could not be cleared) is refused too.
   If one is gone or changed, Accept is refused: "The text changed after this was suggested — ask again."
   Before it writes, Accept takes a **"Before a suggestion"** snapshot of the scene (ADR-0013), then writes
   through the session (compare-and-write). A new scene is added at the end of its chapter; nothing is
   overwritten, so it takes no snapshot.
+- If the change is in but the proposal file cannot be removed, the author is told: "Accepted, but the suggestion
+  could not be cleared — reject it." A new scene that cannot be finished is moved to Recently deleted.
 - **Reject** removes the proposal file. **Ask for changes** sends the author's note (only the note: the
   proposal is read back with `get_proposal`, as data); the revision names the proposal it `replaces`, and the
-  app removes the old file once the new one is there, so the two show as one.
+  app removes the old file once the new one is there, so the two show as one. `replaces` counts only for a
+  proposal about the same thing (the same scene's text, or a new scene in the same chapter).
 - **No accept-all.** Each suggestion is a card with a word diff (removed words crossed out, added words
   underlined, and said in words to a screen reader), in the Review inbox and inside the text on the writing
   page (a frame on the paragraphs, the card after them; decorations only, the document is not touched).

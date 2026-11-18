@@ -50,13 +50,13 @@ describe('the assistant’s tab', () => {
     ).not.toContain('Assistant')
   })
 
-  it('is there when the server runs one, and asks a signed-out person to connect their own Claude account', async () => {
+  it('is there when the server runs one, and offers a signed-out person Claude Code’s own sign-in', async () => {
     const w = await inspectorWith(() => json({ state: 'signed-out' }))
     expect(tabs(w)).toContain('Assistant')
     await w.find('[role="tab"][aria-label="Assistant"]').trigger('mousedown')
     await flushPromises()
-    expect(w.text()).toContain('Connect your Claude account')
-    expect(w.text()).toContain('Sign in with Claude')
+    expect(w.text()).toContain('Claude Code on this server')
+    expect(w.text()).toContain('Start Claude Code sign-in')
   })
 })
 

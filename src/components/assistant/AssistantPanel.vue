@@ -97,7 +97,7 @@ async function send() {
               >Send</Button
             >
             <Button size="sm" variant="quiet" class="ml-auto" @click="a.disconnect()"
-              >Disconnect Claude</Button
+              >Sign out of Claude Code</Button
             >
           </div>
         </form>
