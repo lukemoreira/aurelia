@@ -55,7 +55,10 @@ async function chooseFolder(dir: FakeDirectory) {
   return view
 }
 
-describe('choosing a folder', () => {
+// A first render waits up to 5 s for the editor; the test itself needs room beyond that on a slow runner.
+const SLOW = { timeout: 20_000 }
+
+describe('choosing a folder', SLOW, () => {
   it('asks for a name in an empty folder, then writes a valid workspace into it and opens it', async () => {
     const dir = new FakeDirectory('Writing')
     dir.seed('.DS_Store', 'junk') // an operating system's file does not make the folder "not empty"
@@ -468,7 +471,7 @@ describe('what a screen reader hears', () => {
   })
 })
 
-describe('opening the workspace that is already open', () => {
+describe('opening the workspace that is already open', SLOW, () => {
   afterEach(() => {
     delete (navigator as { locks?: unknown }).locks
   })
