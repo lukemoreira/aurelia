@@ -6,7 +6,7 @@ import { nextTick } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import Inspector from '@/components/shell/Inspector.vue'
 import { agentState, sendLoginLine } from '@/assistant/client'
-import { STOPPED, chatStore } from '@/assistant/chat-store'
+import { STOPPED, chatStore, type ChatTurn } from '@/assistant/chat-store'
 import { GUIDED_START, useAssistant } from '@/composables/useAssistant'
 import { useBackupStore } from '@/stores/backup'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -239,5 +239,45 @@ describe('the chat across a reload', () => {
     const w = await chatOnce('unused')
     await vi.waitFor(() => expect(w.text()).toContain('Half an answer'))
     expect(w.text()).toContain(STOPPED)
+  })
+
+  it('a tab that takes over writing shows, and keeps, the chat the other tab kept meanwhile', async () => {
+    const said = (n: number): ChatTurn => ({
+      role: n % 2 ? 'assistant' : 'author',
+      text: `turn ${n}`,
+      tools: [],
+    })
+    await chatStore.save(id('wsp', 1), [said(1), said(2)])
+    await chatOnce('An answer.')
+    // Read-only: another tab has the workspace.
+    useWorkspaceStore().view = { otherTab: true } as never
+    await vi.waitFor(() => expect(useAssistant().turns.value).toHaveLength(2))
+    // That tab chats on, then closes: this one takes over.
+    await chatStore.save(id('wsp', 1), [1, 2, 3, 4].map(said))
+    useWorkspaceStore().view = { otherTab: false } as never
+    await vi.waitFor(() => expect(useAssistant().turns.value).toHaveLength(4))
+    expect(await useAssistant().send('Next?')).toBe(true)
+    await flushPromises()
+    await vi.waitFor(async () =>
+      expect((await chatStore.load(id('wsp', 1))).map((t) => t.text)).toEqual([
+        'turn 1',
+        'turn 2',
+        'turn 3',
+        'turn 4',
+        'Next?',
+        'An answer.',
+      ]),
+    )
+  })
+
+  it('signing out of Claude Code removes every workspace’s chat on this device', async () => {
+    await chatStore.save(id('wsp', 2), [{ role: 'author', text: 'Elsewhere.', tools: [] }])
+    await chatOnce('Tomas is a ferryman.')
+    expect(await useAssistant().send('Who is Tomas?')).toBe(true)
+    await flushPromises()
+    await useAssistant().disconnect()
+    expect(useAssistant().turns.value).toEqual([])
+    expect(await chatStore.load(id('wsp', 1))).toEqual([])
+    expect(await chatStore.load(id('wsp', 2))).toEqual([])
   })
 })

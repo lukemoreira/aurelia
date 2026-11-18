@@ -38,11 +38,20 @@ function createAssistant() {
     backup.view?.enabled && backup.view.mode === 'sync' ? backup.view.folder : null,
   )
 
-  /** The open workspace: its chat is the one shown, restored from this device when it opens. */
+  /** Lists cleared away: an answer still arriving into one must not bring it back. */
+  const cleared = new WeakSet<ChatTurn[]>()
+
+  /**
+   * The open workspace: its chat is the one shown, restored from this device when it opens, and again
+   * when this tab takes over writing from another (that tab kept the newer chat meanwhile).
+   */
   const workspaceId = computed(() => ws.data?.workspace.id ?? null)
+  const readOnly = computed(() => !!ws.view?.otherTab)
   watch(
-    workspaceId,
-    async (id) => {
+    [workspaceId, readOnly],
+    async ([id], old) => {
+      // Taken over: what this read-only tab showed is not kept, nor written by an answer still arriving.
+      if (old && id === old[0]) cleared.add(turns.value)
       turns.value = []
       if (!id) return
       const list = turns.value
@@ -62,19 +71,21 @@ function createAssistant() {
    * writes it) keeps nothing, so it never overwrites that tab's chat. A failure costs only the copy.
    */
   function keep(id: string | null, list: ChatTurn[]) {
-    if (id && !cleared.has(list) && !ws.session?.view().otherTab)
+    if (id && !cleared.has(list) && !readOnly.value)
       void chatStore.save(id, list).catch(() => undefined)
   }
-  /** Lists cleared away: an answer still arriving into one must not bring it back. */
-  const cleared = new WeakSet<ChatTurn[]>()
 
-  /** "Clear chat" (and signing out): gone from the panel and from this device. */
-  async function clearChat() {
+  /**
+   * "Clear chat": gone from the panel and from this device. Signing out (`every`) removes every
+   * workspace's chat here: the next person to sign in may be someone else.
+   */
+  async function clearChat(every = false) {
     const id = workspaceId.value
     const list = turns.value
     cleared.add(list)
     // Off the device first: once the panel shows it gone, a reload cannot bring it back.
-    if (id) await chatStore.clear(id).catch(() => undefined)
+    if (every) await chatStore.clearAll().catch(() => undefined)
+    else if (id) await chatStore.clear(id).catch(() => undefined)
     if (turns.value === list) turns.value = []
   }
 
@@ -164,7 +175,7 @@ function createAssistant() {
 
   async function disconnect() {
     await logoutAgent().catch(() => false)
-    await clearChat()
+    await clearChat(true)
     await refresh()
   }
 

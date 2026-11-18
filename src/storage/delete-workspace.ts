@@ -142,11 +142,12 @@ export async function deleteBrowserWorkspace(recent: RecentWorkspace, deps: Dele
   deps.forget?.(recent.key)
 }
 
-/** Take a folder workspace off the list. The folder and every file in it are left alone. */
+/** Take a folder workspace off the list, with this device's chat about it. The folder and every file in it are left alone. */
 export async function removeFolderFromList(recent: RecentWorkspace, deps: DeleteDeps) {
   if (recent.kind !== 'folder')
     throw new StorageError('other', 'Only a folder workspace is taken off the list.')
   await assertSameKind(recent, deps)
   await deps.recents.remove(recent.key)
+  await deps.chat.forget(recent.key)
   deps.forget?.(recent.key)
 }

@@ -81,6 +81,26 @@ describe('the chat kept on this device', () => {
     expect(await chat.load(A)).toEqual([])
   })
 
+  it('a workspace opened again with a deleted one’s ID (restored from backup) keeps its chat again', async () => {
+    await chat.forget(A)
+    expect(await chat.load(A)).toEqual([])
+    await chat.save(A, [turn(0)])
+    expect(await chat.load(A)).toHaveLength(1)
+  })
+
+  it('signing out removes every workspace’s chat, and nothing else on the device', async () => {
+    const backup = new BackupStore(() => db)
+    const device = await backup.device()
+    await backup.save({ ...(await backup.load(A)), enabled: true, folder: 'Aurelia/A' })
+    await chat.save(A, [turn(0)])
+    await chat.save(B, [turn(1)])
+    await chat.clearAll()
+    expect(await chat.load(A)).toEqual([])
+    expect(await chat.load(B)).toEqual([])
+    expect(await backup.device()).toEqual(device)
+    expect((await backup.load(A)).folder).toBe('Aurelia/A')
+  })
+
   it('shares the backup store without touching its rows', async () => {
     const backup = new BackupStore(() => db)
     const device = await backup.device()

@@ -18,10 +18,14 @@ async function inbox(unreadable: number) {
 describe('suggestions this version cannot read', () => {
   it('are said in plain words instead of "No suggestions waiting"', async () => {
     const w = await inbox(3)
-    expect(w.text()).toContain('3 suggestions could not be read by this version of Aurelia.')
+    expect(w.text()).toContain(
+      '3 suggestions could not be read (a newer Aurelia may have written them, or the files are damaged).',
+    )
     expect(w.text()).not.toContain('No suggestions waiting')
     expect(w.text()).not.toContain('Update Aurelia')
-    expect((await inbox(1)).text()).toContain('1 suggestion could not be read')
+    expect((await inbox(1)).text()).toContain(
+      '1 suggestion could not be read (a newer Aurelia may have written it, or the file is damaged).',
+    )
     expect((await inbox(0)).text()).toContain('No suggestions waiting.')
   })
 
@@ -30,6 +34,9 @@ describe('suggestions this version cannot read', () => {
     update.updateReady.value = true
     try {
       const w = await inbox(2)
+      expect(w.find('button').text()).toBe('Update Aurelia to see them')
+      update.dismiss() // "Later" on the toast: the update still waits, so the inbox still offers it
+      await flushPromises()
       expect(w.find('button').text()).toBe('Update Aurelia to see them')
     } finally {
       update.updateReady.value = false

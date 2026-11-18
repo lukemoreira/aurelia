@@ -26,7 +26,9 @@ export class ChatStore {
   private deleted = new Set<string>()
   constructor(private db: () => Promise<IDBDatabase>) {}
 
+  /** Opening a workspace (one restored with a deleted one's ID too) lets its chat be kept again. */
   async load(workspaceId: string): Promise<ChatTurn[]> {
+    this.deleted.delete(workspaceId)
     const found = (await run(await this.db(), BACKUP, 'readonly', (s) =>
       s.get(key(workspaceId)),
     )) as { turns?: ChatTurn[] } | undefined
@@ -48,7 +50,14 @@ export class ChatStore {
     await run(await this.db(), BACKUP, 'readwrite', (s) => s.delete(key(workspaceId)))
   }
 
-  /** The workspace is deleted from this device: its chat goes, and nothing writes it again. */
+  /** Every workspace's chat on this device (signing out of Claude Code). */
+  async clearAll(): Promise<void> {
+    await run(await this.db(), BACKUP, 'readwrite', (s) =>
+      s.delete(IDBKeyRange.bound('chat:', 'chat:\uffff')),
+    )
+  }
+
+  /** The workspace is deleted from this device (or taken off the list): its chat goes, and nothing writes it again. */
   async forget(workspaceId: string): Promise<void> {
     this.deleted.add(workspaceId)
     await this.clear(workspaceId)
