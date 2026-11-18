@@ -13,7 +13,6 @@ import {
   type Proposal,
 } from '@/domain/proposals'
 import { baseOf, sameName, universeOfBook } from '@/domain/story-base'
-import type { WorkspaceData } from '@/domain/workspace-data'
 import type { StorageAdapter } from './adapter'
 import { StorageError } from './errors'
 import { deleteItem, renameItem } from './outline-actions'
@@ -74,9 +73,12 @@ const targetOf = (p: Proposal) =>
  * The record a delete suggestion names, while it is still the one that was read (type, details, notes).
  * Two files sharing its ID wait for the author to choose one: then which file would go is a guess.
  */
-function recordToDelete(d: WorkspaceData, p: DeleteRecordProposal) {
-  const [r, ...more] = d.records.filter((x) => x.meta.id === p.recordId)
-  return r && !more.length && r.meta.type === p.recordType && recordFingerprint(r) === p.fingerprint
+function recordToDelete(s: WorkspaceSession, p: DeleteRecordProposal) {
+  const r = s.data.records.find((x) => x.meta.id === p.recordId)
+  return r &&
+    !s.view().duplicates.some((d) => d.id === p.recordId) &&
+    r.meta.type === p.recordType &&
+    recordFingerprint(r) === p.fingerprint
     ? r
     : undefined
 }
@@ -84,7 +86,7 @@ function recordToDelete(d: WorkspaceData, p: DeleteRecordProposal) {
 /** Whether Accept would apply as things stand (an edit's blocks, a base's sections still read as they did). */
 export function stillApplies(s: WorkspaceSession, p: Proposal): boolean {
   if (p.kind === 'scene') return s.data.chapters.some((c) => c.id === p.chapterId)
-  if (p.kind === 'delete-record') return !!recordToDelete(s.data, p)
+  if (p.kind === 'delete-record') return !!recordToDelete(s, p)
   if (p.kind === 'character') {
     const universe = universeOfBook(s.data, p.bookId)
     return !!universe && !hasCharacter(s, universe, p.name)
@@ -155,7 +157,7 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
   if (p.kind === 'delete-record') {
     // Checked inside the delete's own turn, so an edit queued before it is seen.
     await deleteItem(s, p.recordId, () => {
-      if (!recordToDelete(s.data, p)) throw new StorageError('other', RECORD_CHANGED)
+      if (!recordToDelete(s, p)) throw new StorageError('other', RECORD_CHANGED)
     })
     return { id: p.recordId, cleared: await clear(s, p.id) }
   }

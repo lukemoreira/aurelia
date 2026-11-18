@@ -19,6 +19,7 @@ import {
   rejectProposal,
   stillApplies,
 } from './proposal-actions'
+import { restoreDeleted } from './outline-actions'
 import { addRecord } from './record-actions'
 import { listTrash } from './set-aside'
 import { listSnapshots, readSnapshot } from './snapshots'
@@ -278,6 +279,32 @@ describe('Accept of a suggested record delete', () => {
     await acceptProposal(s, p)
     expect(s.data.records.map((x) => x.meta.id)).toContain(twin)
     expect(s.data.records.map((x) => x.meta.id)).not.toContain(id)
+  })
+
+  it('comes back intact when restored from Recently deleted after an Accept', async () => {
+    const s = rig.session
+    const { id, p } = await recordAndProposal(s)
+    const path = s.pathOf(id)!
+    const text = (await s.adapter.read(path))!.text
+    await acceptProposal(s, p)
+    const [entry] = await listTrash(s.adapter)
+    await restoreDeleted(s, entry!.stamp)
+    expect((await s.adapter.read(path))!.text).toBe(text)
+    expect(stillApplies(s, p)).toBe(true) // the same record, as it was read
+  })
+
+  it('is refused while two files share the record’s ID: which one would go is a guess', async () => {
+    const { id, p } = await recordAndProposal(rig.session)
+    const path = rig.session.pathOf(id)!
+    const copy = path.replace(/\.md$/, ' (conflict).md')
+    await rig.adapter.write(copy, (await rig.adapter.read(path))!.text)
+    const s = await rig.open()
+    expect(s.data.records.filter((x) => x.meta.id === id)).toHaveLength(1) // the loader shows one
+    expect(stillApplies(s, p)).toBe(false)
+    await expect(acceptProposal(s, p)).rejects.toThrow(RECORD_CHANGED)
+    expect(await rig.adapter.read(path)).not.toBeNull()
+    expect(await rig.adapter.read(copy)).not.toBeNull()
+    expect(await listTrash(s.adapter)).toEqual([])
   })
 
   it('never deletes a scene, even when one is named', async () => {

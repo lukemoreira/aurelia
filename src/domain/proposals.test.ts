@@ -216,6 +216,11 @@ describe('a suggested record delete', () => {
     expect(
       proposalSchema.safeParse({ ...base, recordId: 'chr_abcdefghjk', fingerprint: '' }).success,
     ).toBe(false)
+    // A record's title has no length limit: a long one must not make the file unreadable.
+    expect(
+      proposalSchema.safeParse({ ...base, recordId: 'chr_abcdefghjk', title: 'A'.repeat(5000) })
+        .success,
+    ).toBe(true)
   })
 
   it('fingerprints a record by its details and notes, whatever order its keys were read in', () => {

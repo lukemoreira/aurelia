@@ -64,9 +64,10 @@
   workspace. The title comes from the record, never from Claude. The system prompt keeps it for a
   duplicate, a record the author asked to remove, or one that contradicts the story base when the author
   agrees. The card reads "Delete character: “Archie Collins”", the why, that Accept moves it to Recently
-  deleted, and how many scenes and records link to it (from the app's index). Accept moves it there through
+  deleted, how many scenes and records link to it or name it (from the app's index), and, when its world
+  holds several books, that it leaves all of them. Accept moves it there through
   the ordinary `deleteItem`, and only while the record still has that ID, type and fingerprint, checked
-  inside the delete's own turn; else the card is out of date ("this record was changed or deleted") and
+  inside the delete's own turn, and never while two files share its ID (a sync conflict); else the card is out of date ("this record was changed or deleted") and
   Accept refuses, so a second Accept deletes nothing. No snapshot: Recently deleted is the way back.
 - A section's `before` has no length limit (the author's text can be long; a proposal over a limit would
   be skipped as unreadable). Every fence tag in story text, written with spaces, a line break or

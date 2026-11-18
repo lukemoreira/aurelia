@@ -80,10 +80,18 @@ function createProposals() {
     )
   }
 
+  /** How many books share the world a record lives in: deleting it takes it from each of them. */
+  const booksOf = (recordId: string) => {
+    const d = ws.data
+    const universe = d?.records.find((r) => r.meta.id === recordId)?.universe
+    const home = d?.universes.find((u) => u.id === universe)
+    return home?.books.filter((b) => d!.books.some((x) => x.id === b)).length ?? 0
+  }
+
   /** A delete card's notice: where the record goes, and what links to it (the index knows already). */
   const noticeFor = (p: Proposal) =>
     p.kind === 'delete-record'
-      ? (void ws.indexVersion, deleteWords(ws.index.backlinks(p.recordId)))
+      ? (void ws.indexVersion, deleteWords(ws.index.backlinks(p.recordId), booksOf(p.recordId)))
       : undefined
 
   async function act(p: Proposal, work: () => Promise<void>) {
