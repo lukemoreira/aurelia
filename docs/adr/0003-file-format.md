@@ -36,6 +36,7 @@ MyWorkspace/
       media/med_….<original ext> + med_….json   images as imported, and their captions/credits
   .aurelia/
     snapshots/snp_…/                   a scene or a book as it was: snapshot.json + the files, byte for byte (ADR-0013)
+    proposals/prp_….json               an assistant suggestion waiting for the author (ADR-0015)
     backups/<fromVersion>/             copies made before a migration (rule 5)
     trash/<stamp>/                     deleted items, at their workspace paths, with a manifest.json
     conflicts/<stamp>/                 the file not kept when two versions or two IDs met
@@ -194,3 +195,9 @@ Every feature has a golden round-trip test.
 - `.aurelia/snapshots/snp_<10 chars>/snapshot.json` and `files/<workspace path>` for each copied file. A snapshot
   is written once and never changed or removed; `snapshot.json` is written last, so a folder without one is not
   a snapshot. They are backed up and synced like any other file. See [ADR-0013](0013-snapshots.md).
+
+## As built (M8): proposals
+
+- `.aurelia/proposals/prp_<10 chars>.json`: one suggestion from the assistant, written by the assistant server
+  with `If-None-Match: *`, read by the Review inbox and removed by Accept or Reject. A revision names the one it
+  replaces (`replaces`). Synced like any other file. See [ADR-0015](0015-assistant-on-your-server.md).

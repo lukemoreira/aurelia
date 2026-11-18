@@ -3,6 +3,10 @@
 - Status: proposed (owner, 2026-11-12: "connect a Claude or ChatGPT account (user side)
   so the user can get an agent helping"). Supersedes the AI part of PLANS M10.
 - Facts checked on 2026-11-12. Provider rules change often: re-check before M8 starts.
+- Amended by [ADR-0015](0015-assistant-on-your-server.md) (2026-11-18): the first path built is the
+  owner's own server running Claude Code for each person, each with their own Claude account. Fact 1
+  below still holds for Aurelia's own code: it never offers a Claude login or keeps a Claude token; the
+  person signs in through Claude Code's own sign-in. Every safety rule here stays.
 
 ## Goal
 
