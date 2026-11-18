@@ -68,7 +68,7 @@ test('no assistant on the server: no Assistant tab, and the app works as before'
 
 // page.route answers in one piece, so the relayed sign-in ends at once here; sending the typed code is
 // tested in the server's own tests (server/agent/test/server.test.ts) and in AssistantPanel.test.ts.
-test('connect your own Claude account: Claude Code’s own sign-in is shown, its web address as a link', async ({
+test('Claude Code on this server: its own sign-in is shown, its web address as a link', async ({
   page,
 }) => {
   await page.route('**/agent/status', (r) => r.fulfill(json({ state: 'signed-out' })))
@@ -80,16 +80,20 @@ test('connect your own Claude account: Claude Code’s own sign-in is shown, its
   )
   await createBrowserWorkspace(page)
   await assistantTab(page).click()
-  await expect(inspector(page)).toContainText('Connect your Claude account')
+  await expect(inspector(page)).toContainText('Claude Code on this server')
   expect(await serious(page, '[aria-label="Scene inspector"]')).toEqual([])
-  await inspector(page).getByRole('button', { name: 'Sign in with Claude' }).click()
+  await inspector(page)
+    .getByRole('button', { name: 'Start Claude Code sign-in', exact: true })
+    .click()
   await expect(
     inspector(page).getByRole('link', { name: /claude\.com\/cai\/oauth\/authorize/ }),
   ).toBeVisible()
   await expect(inspector(page)).toContainText('Paste code here if prompted')
   // The answer ended without Claude Code's own end: said in words, and the buttons are back.
   await expect(inspector(page).getByRole('alert')).toContainText('The sign-in did not finish')
-  await expect(inspector(page).getByRole('button', { name: 'Sign in with Claude' })).toBeVisible()
+  await expect(
+    inspector(page).getByRole('button', { name: 'Start Claude Code sign-in', exact: true }),
+  ).toBeVisible()
 })
 
 for (const width of [1440, 390]) {

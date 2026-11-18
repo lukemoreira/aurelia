@@ -178,9 +178,9 @@ so they would only break the page.
 
 ## 10. The assistant (optional)
 
-The assistant reads your story and suggests changes, fixes and new text. It uses **your own Claude
-account**: each person who uses Aurelia connects their own account, in Aurelia, and nobody's plan is
-used for anybody else. It can only read and suggest. Every suggestion waits until you accept it, and
+The assistant reads your story and suggests changes, fixes and new text. It runs Claude Code, and each
+person signs in to Claude Code with **their own Claude account**, through Claude Code's own sign-in.
+Nobody's plan is used for anybody else. It can only read and suggest. Every suggestion waits until you accept it, and
 accepting saves a snapshot first. See [ADR-0015](adr/0015-assistant-on-your-server.md).
 
 The third container, `aurelia-agent`, runs Anthropic's own program, Claude Code, for each person. It is
@@ -202,19 +202,20 @@ workspace (the assistant reads the copy on your server).
    `claude.ai` and `downloads.claude.ai`. Its log says `Claude Code … installed`.
 4. In Aurelia, open a scene. In the inspector on the right, open the **Assistant** tab (or press the
    command palette and type **Ask the assistant**).
-5. Select **Sign in with Claude**. Claude Code's own sign-in shows a link. Open it, sign in to Claude, and
-   copy the code Claude shows. Paste it into **Code from Claude's page** and select **Send code**.
-   (With an Anthropic Console account, select **Use an Anthropic Console account** instead.)
+5. Under **Claude Code on this server**, select **Start Claude Code sign-in**. Claude Code shows a link.
+   Open it, sign in with your own Claude account, and copy the code that page gives you. Paste it into
+   **Code for Claude Code** and select **Send code**. (With an Anthropic Console account, select
+   **Start Claude Code sign-in (Anthropic Console)** instead.)
 6. Ask something, for example "Check Tomas's continuity in chapter 7". The tab lists what the assistant
    read. Its suggestions appear in the **Review inbox** below the chat and inside the text, each with
    **Accept**, **Reject** and **Ask for changes**.
 
-**To disconnect:** **Disconnect Claude** in the Assistant tab signs you out (Claude Code's own logout).
+**To sign out:** **Sign out of Claude Code** in the Assistant tab runs Claude Code's own logout.
 
 **Each person signs in alone.** Aurelia tells people apart by their Cloudflare login email. Someone else
-you let in sees the **Sign in with Claude** step and uses their own account. Your sign-in is kept in a
-folder of your own in the assistant's dataset, written there by Claude Code itself. Aurelia never shows,
-reads, logs or sends it.
+you let in sees the **Start Claude Code sign-in** step and uses their own account. Claude Code keeps each
+person's sign-in in a folder of their own in the assistant's dataset. Aurelia's code does not read, log
+or send it, but **the server's owner can read that folder**: let in only people who accept that.
 
 **Check it:** on a computer in your home network, run `curl -i http://<NAS IP>:30080/agent/status`. The
 first line must be `HTTP/1.1 401 Unauthorized`. `502` means the assistant does not run.
