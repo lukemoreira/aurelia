@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { IDBFactory } from 'fake-indexeddb'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { ChatStore } from '@/assistant/chat-store'
 import { BackupStore } from '@/backup/state'
 import { FakeDirectory } from '../../tests/helpers/fake-directory'
 import { readZip } from '../../tests/helpers/read-zip'
@@ -35,6 +36,7 @@ let root: FakeDirectory // the browser's private file system
 let recents: Recents
 let journal: IdbJournal
 let backup: BackupStore
+let chat: ChatStore
 let locks: FakeLocks
 let deps: DeleteDeps
 let calls: string[]
@@ -52,11 +54,13 @@ async function seed(key: string) {
     time: 1,
   })
   await backup.save({ ...(await backup.load(key)), enabled: true, folder: `Aurelia/${key}` })
+  await chat.save(key, [{ role: 'author', text: 'Who is Tomas?', tools: [] }])
 }
 const rowsOf = async (key: string) => ({
   files: root.paths().filter((p) => p.startsWith(`workspaces/${key}/`)),
   journal: (await journal.list(key)).length,
   backup: (await backup.load(key)).folder,
+  chat: (await chat.load(key)).length,
   recent: !!(await recents.get(key)),
 })
 
@@ -65,6 +69,7 @@ beforeEach(async () => {
   recents = new Recents(() => db)
   journal = new IdbJournal(() => db)
   backup = new BackupStore(() => db)
+  chat = new ChatStore(() => db)
   root = new FakeDirectory('root')
   locks = new FakeLocks()
   calls = []
@@ -72,6 +77,7 @@ beforeEach(async () => {
     recents,
     journal,
     backup,
+    chat,
     locks: locks.asManager(),
     removeDirectory: async (id) => {
       const all = await root.getDirectoryHandle('workspaces')
@@ -87,9 +93,9 @@ describe('deleting a browser workspace', () => {
   it('removes that workspace’s files, journal rows, backup state and recent row, and nothing of the other', async () => {
     const other = await rowsOf(B)
     await deleteBrowserWorkspace(recent(A), deps)
-    expect(await rowsOf(A)).toEqual({ files: [], journal: 0, backup: null, recent: false })
+    expect(await rowsOf(A)).toEqual({ files: [], journal: 0, backup: null, chat: 0, recent: false })
     expect(await rowsOf(B)).toEqual(other)
-    expect(other).toMatchObject({ journal: 1, recent: true, backup: `Aurelia/${B}` })
+    expect(other).toMatchObject({ journal: 1, chat: 1, recent: true, backup: `Aurelia/${B}` })
     expect(calls).toEqual([`forget ${A}`])
   })
 
@@ -135,7 +141,7 @@ describe('deleting a browser workspace', () => {
   it('an already-missing directory still cleans up the device’s rows', async () => {
     await deps.removeDirectory(A)
     await deleteBrowserWorkspace(recent(A), deps)
-    expect(await rowsOf(A)).toEqual({ files: [], journal: 0, backup: null, recent: false })
+    expect(await rowsOf(A)).toEqual({ files: [], journal: 0, backup: null, chat: 0, recent: false })
   })
 
   it('lets the open session go first, and does nothing when that is refused', async () => {

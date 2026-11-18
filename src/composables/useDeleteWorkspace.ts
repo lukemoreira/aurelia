@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, nextTick, ref } from 'vue'
+import { chatStore } from '@/assistant/chat-store'
 import { backupState } from '@/backup/app'
 import { useBackupStore } from '@/stores/backup'
 import { copyFilename, saveBlob } from '@/composables/useDownloadCopy'
@@ -75,6 +76,7 @@ export function useDeleteWorkspace(open: ReturnType<typeof useOpenWorkspace>) {
     recents,
     journal,
     backup: backupState,
+    chat: chatStore,
     removeDirectory: discardBrowserDirectory,
     locks: navigator.locks,
     release: async (id) => {

@@ -16,6 +16,8 @@ export interface DeleteDeps {
   journal: Pick<IdbJournal, 'clear' | 'list'>
   /** This device's backup state for the workspace (never the backup on the server). */
   backup: { clear(workspaceId: string): Promise<void> }
+  /** This device's chat with the assistant about the workspace. */
+  chat: { forget(workspaceId: string): Promise<void> }
   /** Remove the browser-storage directory of this workspace ID, recursively. */
   removeDirectory(id: string): Promise<void>
   /** `navigator.locks`; missing where the browser has none, and then there is nothing to check. */
@@ -118,7 +120,7 @@ async function whileUnlocked(
 /**
  * Delete a workspace kept in this browser. Refuses (changing nothing) when another tab has it open
  * or this tab holds unsaved work in it. Order matters: the directory goes first, so a failure
- * there leaves the journal, the backup state and the list entry in place to try again.
+ * there leaves the journal, the backup state, the chat and the list entry in place to try again.
  */
 export async function deleteBrowserWorkspace(recent: RecentWorkspace, deps: DeleteDeps) {
   if (recent.kind !== 'browser')
@@ -134,6 +136,7 @@ export async function deleteBrowserWorkspace(recent: RecentWorkspace, deps: Dele
     }
     await deps.journal.clear(recent.key)
     await deps.backup.clear(recent.key)
+    await deps.chat.forget(recent.key)
     await deps.recents.remove(recent.key)
   })
   deps.forget?.(recent.key)
