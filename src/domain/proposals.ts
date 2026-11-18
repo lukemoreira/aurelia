@@ -95,14 +95,20 @@ export const proposalSchema = z.discriminatedUnion('kind', [
 export type Proposal = z.infer<typeof proposalSchema>
 export type EditProposal = Extract<Proposal, { kind: 'edit' }>
 
+/** The paragraphs `texts` sit, whole and in this order, from block `from`. */
+const sitsAt = (blocks: readonly Block[], from: number, texts: readonly string[]) =>
+  from >= 0 && texts.every((t, i) => blocks[from + i]?.text === t)
+
+const paragraphs = (text: string) => sceneBlocks(text).map((b) => b.text)
+
 /**
- * An insertion around a paragraph that is already there (an Accept whose suggestion could not be cleared):
- * the paragraph still reads as \`before\`, so without this a second Accept would write the new text twice.
+ * An Accept whose suggestion could not be cleared: its paragraphs are all there already, whole, around the
+ * one that still reads as `before`. A second Accept would write the new ones twice.
  */
-const alreadyIn = (body: string, hit: Block, c: ProposalChange) =>
-  c.after !== c.before &&
-  ((c.after.startsWith(c.before) && body.startsWith(c.after, hit.start)) ||
-    (c.after.endsWith(c.before) && body.slice(0, hit.end).endsWith(c.after)))
+const alreadyIn = (blocks: readonly Block[], at: number, c: ProposalChange) => {
+  const after = paragraphs(c.after)
+  return after.length > 1 && after.some((t, k) => t === c.before && sitsAt(blocks, at - k, after))
+}
 
 export type Merge = { ok: true; body: string } | { ok: false; block: string }
 
@@ -119,17 +125,19 @@ export function mergeChanges(body: string, changes: readonly ProposalChange[]): 
     if (c.block === 'end') {
       const end = body.replace(/\s+$/, '').length
       // Accepted already (the file could not be cleared): adding it again would write it twice.
-      if (c.after && body.slice(0, end).endsWith(c.after)) return { ok: false, block: c.block }
+      const added = paragraphs(c.after)
+      if (added.length && sitsAt(blocks, blocks.length - added.length, added))
+        return { ok: false, block: c.block }
       edits.push({ start: end, end, text: `${end ? '\n\n' : ''}${c.after}` })
       continue
     }
     // The paragraph it was among those that read the same; if their number changed, which one is a guess.
     const same = blocks.filter((b) => b.text === c.before)
     const hit = same.length === (c.copies ?? 1) ? same[c.occurrence ?? 0] : undefined
-    if (!hit || edits.some((e) => e.start === hit.start) || alreadyIn(body, hit, c))
+    const at = hit ? blocks.indexOf(hit) : -1
+    if (!hit || edits.some((e) => e.start === hit.start) || alreadyIn(blocks, at, c))
       return { ok: false, block: c.block }
     // A removed block takes the blank line next to it along, so no gap is left.
-    const at = blocks.indexOf(hit)
     const next = blocks[at + 1]
     const prev = blocks[at - 1]
     edits.push(

@@ -57,13 +57,14 @@ const json = (res: ServerResponse, status: number, body: unknown) => {
  * keeps a quiet stream open: Cloudflare closes one that says nothing for 100 s, and a sign-in waiting
  * for its code, or a long answer, can be that quiet. The app skips blank lines.
  */
-function stream(res: ServerResponse, keepAliveMs: number) {
+export function stream(res: ServerResponse, keepAliveMs: number) {
   res.writeHead(200, {
     'Content-Type': 'application/x-ndjson; charset=utf-8',
     'Cache-Control': 'no-store',
     'X-Accel-Buffering': 'no',
   })
-  const beat = setInterval(() => res.write('\n'), keepAliveMs)
+  // Not after the end: 'close' comes only once a slow reader has the last byte, and a write then throws.
+  const beat = setInterval(() => res.writableEnded || res.write('\n'), keepAliveMs)
   res.on('close', () => clearInterval(beat))
   return (event: unknown) => res.write(`${JSON.stringify(event)}\n`)
 }

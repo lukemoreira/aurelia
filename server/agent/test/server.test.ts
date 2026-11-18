@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { chmod, mkdir, mkdtemp, readFile, realpath, writeFile } from 'node:fs/promises'
-import type { IncomingMessage, Server } from 'node:http'
+import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ask, binOf, eventsOf, homeOf } from '../src/claude.ts'
-import { createAgentServer } from '../src/server.ts'
+import { createAgentServer, stream } from '../src/server.ts'
 import { ALLOWED_TOOLS } from '../src/tools.ts'
 import { FOLDER } from './helpers.ts'
 
@@ -259,6 +259,23 @@ describe('a run that goes wrong', () => {
     )
     expect(Date.now() - started).toBeLessThan(5_000)
     expect(events).toMatchObject([{ t: 'end', ok: false }])
+  })
+
+  it('sends no blank line once the answer has ended, even before the reader has it all', () => {
+    vi.useFakeTimers()
+    try {
+      const write = vi.fn()
+      const res = { writeHead: () => res, on: () => res, write, writableEnded: false }
+      stream(res as unknown as ServerResponse, 100)
+      vi.advanceTimersByTime(100)
+      expect(write).toHaveBeenCalledTimes(1)
+      res.writableEnded = true // ended, but 'close' has not come yet
+      vi.advanceTimersByTime(500)
+      expect(write).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.clearAllTimers()
+      vi.useRealTimers()
+    }
   })
 
   it('a quiet answer keeps its stream open with blank lines, which the app skips', async () => {
