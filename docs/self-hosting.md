@@ -223,3 +223,53 @@ first line must be `HTTP/1.1 401 Unauthorized`. `502` means the assistant does n
 **To change the Claude Code version:** the image sets `CLAUDE_CODE_VERSION`. A newer Aurelia image may
 raise it; the container then installs that version on its next start. Claude Code does not update
 itself here.
+
+### Use the same tools from Claude Code on your own computer
+
+You can also talk about your book in Claude Code on your own computer. Claude Code then starts the
+assistant's tools on that computer. They read your book from your server and write suggestions to
+your **Review inbox**, as the Assistant tab does. They cannot change the book: you accept each
+suggestion in Aurelia.
+
+**It works on your home network only.** The tools go straight to the NAS address, not through
+Cloudflare. Cloudflare refuses them while **Binding Cookie** is on (section 2, step 8), because that
+setting accepts only your browser. Keep it on.
+
+**You need:** Claude Code, Docker, and Cloudflare's `cloudflared` tool on the computer, and sync turned
+on for the workspace.
+
+1. Sign in once, as you:
+   `cloudflared access login https://aurelia.example.com`
+   A browser tab opens. Sign in there. If the sign-in never finishes in Safari, open the same link in
+   another browser.
+2. Find the workspace folder on your server. It is under the books dataset, in `Aurelia/`, with a name
+   like `My book (wsp_…)`.
+3. Make a folder for the book on your computer. In it, put this `.mcp.json`. Change the two addresses and
+   the folder name:
+
+   ```json
+   {
+     "mcpServers": {
+       "aurelia": {
+         "type": "stdio",
+         "command": "sh",
+         "args": [
+           "-c",
+           "AURELIA_ACCESS_JWT=\"$(cloudflared access token -app=https://aurelia.example.com)\" || exit 1; export AURELIA_ACCESS_JWT; exec docker run -i --rm --platform linux/amd64 -e AURELIA_ACCESS_JWT -e AURELIA_STORE_URL=http://<NAS IP>:30080/dav/ -e 'AURELIA_FOLDER=Aurelia/My book (wsp_…)' ghcr.io/lukemoreira/aurelia-agent:latest node --import ./server/agent/src/register.ts server/agent/src/mcp.ts"
+         ]
+       }
+     }
+   }
+   ```
+
+   The image is built for `linux/amd64`. `--platform linux/amd64` lets a Mac with Apple silicon run it
+   through Docker's emulation.
+
+4. Start Claude Code in that folder and allow the `aurelia` server. Ask, for example, "Read the
+   outline and tell me what chapter 3 is missing".
+
+The sign-in token comes from `cloudflared` each time Claude Code starts the tools. It is not in the
+file. The storage server checks it as it checks the app's. When your Cloudflare session ends, run
+step 1 again. The NAS address is plain HTTP, so the token crosses your home network unencrypted, as
+the app's does on that address: use it only on a network you trust. Claude Code on your computer also
+has its own tools: they can change files on your computer, not your book.
