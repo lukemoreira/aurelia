@@ -230,7 +230,9 @@ export class WorkspaceIndex {
     }
     for (const r of this.data?.records ?? []) {
       add(records, fold(r.meta.title), r)
-      for (const a of new Set((r.meta.aliases ?? []).map((x) => fold(x.text)))) add(aliases, a, r)
+      // A name the author said never to is not one a link points by.
+      const named = (r.meta.aliases ?? []).filter((x) => x.match !== 'never')
+      for (const a of new Set(named.map((x) => fold(x.text)))) add(aliases, a, r)
     }
     for (const s of this.data?.scenes ?? []) add(scenes, fold(s.meta.title), s)
     return (this.titles = { version: this.structure, records, aliases, scenes })
@@ -296,7 +298,16 @@ export class WorkspaceIndex {
   /** The short forms the index looks for as this character's names, worked out from its title. */
   shortFormsOf(recordId: string): NameForm[] {
     const scope = this.docs.get(recordId)?.scope
-    return scope ? this.formsFor(scope).filter((f) => f.derived && f.recordId === recordId) : []
+    if (!scope) return []
+    const own = (s: Scope) => this.formsFor(s).filter((f) => f.derived && f.recordId === recordId)
+    // A record shared by the universe is asked about where any of its books shares the form.
+    const books = scope.book ? [] : [...this.bookUniverse].filter(([, u]) => u === scope.universe)
+    const asked = new Set(
+      books
+        .flatMap(([book]) => own({ universe: scope.universe, book }))
+        .flatMap((f) => (f.mode === 'ask' ? [f.text] : [])),
+    )
+    return own(scope).map((f) => (asked.has(f.text) ? { ...f, mode: 'ask' as const } : f))
   }
 
   private namesFor(scope: Scope) {
@@ -312,12 +323,15 @@ export class WorkspaceIndex {
           ? r.universe === scope.universe
           : !!scope.book && r.meta.scope === `book:${scope.book}`
       if (!visible) continue
-      const aliases = r.meta.aliases ?? []
+      // A short form stopped before the title became it does not silence the title.
+      const aliases = (r.meta.aliases ?? []).filter(
+        (a) => a.match !== 'never' || fold(a.text) !== fold(r.meta.title),
+      )
       forms.push({ recordId: r.meta.id, text: r.meta.title, mode: 'auto' })
-      explicit.add(fold(r.meta.title))
+      explicit.add(r.meta.title.trim()) // exact text, as the matcher groups names
       for (const a of aliases) {
         forms.push({ recordId: r.meta.id, text: a.text, mode: a.match ?? 'auto' })
-        if (a.match !== 'never') explicit.add(fold(a.text))
+        if (a.match !== 'never') explicit.add(a.text.trim())
       }
       if (r.meta.type !== 'character') continue
       const off = new Set(aliases.filter((a) => a.match === 'never').map((a) => fold(a.text)))
@@ -325,7 +339,7 @@ export class WorkspaceIndex {
         if (!off.has(fold(text))) derived.set(text, [...(derived.get(text) ?? []), r.meta.id])
     }
     for (const [text, owners] of derived) {
-      if (explicit.has(fold(text))) continue
+      if (explicit.has(text)) continue
       const mode = owners.length > 1 || isCommonWord(text) ? 'ask' : 'auto'
       for (const recordId of owners) forms.push({ recordId, text, mode, derived: true })
     }

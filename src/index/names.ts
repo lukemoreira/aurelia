@@ -34,7 +34,7 @@ const LEADING_WORD = /^[\p{L}\p{M}\p{N}]+/u
 
 /** Names that are also ordinary words: at the start of a sentence the author is asked ("Will you…"). */
 const COMMON_WORDS = new Set(
-  'will mark grace rose hope may bill art faith joy pat rob ray sue dawn summer autumn june april frank jack bob rich bell wren sage ash brook lane drew chase miles page grant rush young little long white black brown green grey gray hill wood stone'.split(
+  'will mark grace rose hope may bill art faith joy pat rob ray sue dawn summer autumn june april frank jack bob rich bell wren sage ash brook lane drew chase miles page grant rush young little long white black brown green grey gray hill wood stone old big man'.split(
     ' ',
   ),
 )
@@ -45,10 +45,12 @@ export const isCommonWord = (text: string) =>
 
 /** Words of a name that are never a name on their own: how a person is addressed, particles, suffixes. */
 const NOT_ALONE = new Set(
-  'mr mrs ms miss mx dr doctor sir dame lady lord madam professor prof major captain capt corporal cpl sergeant sgt colonel col general gen lieutenant lt private pte admiral commander officer inspector detective constable father mother sister brother uncle aunt saint st king queen prince princess duke duchess earl count countess baron baroness emperor empress rev reverend pastor bishop judge de du van von der den da di del della la le el al bin ibn the jr sr ii iii iv'.split(
+  'mr mrs ms miss mx dr doctor sir dame lady lord madam professor prof major captain capt corporal cpl sergeant sgt colonel col general gen lieutenant lt private pte admiral commander officer inspector detective constable father mother sister brother uncle aunt saint st king queen prince princess duke duchess earl count countess baron baroness emperor empress rev reverend pastor bishop judge grandma grandpa ma pa ser señor dci de du van von der den da di del della la le el al bin ibn the jr sr ii iii iv'.split(
     ' ',
   ),
 )
+
+const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv'])
 
 /**
  * The short forms a character's title gives (ADR-0010, 2026-11-18): a nickname in quotes, the
@@ -68,9 +70,14 @@ export function shortForms(title: string): string[] {
     .map((w) => w.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, ''))
   const end = words.findIndex((w) => w.toLowerCase() === 'of')
   const name = (end < 0 ? words : words.slice(0, end)).filter(
-    (w) => /^\p{Lu}/u.test(w) && !/^\p{L}(\.\p{L})*$/u.test(w) && !NOT_ALONE.has(w.toLowerCase()),
+    (w) => /^\p{Lu}/u.test(w) && !/^\p{L}(\.\p{L})*$/u.test(w),
   )
-  if (name.length) out.add(name[0]!).add(name.at(-1)!)
+  const notAlone = (w?: string) => !!w && NOT_ALONE.has(w.toLowerCase())
+  // A rank is stripped at the front, a suffix at the end: "King" in "Martin Luther King Jr." is a surname.
+  while (notAlone(name[0])) name.shift()
+  while (SUFFIXES.has(name.at(-1)?.toLowerCase() ?? '')) name.pop()
+  if (name.length) out.add(name[0]!)
+  if (name.length && !notAlone(name.at(-1))) out.add(name.at(-1)!) // a surname that is also a rank is no short form
   out.delete(title.trim())
   return [...out].filter((f) => [...f].length > 1 && !NOT_ALONE.has(f.toLowerCase()))
 }
