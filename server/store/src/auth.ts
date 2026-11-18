@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { IncomingMessage } from 'node:http'
 import { createRemoteJWKSet, jwtVerify } from 'jose'
+import type { JWTPayload } from 'jose'
 
-export type Authenticator = (req: IncomingMessage) => Promise<boolean>
+/** The verified token's claims (Cloudflare puts the signed-in person's `email` there), or null. */
+export type Authenticator = (req: IncomingMessage) => Promise<JWTPayload | null>
 
 export interface AccessOptions {
   /** e.g. `myteam.cloudflareaccess.com` */
@@ -18,7 +20,8 @@ export interface AccessOptions {
 /**
  * Checks the `Cf-Access-Jwt-Assertion` header Cloudflare adds at its edge: RS256 signature
  * against the team's keys (cached; fetched again when a token names an unknown key, at most
- * once per cooldown), `iss`, `aud`, a required `exp`, and `nbf` (30 s leeway). Never throws: a bad token is `false`.
+ * once per cooldown), `iss`, `aud`, a required `exp`, and `nbf` (30 s leeway). Never throws: a bad token is `null`.
+ * Shared with the assistant server (server/agent), which needs the `email` claim to tell people apart.
  */
 export function createAccessAuthenticator(opts: AccessOptions): Authenticator {
   const issuer = `https://${opts.teamDomain}`
@@ -28,18 +31,18 @@ export function createAccessAuthenticator(opts: AccessOptions): Authenticator {
   })
   return async (req) => {
     const token = req.headers['cf-access-jwt-assertion']
-    if (typeof token !== 'string' || token === '') return false
+    if (typeof token !== 'string' || token === '') return null
     try {
-      await jwtVerify(token, keys, {
+      const { payload } = await jwtVerify(token, keys, {
         issuer,
         audience: opts.aud,
         algorithms: ['RS256'],
         requiredClaims: ['exp'],
         clockTolerance: 30,
       })
-      return true
+      return payload
     } catch {
-      return false
+      return null
     }
   }
 }

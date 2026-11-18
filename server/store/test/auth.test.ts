@@ -184,6 +184,13 @@ describe('Cloudflare Access login', () => {
     expect(fetches).toBe(1)
   })
 
+  it('hands back the verified claims (the assistant tells people apart by email), and null for a bad token', async () => {
+    const auth = createAccessAuthenticator({ teamDomain: TEAM, aud: AUD, jwksUrl })
+    const req = (t: string) => ({ headers: { 'cf-access-jwt-assertion': t } }) as never
+    expect((await auth(req(await token(published[0]!))))?.email).toBe('owner@example.com')
+    expect(await auth(req('garbage'))).toBeNull()
+  })
+
   it('/healthz needs no login', async () => {
     await start()
     expect((await dav(store!.port, 'GET', '/healthz')).status).toBe(200)

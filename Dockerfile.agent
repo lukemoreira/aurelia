@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# aurelia-agent: Aurelia's assistant server (ADR-0015). Node 24 runs the TypeScript source directly
+# (built-in type stripping), the app's plain-TS layers (src/) included, through a resolve hook: no build step.
+# Claude Code is NOT in this image: the container installs it at start, with Anthropic's own installer,
+# into the data volume. Build from the repository root:
+#   docker build -f Dockerfile.agent -t aurelia-agent .
+
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS deps
+WORKDIR /app
+COPY server/agent/package.json server/agent/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+
+FROM node:24-alpine@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5
+# Anthropic's installer needs bash and curl, and Claude Code needs bash (code.claude.com/docs/en/setup).
+RUN apk add --no-cache bash curl
+WORKDIR /app
+# Pinned: the version every person's Claude Code runs. Raise it here, after checking its release notes.
+ENV NODE_ENV=production AURELIA_AGENT_DATA=/data PORT=8082 CLAUDE_CODE_VERSION=2.1.295
+COPY --from=deps /app/node_modules ./node_modules
+COPY server/agent/package.json ./
+# The same relative layout as the repository, so server/agent's imports of the store's login check and
+# of the app's src/ resolve as they do there.
+COPY server/agent/src ./server/agent/src
+COPY server/store/src/auth.ts server/store/src/config.ts ./server/store/src/
+COPY src/domain ./src/domain
+COPY src/index ./src/index
+COPY src/storage ./src/storage
+COPY src/backup ./src/backup
+# 568 is the TrueNAS "apps" user. Claude Code and each person's folder live in /data, so a read-only root works.
+RUN mkdir /data && chown 568:568 /data
+USER 568:568
+VOLUME /data
+EXPOSE 8082
+CMD ["node", "--import", "./server/agent/src/register.ts", "server/agent/src/main.ts"]

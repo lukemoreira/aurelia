@@ -1,0 +1,12 @@
+# Only what Dockerfile.agent copies. (BuildKit reads this file instead of .dockerignore.)
+*
+!server/agent/package.json
+!server/agent/package-lock.json
+!server/agent/src
+!server/store/src/auth.ts
+!server/store/src/config.ts
+!src/domain
+!src/index
+!src/storage
+!src/backup
+**/*.test.ts

@@ -44,3 +44,27 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+
+  # The assistant server (server/agent) runs the app's own src/ layers in Node and imports the store's
+  # login check, so it needs the root's and the store's dependencies as well as its own.
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/store/package-lock.json
+            server/agent/package-lock.json
+      - run: npm ci
+      - run: npm ci
+        working-directory: server/store
+      - run: npm ci
+        working-directory: server/agent
+      - run: npm run typecheck
+        working-directory: server/agent
+      - run: npm test
+        working-directory: server/agent
