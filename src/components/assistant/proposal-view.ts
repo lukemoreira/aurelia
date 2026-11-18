@@ -26,19 +26,23 @@ export const outOfDateWords = (p: Proposal) =>
 
 const count = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
 
-/** What a delete card says beyond its why: where the record goes, and what links to it. */
-export function deleteWords(backlinks: readonly Backlink[]): string {
-  const linked = backlinks.filter((b) => b.links)
+/** What a delete card says beyond its why: where the record goes, the books it leaves, and what links to it. */
+export function deleteWords(backlinks: readonly Backlink[], books = 1): string {
+  const linked = backlinks.filter((b) => b.links || b.names)
   const scenes = linked.filter((b) => b.from.kind === 'scene').length
   const records = linked.length - scenes
   const from = [scenes && count(scenes, 'scene'), records && count(records, 'record')]
     .filter(Boolean)
     .join(' and ')
-  return `Accept moves it to Recently deleted, where you can bring it back.${
-    from
-      ? ` ${from} ${linked.length === 1 ? 'links' : 'link'} to it: those links stop working until it is back.`
-      : ''
-  }`
+  const one = linked.length === 1
+  return [
+    'Accept moves it to Recently deleted, where you can bring it back.',
+    books > 1 && `It is in the world of ${books} books, so it leaves all of them.`,
+    from &&
+      `${from} ${one ? 'links to it or names it' : 'link to it or name it'}: those links stop working until it is back.`,
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 const FIELD_LABEL = new Map<string, string>(

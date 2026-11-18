@@ -56,6 +56,12 @@ describe('a suggested record delete', () => {
     expect(deleteWords([from('scene', 2)])).toContain('1 scene links to it')
     expect(
       deleteWords([from('scene', 1), from('scene', 1), from('record', 1), from('scene', 0)]),
-    ).toContain('2 scenes and 1 record link to it')
+    ).toContain('2 scenes and 1 record link to it or name it')
+    // A tagged name counts as much as a link; a world of several books says it leaves them all.
+    expect(deleteWords([{ ...from('scene', 0), names: 2 }])).toContain(
+      '1 scene links to it or names it',
+    )
+    expect(deleteWords([], 1)).not.toContain('books')
+    expect(deleteWords([], 3)).toContain('It is in the world of 3 books, so it leaves all of them.')
   })
 })

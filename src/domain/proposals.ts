@@ -147,7 +147,7 @@ export const proposalSchema = z.discriminatedUnion('kind', [
     recordId: z.string().regex(RECORD_ID),
     /** Its type and title as read when proposed: what the card names. */
     recordType: z.enum(RECORD_TYPES),
-    title: z.string().max(1000),
+    title: z.string(),
     /** `recordFingerprint` of the record as read: Accept requires it unchanged. */
     fingerprint: z.string().regex(/^[0-9a-f]{8}$/),
   }),
