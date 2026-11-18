@@ -29,19 +29,22 @@ export const RECORD_CHANGED =
 /**
  * Every readable proposal, newest first. A revision replaces the one it names: the older file is
  * removed here, once the newer one is in place, so the two show as one. A file that does not read
- * (a newer Aurelia's, a damaged one) is left alone and not listed.
+ * (a newer Aurelia's, a damaged one) is left alone and not listed, but counted in `unreadable`, so
+ * the inbox can say it is there. A file that reads but sits under another name (a sync's copy) is
+ * not counted: it is no proposal this version cannot read.
  */
-export async function listProposals(adapter: StorageAdapter): Promise<Proposal[]> {
+export async function listProposals(
+  adapter: StorageAdapter,
+): Promise<{ proposals: Proposal[]; unreadable: number }> {
   const found: Proposal[] = []
+  let unreadable = 0
   for (const path of await adapter.list()) {
     if (!path.startsWith(`${PROPOSALS_DIR}/`) || !path.endsWith('.json')) continue
-    try {
-      const file = await adapter.read(path)
-      const p = file && proposalSchema.safeParse(JSON.parse(file.text))
-      if (p?.success && proposalPath(p.data.id) === path) found.push(p.data)
-    } catch {
-      // not listed
-    }
+    const file = await adapter.read(path).catch(() => null)
+    if (!file) continue // gone meanwhile, or not read this time: nothing to say about it
+    const p = parsed(file.text)
+    if (!p) unreadable++
+    else if (proposalPath(p.id) === path) found.push(p)
   }
   // A revision may stand in only for a suggestion about the same thing: the model writes `replaces`,
   // and a wrong or hostile one must not clear the author's other suggestions.
@@ -54,9 +57,19 @@ export async function listProposals(adapter: StorageAdapter): Promise<Proposal[]
   )
   for (const p of found)
     if (replaced.has(p.id)) await adapter.remove(proposalPath(p.id)).catch(() => undefined)
-  return found
+  const proposals = found
     .filter((p) => !replaced.has(p.id))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+  return { proposals, unreadable }
+}
+
+function parsed(text: string): Proposal | undefined {
+  try {
+    const p = proposalSchema.safeParse(JSON.parse(text))
+    return p.success ? p.data : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /** What a suggestion is about: one scene's text, a new scene in one chapter, a book's story base or its characters, one record. */

@@ -6,10 +6,14 @@ import { expect, test, type Page } from '@playwright/test'
 import {
   createBrowserWorkspace,
   firstScenePath,
+  openBackupScreen,
   opfs,
   sceneText,
+  statusBar,
   waitSaved,
 } from '../helpers/browser-workspace'
+import { FakeDav } from '../helpers/fake-dav'
+import { serveDav } from '../helpers/serve-dav'
 
 test.use({ serviceWorkers: 'block', viewport: { width: 1440, height: 900 } })
 test.setTimeout(60_000)
@@ -172,4 +176,74 @@ test('a suggestion whose paragraph changed is out of date and cannot be accepted
   await expect(card).toContainText('Out of date')
   await expect(card.getByRole('button', { name: 'Accept' })).toHaveCount(0)
   await expect(card.getByRole('button', { name: 'Ask again' })).toBeVisible()
+})
+
+test('the chat stays after a reload, and Clear chat removes it from this device', async ({
+  page,
+  context,
+}) => {
+  await serveDav(context, new FakeDav())
+  await page.route('**/agent/status', (r) => r.fulfill(json({ state: 'signed-in' })))
+  await page.route('**/agent/ask', (r) =>
+    r.fulfill({
+      contentType: 'application/x-ndjson',
+      body: [
+        { t: 'tool', label: 'Read 1.1 Untitled scene' },
+        { t: 'text', text: 'Tomas is a ferryman.' },
+        { t: 'end', ok: true },
+      ]
+        .map((l) => `${JSON.stringify(l)}\n`)
+        .join(''),
+    }),
+  )
+  await createBrowserWorkspace(page)
+  // The assistant reads the copy on the server: keep the workspace in sync first.
+  await openBackupScreen(page)
+  const backup = page.getByRole('dialog', { name: 'Backup and versions' })
+  await backup.getByRole('switch', { name: 'Keep this workspace in sync on this device' }).click()
+  await expect(backup).toContainText('Last looked at your server', { timeout: 20_000 })
+  await page.keyboard.press('Escape')
+  await expect(statusBar(page)).toContainText('Synced', { timeout: 20_000 })
+
+  await assistantTab(page).click()
+  await inspector(page)
+    .getByRole('textbox', { name: 'Message the assistant' })
+    .fill('Who is Tomas?')
+  await inspector(page).getByRole('button', { name: 'Send', exact: true }).click()
+  await expect(inspector(page)).toContainText('Tomas is a ferryman.')
+
+  await page.reload()
+  await assistantTab(page).click()
+  await expect(inspector(page)).toContainText('Who is Tomas?')
+  await expect(inspector(page)).toContainText('Read 1.1 Untitled scene')
+  await expect(inspector(page)).toContainText('Tomas is a ferryman.')
+
+  await inspector(page).getByRole('button', { name: 'Clear chat' }).click()
+  await expect(inspector(page)).not.toContainText('Tomas is a ferryman.')
+  await page.reload()
+  await assistantTab(page).click()
+  await expect(
+    inspector(page).getByRole('textbox', { name: 'Message the assistant' }),
+  ).toBeVisible()
+  await expect(inspector(page)).not.toContainText('Who is Tomas?')
+})
+
+test('a suggestion this version cannot read is said in the inbox, and its file is left alone', async ({
+  page,
+}) => {
+  await page.route('**/agent/status', (r) => r.fulfill(json({ state: 'signed-in' })))
+  await createBrowserWorkspace(page)
+  await sceneText(page).fill('Tomas came down to the quay at dusk.')
+  await waitSaved(page)
+  const scene = (await opfs.list(page)).find((f) => /^[^.]*\/scenes\/scn_\w+\.md$/.test(f))!
+  const file = `${scene.split('/universes/')[0]}/.aurelia/proposals/prp_ffffffffff.json`
+  const newer = JSON.stringify({ schemaVersion: 1, id: 'prp_ffffffffff', kind: 'timeline' })
+  await opfs.write(page, file, newer)
+  await page.reload()
+  await assistantTab(page).click()
+  await expect(inspector(page)).toContainText(
+    '1 suggestion could not be read by this version of Aurelia.',
+  )
+  await expect(inspector(page)).not.toContainText('No suggestions waiting.')
+  expect(await opfs.read(page, file)).toBe(newer)
 })

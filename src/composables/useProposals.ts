@@ -30,12 +30,16 @@ function createProposals() {
   const edits = useEditsStore()
   const assistant = useAssistant()
   const all = shallowRef<Proposal[]>([])
+  /** Suggestion files this version of Aurelia cannot read (a newer one wrote them): left alone, but said. */
+  const unreadable = ref(0)
   /** The proposal being worked on (Accept, Reject or Ask for changes), so its buttons wait. */
   const working = ref<string | null>(null)
 
   async function refresh() {
     const s = ws.session
-    all.value = s ? await listProposals(s.adapter).catch(() => []) : []
+    const found = s ? await listProposals(s.adapter).catch(() => null) : null
+    all.value = found?.proposals ?? []
+    unreadable.value = found?.unreadable ?? 0
   }
   // A sync round brings proposals in as files; any change to the workspace looks again.
   let unsubscribe: (() => void) | undefined
@@ -132,7 +136,18 @@ function createProposals() {
         throw new Error(assistant.turns.value.at(-1)?.error ?? 'The assistant did not answer.')
     })
 
-  return { all, working, outOfDate, refresh, forScene, noticeFor, accept, reject, askChanges }
+  return {
+    all,
+    unreadable,
+    working,
+    outOfDate,
+    refresh,
+    forScene,
+    noticeFor,
+    accept,
+    reject,
+    askChanges,
+  }
 }
 
 const shared = new WeakMap<object, ReturnType<typeof createProposals>>()

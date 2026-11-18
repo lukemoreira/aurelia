@@ -1,10 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
+import Button from '@/components/ui/Button.vue'
+import { useAppUpdate } from '@/composables/useAppUpdate'
 import { useProposals } from '@/composables/useProposals'
 import ProposalCard from './ProposalCard.vue'
 
 /** Every suggestion waiting for the author, newest first. No "accept all": each is decided alone. */
 const p = useProposals()
+const { updateReady, reload } = useAppUpdate()
 </script>
 
 <template>
@@ -31,6 +34,16 @@ const p = useProposals()
       @reject="p.reject(item)"
       @ask="(note) => p.askChanges(item, note)"
     />
-    <p v-if="!p.all.value.length" class="m-0 text-[12.5px] text-ink-3">No suggestions waiting.</p>
+    <!-- Files a newer Aurelia wrote are left alone; say they are there rather than show nothing. -->
+    <p v-if="p.unreadable.value" class="m-0 text-[12.5px] text-ink-2">
+      {{ p.unreadable.value }} {{ p.unreadable.value === 1 ? 'suggestion' : 'suggestions' }} could
+      not be read by this version of Aurelia.
+      <Button v-if="updateReady" size="sm" variant="quiet" @click="reload"
+        >Update Aurelia to see them</Button
+      >
+    </p>
+    <p v-else-if="!p.all.value.length" class="m-0 text-[12.5px] text-ink-3">
+      No suggestions waiting.
+    </p>
   </section>
 </template>
