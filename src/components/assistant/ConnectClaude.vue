@@ -43,8 +43,8 @@ async function send() {
         >Use an Anthropic Console account</Button
       >
     </div>
-    <template v-else>
-      <p class="m-0 text-[12.5px] text-ink-2">
+    <template v-if="a.loginText.value">
+      <p v-if="a.loginRunning.value" class="m-0 text-[12.5px] text-ink-2">
         Open the link below, sign in, and paste the code Claude shows you here.
       </p>
       <pre
@@ -52,7 +52,7 @@ async function send() {
         aria-label="Claude Code’s sign-in"
         class="relative m-0 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-md border border-line bg-raised p-2 font-mono text-[11.5px] text-ink"
       ><template v-for="(p, i) in pieces" :key="i"><a v-if="p.link" :href="p.text" target="_blank" rel="noopener noreferrer" class="text-gold-ink underline">{{ p.text }}</a><template v-else>{{ p.text }}</template></template></pre>
-      <form class="flex flex-col gap-2" @submit.prevent="send">
+      <form v-if="a.loginRunning.value" class="flex flex-col gap-2" @submit.prevent="send">
         <Field label="Code from Claude’s page">
           <Input v-model="code" autocomplete="off" spellcheck="false" />
         </Field>

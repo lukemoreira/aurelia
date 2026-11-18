@@ -91,15 +91,20 @@ editor.on('blur', () => emit('blur'))
 
 if (inScene) {
   const proposals = useProposals()
+  // Compared as text: a keystroke re-reads the list, and only a real change may reach the editor.
   watch(
     () =>
-      proposals.forScene(props.docId!).map((p) => ({
-        id: p.id,
-        anchors:
-          p.kind === 'edit' ? p.changes.filter((c) => c.block !== 'end').map((c) => c.before) : [],
-      })),
-    (items) => setSuggestions(editor.view, items),
-    { immediate: true, deep: true },
+      JSON.stringify(
+        proposals.forScene(props.docId!).map((p) => ({
+          id: p.id,
+          anchors:
+            p.kind === 'edit'
+              ? p.changes.filter((c) => c.block !== 'end').map((c) => c.before)
+              : [],
+        })),
+      ),
+    (items) => setSuggestions(editor.view, JSON.parse(items)),
+    { immediate: true },
   )
 }
 

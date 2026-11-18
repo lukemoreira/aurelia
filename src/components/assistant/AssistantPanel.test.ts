@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import Inspector from '@/components/shell/Inspector.vue'
-import { agentState } from '@/assistant/client'
+import { agentState, sendLoginLine } from '@/assistant/client'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { fixture, id } from '../../../tests/helpers/index-fixture'
 
@@ -65,5 +65,17 @@ describe('agentState', () => {
     expect(await agentState(() => json({ state: 'signed-in' }))).toBe('signed-in')
     expect(await agentState(() => json({ state: 'weird' }))).toBe('absent')
     expect(await agentState(() => json({ error: 'Sign in again.' }, 401))).toBe('sign-in-again')
+  })
+
+  it('sends the code the person typed to Claude Code’s sign-in exactly as typed, and nothing else', async () => {
+    const calls: [string, RequestInit][] = []
+    const ok = await sendLoginLine('abc#123 ', async (url, init) => {
+      calls.push([String(url), init!])
+      return json({ ok: true })
+    })
+    expect(ok).toBe(true)
+    expect(calls).toHaveLength(1)
+    expect(calls[0]![0]).toBe('/agent/login/input')
+    expect(JSON.parse(String(calls[0]![1].body))).toEqual({ text: 'abc#123 ' })
   })
 })
