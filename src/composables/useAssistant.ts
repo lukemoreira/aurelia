@@ -94,6 +94,8 @@ function createAssistant() {
         if (e.t === 'out') loginText.value += e.text
         else loginResult.value = e.ok ? 'ok' : 'failed'
       }
+      // The answer ended without Claude Code's own end: the sign-in did not finish.
+      if (loginResult.value === null && !abort.signal.aborted) loginResult.value = 'failed'
     } catch {
       if (!abort.signal.aborted) loginResult.value = 'failed'
     } finally {
