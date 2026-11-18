@@ -5,9 +5,10 @@ import {
   splitDismissed,
   type ContinuityFinding,
 } from '@/domain/continuity-checks'
-import { continuityModel, type ContinuityInput } from '@/domain/continuity'
+import { continuityModel } from '@/domain/continuity'
 import { mergeModels, universeModels } from '@/domain/continuity-universe'
 import type { WorkspaceData } from '@/domain/workspace-data'
+import { continuityInput } from '@/index/continuity-input'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 /** How long typing in a scene waits before the book is read for continuity again. */
@@ -49,21 +50,8 @@ function createContinuityModel() {
 
   // The store hands the index out wrapped as reactive, and the index fills its own caches as it is asked:
   // asked through the wrapper, that would write to what this computed has read, and it would never settle.
-  const index = () => toRaw(ws.index)
-  const inputFor = (data: WorkspaceData, bookId: string): ContinuityInput => ({
-    data,
-    bookId,
-    named: (id) =>
-      index()
-        .foundNames(id)
-        .filter((n) => n.target.kind === 'record')
-        .map((n) => n.target.id),
-    brokenLinks: (id) =>
-      index()
-        .linksTo(id)
-        .filter((l) => l.status !== 'ok')
-        .map((l) => ({ text: l.text, status: l.status as 'missing' | 'ambiguous' })),
-  })
+  const inputFor = (data: WorkspaceData, bookId: string) =>
+    continuityInput(data, toRaw(ws.index), bookId)
   const model = computed(() => {
     const data = snapshot.value
     const bookId = ws.bookId

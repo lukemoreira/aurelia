@@ -4,12 +4,11 @@
 export type StorageErrorCode = 'permission' | 'unreadable' | 'quota' | 'read-only' | 'other'
 
 export class StorageError extends Error {
-  constructor(
-    readonly code: StorageErrorCode,
-    message: string,
-  ) {
+  readonly code: StorageErrorCode
+  constructor(code: StorageErrorCode, message: string) {
     super(message)
     this.name = 'StorageError'
+    this.code = code
   }
 }
 
@@ -21,12 +20,11 @@ export type RemoteErrorCode =
   'precondition' | 'conflict' | 'unauthorized' | 'too-large' | 'offline' | 'server'
 
 export class RemoteError extends Error {
-  constructor(
-    readonly code: RemoteErrorCode,
-    message: string,
-  ) {
+  readonly code: RemoteErrorCode
+  constructor(code: RemoteErrorCode, message: string) {
     super(message)
     this.name = 'RemoteError'
+    this.code = code
   }
 }
 
@@ -59,12 +57,11 @@ export function toStorageError(e: unknown, path: string): StorageError {
 export type OpenErrorKind = 'not-workspace' | 'not-empty' | 'unreadable' | 'newer-version' | 'gone'
 
 export class OpenError extends Error {
-  constructor(
-    readonly kind: OpenErrorKind,
-    message: string,
-  ) {
+  readonly kind: OpenErrorKind
+  constructor(kind: OpenErrorKind, message: string) {
     super(message)
     this.name = 'OpenError'
+    this.kind = kind
   }
 }
 

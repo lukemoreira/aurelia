@@ -5,12 +5,32 @@ export interface Config {
   port: number
   root: string
   /** null only with AURELIA_STORE_INSECURE_NO_AUTH=1. */
-  access: { teamDomain: string; aud: string } | null
+  access: AccessSettings | null
 }
 
 const flag = (argv: string[], name: string) => {
   const i = argv.indexOf(name)
   return i >= 0 ? argv[i + 1] : undefined
+}
+
+export interface AccessSettings {
+  teamDomain: string
+  aud: string
+}
+
+/** The Cloudflare Access settings, checked. Throws when one is missing or the team domain is not one. Shared with server/agent. */
+export function accessFromEnv(env: NodeJS.ProcessEnv): AccessSettings {
+  const teamDomain = env.CF_ACCESS_TEAM_DOMAIN?.trim()
+    .replace(/^https:\/\//, '')
+    .replace(/\/+$/, '')
+  const aud = env.CF_ACCESS_AUD?.trim()
+  if (!teamDomain || !aud)
+    throw new Error(
+      'CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD are required (requests without a valid Cloudflare Access login are refused).',
+    )
+  if (!/^[a-z0-9-]+\.cloudflareaccess\.com$/i.test(teamDomain))
+    throw new Error('CF_ACCESS_TEAM_DOMAIN must be a host name like myteam.cloudflareaccess.com')
+  return { teamDomain, aud }
 }
 
 /** Fails closed: no Access settings and no explicit insecure switch means the store does not start. */
@@ -23,15 +43,5 @@ export function loadConfig(argv: string[], env: NodeJS.ProcessEnv): Config {
     root: flag(argv, '--root') ?? env.AURELIA_STORE_ROOT ?? '/data',
   }
   if (env.AURELIA_STORE_INSECURE_NO_AUTH === '1') return { ...base, access: null }
-  const teamDomain = env.CF_ACCESS_TEAM_DOMAIN?.trim()
-    .replace(/^https:\/\//, '')
-    .replace(/\/+$/, '')
-  const aud = env.CF_ACCESS_AUD?.trim()
-  if (!teamDomain || !aud)
-    throw new Error(
-      'CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD are required (the store refuses requests without a valid Cloudflare Access login).',
-    )
-  if (!/^[a-z0-9-]+\.cloudflareaccess\.com$/i.test(teamDomain))
-    throw new Error('CF_ACCESS_TEAM_DOMAIN must be a host name like myteam.cloudflareaccess.com')
-  return { ...base, access: { teamDomain, aud } }
+  return { ...base, access: accessFromEnv(env) }
 }

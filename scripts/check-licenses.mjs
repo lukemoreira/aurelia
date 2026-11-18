@@ -81,18 +81,23 @@ function visit(name, from) {
 for (const dep of [...Object.keys(root.dependencies ?? {}), ...SHIPPED_BUILD_TIME])
   visit(dep, process.cwd())
 
-// The storage server (server/store) ships its production dependencies in its own image. Its lockfile
-// lists every package with its licence, so this needs no install. `dev` packages are not shipped.
-const storeLock = JSON.parse(readFileSync('server/store/package-lock.json', 'utf8'))
-let storeCount = 0
-for (const [path, pkg] of Object.entries(storeLock.packages ?? {})) {
-  if (path === '' || pkg.dev || pkg.devOptional) continue
-  storeCount++
-  const license = licenseOf(pkg)
-  if (!license || !isAllowed(license))
-    bad.push(
-      `${path.replace(/^node_modules\//, '')}@${pkg.version} (server/store): ${license ?? 'no licence'}`,
-    )
+// The storage server (server/store) and the assistant server (server/agent) ship their production
+// dependencies in their own images. A lockfile lists every package with its licence, so this needs no
+// install. `dev` packages are not shipped. Claude Code is not one of them: the assistant's container
+// installs it at start with Anthropic's own installer (ADR-0015); Aurelia's images never hold it.
+const serverCounts = {}
+for (const server of ['store', 'agent']) {
+  const lock = JSON.parse(readFileSync(`server/${server}/package-lock.json`, 'utf8'))
+  serverCounts[server] = 0
+  for (const [path, pkg] of Object.entries(lock.packages ?? {})) {
+    if (path === '' || pkg.dev || pkg.devOptional) continue
+    serverCounts[server]++
+    const license = licenseOf(pkg)
+    if (!license || !isAllowed(license))
+      bad.push(
+        `${path.replace(/^node_modules\//, '')}@${pkg.version} (server/${server}): ${license ?? 'no licence'}`,
+      )
+  }
 }
 
 if (bad.length) {
@@ -100,5 +105,5 @@ if (bad.length) {
   process.exit(1)
 }
 console.log(
-  `Licences OK (${seen.size} packages shipped to users, ${storeCount} in the storage server)`,
+  `Licences OK (${seen.size} packages shipped to users, ${serverCounts.store} in the storage server, ${serverCounts.agent} in the assistant server)`,
 )

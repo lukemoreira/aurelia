@@ -1,0 +1,28 @@
+{
+  "name": "aurelia-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aurelia's assistant server: runs each signed-in person's own Claude Code with read and propose tools only (ADR-0015).",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node --import ./src/register.ts src/main.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "jose": "^6.2.17",
+    "minisearch": "^7.2.0",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}

@@ -10,12 +10,13 @@ const MIGRATIONS: Record<number, Migration> = {}
 
 /** Thrown when a file is newer than this app: open read-only, never write (ADR-0003 rule 5). */
 export class NewerSchemaError extends Error {
-  constructor(
-    readonly found: number,
-    readonly supported: number,
-  ) {
+  readonly found: number
+  readonly supported: number
+  constructor(found: number, supported: number) {
     super(`File uses schema version ${found}; this app supports up to ${supported}.`)
     this.name = 'NewerSchemaError'
+    this.found = found
+    this.supported = supported
   }
 }
 

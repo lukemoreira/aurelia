@@ -51,10 +51,12 @@ export function parseMultistatus(xml: string, base = SERVER_BASE): RemoteEntry[]
 
 /** Standard WebDAV (RFC 4918) over `fetch`: the author's own server, and later Nextcloud. */
 export class WebDavStore implements RemoteStore {
-  constructor(
-    private base = SERVER_BASE,
-    private fetchImpl: Fetch = (input, init) => fetch(input, init),
-  ) {}
+  private base: string
+  private fetchImpl: Fetch
+  constructor(base = SERVER_BASE, fetchImpl: Fetch = (input, init) => fetch(input, init)) {
+    this.base = base
+    this.fetchImpl = fetchImpl
+  }
 
   private url(path: string, folder = false) {
     const clean = encodePath(trim(path))
