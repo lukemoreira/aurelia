@@ -8,6 +8,8 @@ import { classify } from './paths'
 import { listTrash } from './set-aside'
 import { syncOutline } from './outline-actions'
 import { listSnapshots, readSnapshot, writeSnapshot, type Snapshot } from './snapshots'
+import { writeBase } from './story-base-actions'
+import { BASE_SECTIONS, baseOf, type StoryBase } from '@/domain/story-base'
 import type { WorkspaceSession } from './session'
 
 export interface SceneRestore {
@@ -18,7 +20,7 @@ export interface SceneRestore {
 }
 
 export interface BookRestore {
-  /** Titles of scenes whose text was put back. */
+  /** Titles of scenes whose text was put back, and "Story base" when its sections were. */
   restored: string[]
   /** Titles of scenes that had been deleted and are back. */
   broughtBack: string[]
@@ -146,7 +148,8 @@ interface Change {
 /**
  * Put a whole book's writing back. A scene that is here now and not in the snapshot stays; a scene
  * that was deleted and is no longer in Recently deleted comes back, with the chapter (and part) it
- * needs if those are gone too; the book's own details, its records and everything else are not touched.
+ * needs if those are gone too; the story base's sections the snapshot has come back (ADR-0016); the
+ * book's other details, its records and everything else are not touched.
  */
 export function restoreBook(s: WorkspaceSession, snapshotId: string): Promise<BookRestore> {
   return s.exclusive(async () => {
@@ -169,6 +172,23 @@ export function restoreBook(s: WorkspaceSession, snapshotId: string): Promise<Bo
     const scenes: { path: string; text: string; title: string }[] = []
     const others = new Map<string, { path: string; text: string }>() // chapters and parts, by ID
 
+    // The story base is the author's writing too (ADR-0016): a section the snapshot has comes back; one
+    // written since and empty in the snapshot stays, as a scene that is not in it stays.
+    const base: StoryBase = {}
+    for (const [path, text] of texts) {
+      const k = classify(path)
+      if (k.kind !== 'book' || k.book !== snap.book || k.universe !== snap.universe) continue
+      let then: Record<string, string> = {}
+      try {
+        then = baseOf(JSON.parse(text)) // only the three sections, each read as text
+      } catch {
+        // a book.json that does not read gives nothing back
+      }
+      const now = baseOf(s.data.books.find((b) => b.id === snap.book))
+      for (const { key } of BASE_SECTIONS)
+        if (typeof then[key] === 'string' && then[key].trim() && then[key] !== now[key])
+          base[key] = then[key]
+    }
     for (const [path, text] of texts) {
       const k = classify(path)
       const id = ID_IN_PATH.exec(path)?.[1]
@@ -227,7 +247,8 @@ export function restoreBook(s: WorkspaceSession, snapshotId: string): Promise<Bo
       if (why) result.skipped.push({ title: c.title, why })
       else doable.push({ ...c, was: bodyNow(s, c.id)! })
     }
-    if (!doable.length && !scenes.length) return result
+    const baseBack = Object.keys(base).length > 0
+    if (!doable.length && !scenes.length && !baseBack) return result
 
     const before = await writeSnapshot(
       s,
@@ -250,6 +271,16 @@ export function restoreBook(s: WorkspaceSession, snapshotId: string): Promise<Bo
           result.skipped.push({ title: c.title, why: 'it could not be saved just yet' })
         }
       }
+      if (baseBack)
+        try {
+          await writeBase(s, snap.book, {
+            ...baseOf(s.data.books.find((b) => b.id === snap.book)),
+            ...base,
+          })
+          result.restored.push('Story base')
+        } catch {
+          result.skipped.push({ title: 'Story base', why: 'it could not be saved just yet' })
+        }
     } finally {
       if (made.length) await s.flushPaths(await syncOutline(s, snap.book)).catch(() => undefined)
     }

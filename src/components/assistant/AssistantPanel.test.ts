@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import Inspector from '@/components/shell/Inspector.vue'
 import { agentState, sendLoginLine } from '@/assistant/client'
+import { GUIDED_START } from '@/composables/useAssistant'
+import { useBackupStore } from '@/stores/backup'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { fixture, id } from '../../../tests/helpers/index-fixture'
 
@@ -57,6 +59,48 @@ describe('the assistant’s tab', () => {
     await flushPromises()
     expect(w.text()).toContain('Claude Code on this server')
     expect(w.text()).toContain('Start Claude Code sign-in')
+  })
+})
+
+describe('the guided start (ADR-0016)', () => {
+  it('is offered on a book with no story base, and sends the author’s own request, then the base is on the Book tab', async () => {
+    const asked: string[] = []
+    const w = await inspectorWith(() => json({ state: 'signed-in' }))
+    const fetchMock = vi.mocked(fetch)
+    fetchMock.mockImplementation(async (url, init) => {
+      if (String(url) === '/agent/ask') {
+        asked.push(JSON.parse(String(init?.body)).message)
+        return new Response(`${JSON.stringify({ t: 'end', ok: true })}\n`, {
+          headers: { 'Content-Type': 'application/x-ndjson' },
+        })
+      }
+      return json({ state: 'signed-in' })
+    })
+    useBackupStore().view = {
+      enabled: true,
+      mode: 'sync',
+      folder: 'Aurelia/W (wsp_abcdefghjk)',
+      status: 'idle',
+      lastBackup: null,
+      error: null,
+    } as never
+    await w.find('[role="tab"][aria-label="Assistant"]').trigger('mousedown')
+    await flushPromises()
+    expect(w.text()).toContain('This book has no story base yet')
+    const start = w
+      .findAll('button')
+      .find((b) => b.text() === 'Set up the story base with the assistant')!
+    await start.trigger('click')
+    await flushPromises()
+    expect(asked).toEqual([GUIDED_START])
+
+    await w.find('[role="tab"][aria-label="Book"]').trigger('mousedown')
+    await flushPromises()
+    const base = w.find('form[aria-label="Story base"]')
+    expect(base.text()).toContain('Objectives')
+    expect(base.text()).toContain('World and history')
+    expect(base.text()).toContain('Main narrative')
+    expect(base.text()).toContain('Main characters')
   })
 })
 

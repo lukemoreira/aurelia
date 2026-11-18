@@ -114,7 +114,7 @@ describe('Accept', () => {
       title: 'The Gate',
       text: 'Night fell over the gate.',
     })
-    const { sceneId } = await acceptProposal(s, p)
+    const { id: sceneId } = await acceptProposal(s, p)
     const added = s.data.scenes.find((x) => x.meta.id === sceneId)!
     expect(added.meta).toMatchObject({ title: 'The Gate', chapter })
     expect(added.body).toBe('Night fell over the gate.')

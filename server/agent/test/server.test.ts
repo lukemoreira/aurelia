@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ask, binOf, eventsOf, homeOf } from '../src/claude.ts'
 import { createAgentServer, stream } from '../src/server.ts'
+import { SYSTEM_PROMPT } from '../src/prompt.ts'
 import { ALLOWED_TOOLS } from '../src/tools.ts'
 import { FOLDER } from './helpers.ts'
 
@@ -189,6 +190,16 @@ describe('asking', () => {
     expect(alice!.prompt).toContain('Check Tomas.')
     expect(ALLOWED_TOOLS.every((t) => t.startsWith('mcp__aurelia__'))).toBe(true)
     expect(ALLOWED_TOOLS).not.toContain('mcp__aurelia__write')
+    // The story base grounds every answer (ADR-0016): its tools are allowed, and the prompt reads it first.
+    expect(ALLOWED_TOOLS).toEqual(
+      expect.arrayContaining([
+        'mcp__aurelia__get_story_base',
+        'mcp__aurelia__propose_story_base',
+        'mcp__aurelia__propose_character',
+      ]),
+    )
+    expect(SYSTEM_PROMPT).toMatch(/First, on every question, read the story base/)
+    expect(SYSTEM_PROMPT).toMatch(/ONE short question per reply/)
   })
 
   it('takes one question at a time per person, and refuses a folder that is not a workspace', async () => {

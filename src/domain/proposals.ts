@@ -3,6 +3,7 @@
 // server writes them; the app shows them and only the author's Accept changes the manuscript. Plain TS:
 // the same code runs in the browser and in Node (server/agent), so both read a scene's blocks alike.
 import { z } from 'zod'
+import { CHARACTER_FIELDS, type BaseSection, type StoryBase } from './story-base'
 
 export const PROPOSALS_DIR = '.aurelia/proposals'
 export const proposalPath = (id: string) => `${PROPOSALS_DIR}/${id}.json`
@@ -58,6 +59,9 @@ export function anchorOf(blocks: readonly Block[], block: Block) {
   return { occurrence: same.indexOf(block), copies: same.length }
 }
 
+/** A story-base section: its text when proposed ('' when empty), and what it becomes. */
+const section = z.object({ before: z.string().max(20_000), after: z.string().max(20_000) })
+
 const common = {
   schemaVersion: z.literal(1),
   id: z.string().regex(/^prp_[a-z0-9]{10}$/),
@@ -91,9 +95,58 @@ export const proposalSchema = z.discriminatedUnion('kind', [
     title: z.string().min(1).max(200),
     text: z.string().max(200_000),
   }),
+  z.object({
+    ...common,
+    kind: z.literal('base'),
+    /** Sections of a book's story base (ADR-0016), each with the text it had when proposed. */
+    bookId: z.string(),
+    bookTitle: z.string(),
+    sections: z.object({
+      objectives: section.optional(),
+      world: section.optional(),
+      narrative: section.optional(),
+    }),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal('character'),
+    /** A new Character record in the book's universe, with the details of its sheet. */
+    bookId: z.string(),
+    name: z.string().min(1).max(200),
+    summary: z.string().max(4000).optional(),
+    fields: z.object(
+      Object.fromEntries(
+        CHARACTER_FIELDS.map((k) => [k, z.string().max(4000).optional()]),
+      ) as Record<(typeof CHARACTER_FIELDS)[number], z.ZodOptional<z.ZodString>>,
+    ),
+  }),
 ])
 export type Proposal = z.infer<typeof proposalSchema>
 export type EditProposal = Extract<Proposal, { kind: 'edit' }>
+export type BaseProposal = Extract<Proposal, { kind: 'base' }>
+
+/**
+ * Accept of a story-base proposal: every section it changes must still read as it did (`before`), else
+ * nothing changes. A section accepted already reads as `after` and no longer as `before`, so a second
+ * Accept is refused too. Sections it does not name stay as they are.
+ */
+export function mergeBase(
+  now: Record<BaseSection, string>,
+  sections: BaseProposal['sections'],
+): { ok: true; base: StoryBase; replaced: boolean } | { ok: false } {
+  const base: StoryBase = { ...now }
+  let replaced = false
+  for (const [key, c] of Object.entries(sections) as [
+    BaseSection,
+    { before: string; after: string },
+  ][]) {
+    if (!c) continue
+    if (now[key] !== c.before) return { ok: false }
+    if (c.before.trim()) replaced = true
+    base[key] = c.after
+  }
+  return { ok: true, base, replaced }
+}
 
 /** The paragraphs `texts` sit, whole and in this order, from block `from`. */
 const sitsAt = (blocks: readonly Block[], from: number, texts: readonly string[]) =>
