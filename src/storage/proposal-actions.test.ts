@@ -176,7 +176,7 @@ describe('the inbox', () => {
     await s.editScene(sceneOf(s), TEXT)
     const p = await editProposal(s)
     await rejectProposal(s, p.id)
-    expect(await listProposals(s.adapter)).toEqual([])
+    expect((await listProposals(s.adapter)).proposals).toEqual([])
     expect(body(s, sceneOf(s))).toBe(TEXT)
   })
 
@@ -191,9 +191,31 @@ describe('the inbox', () => {
     })
     await s.adapter.write('.aurelia/proposals/prp_zzzzzzzzzz.json', '{ not json')
     const listed = await listProposals(s.adapter)
-    expect(listed.map((p) => p.id)).toEqual([revised.id])
+    expect(listed.proposals.map((p) => p.id)).toEqual([revised.id])
+    expect(listed.unreadable).toBe(1)
     expect(await s.adapter.read(proposalPath(old.id))).toBeNull()
     expect(await s.adapter.read('.aurelia/proposals/prp_zzzzzzzzzz.json')).not.toBeNull()
+  })
+
+  it('counts the files it cannot read (a newer kind, a damaged one), and not a readable copy under another name', async () => {
+    const s = rig.session
+    await s.editScene(sceneOf(s), TEXT)
+    const p = await editProposal(s)
+    await s.adapter.write(
+      '.aurelia/proposals/prp_newerkind1.json',
+      JSON.stringify({ ...p, id: 'prp_newerkind1', kind: 'timeline' }),
+    )
+    await s.adapter.write('.aurelia/proposals/prp_damaged001.json', '{ not json')
+    await s.adapter.write(
+      `.aurelia/proposals/${p.id} (Aurelia copy 1a2b3c4d).json`,
+      JSON.stringify(p),
+    )
+    await s.adapter.write('.aurelia/proposals/notes.txt', 'not a proposal')
+    const listed = await listProposals(s.adapter)
+    expect(listed.proposals.map((x) => x.id)).toEqual([p.id])
+    expect(listed.unreadable).toBe(2)
+    expect(await s.adapter.read('.aurelia/proposals/prp_newerkind1.json')).not.toBeNull()
+    expect(await s.adapter.read('.aurelia/proposals/prp_damaged001.json')).not.toBeNull()
   })
 
   it('a revision clears only a suggestion about the same thing; a "replaces" that names another is ignored', async () => {
@@ -202,7 +224,7 @@ describe('the inbox', () => {
     const edit = await editProposal(s)
     const scene = await sceneProposal(s)
     const other = await write(s, { ...(await editProposal(s, 'Elsewhere.')), replaces: scene.id })
-    const listed = (await listProposals(s.adapter)).map((p) => p.id).sort()
+    const listed = (await listProposals(s.adapter)).proposals.map((p) => p.id).sort()
     expect(listed).toEqual([edit.id, scene.id, other.id].sort())
     expect(await s.adapter.read(proposalPath(scene.id))).not.toBeNull()
   })
@@ -313,7 +335,7 @@ describe('Accept of a suggested record delete', () => {
     const scene = sceneOf(s)
     const bad = { ...p, recordId: scene } as Proposal
     await s.adapter.write(proposalPath(p.id), JSON.stringify(bad))
-    expect(await listProposals(s.adapter)).toEqual([]) // not a record: the file does not read
+    expect((await listProposals(s.adapter)).proposals).toEqual([]) // not a record: the file does not read
     expect(stillApplies(s, bad)).toBe(false)
     await expect(acceptProposal(s, bad)).rejects.toThrow(RECORD_CHANGED)
     expect(s.data.scenes.some((x) => x.meta.id === scene)).toBe(true)
