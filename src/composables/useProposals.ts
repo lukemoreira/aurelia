@@ -14,6 +14,15 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { noteSnapshot } from './useHistory'
 import { useAssistant } from './useAssistant'
 
+/** What the toast says once a suggestion is in. */
+function acceptedWords(p: Proposal, snapshot: boolean): string {
+  const saved = snapshot ? ' A snapshot was saved first, in History.' : ''
+  if (p.kind === 'scene') return `“${p.title}” is in the book.`
+  if (p.kind === 'character') return `“${p.name}” is in the world, with their sheet filled in.`
+  if (p.kind === 'base') return `The story base of “${p.bookTitle}” is updated.${saved}`
+  return `Accepted for “${p.sceneTitle}”.${saved}`
+}
+
 function createProposals() {
   const ws = useWorkspaceStore()
   const edits = useEditsStore()
@@ -61,10 +70,11 @@ function createProposals() {
       .filter((s) => s.meta.chapter === scene?.meta.chapter)
       .sort((a, b) => (a.meta.order < b.meta.order ? -1 : 1))
       .at(-1)
+    // A story base or a character is the book's, not a scene's: those wait in the Review inbox only.
     return all.value.filter((p) =>
       p.kind === 'edit'
         ? p.sceneId === sceneId
-        : p.chapterId === scene?.meta.chapter && last?.meta.id === sceneId,
+        : p.kind === 'scene' && p.chapterId === scene?.meta.chapter && last?.meta.id === sceneId,
     )
   }
 
@@ -87,12 +97,7 @@ function createProposals() {
       if (done.snapshot) noteSnapshot()
       edits.toast = !done.cleared
         ? { text: NOT_CLEARED, error: true }
-        : {
-            text:
-              p.kind === 'scene'
-                ? `“${p.title}” is in the book.`
-                : `Accepted for “${p.sceneTitle}”. A snapshot was saved first, in History.`,
-          }
+        : { text: acceptedWords(p, !!done.snapshot) }
     })
 
   const reject = (p: Proposal) => act(p, () => rejectProposal(ws.session!, p.id))

@@ -16,6 +16,7 @@ import ItemDetails from './ItemDetails.vue'
 import LinksList from './LinksList.vue'
 import NamesTab from './NamesTab.vue'
 import SceneInspector from './SceneInspector.vue'
+import StoryBase from './StoryBase.vue'
 
 const route = useRoute()
 const ws = useWorkspaceStore()
@@ -101,6 +102,7 @@ watch(
         <template #book>
           <div class="flex flex-col gap-5">
             <ItemDetails :id="ws.bookId ?? undefined" kind="book" heading="Book" />
+            <StoryBase v-if="ws.bookId" class="border-t border-line pt-4" />
             <HistoryList
               v-if="ws.session && ws.bookId"
               :target="{ kind: 'book', id: ws.bookId }"

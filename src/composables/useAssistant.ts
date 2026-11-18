@@ -19,6 +19,10 @@ export interface ChatTurn {
   error?: string
 }
 
+/** The author's message that starts the guided start; the system prompt says how it goes. */
+export const GUIDED_START =
+  'Set up the story base of this book with me: ask me one short question at a time, then propose it.'
+
 function createAssistant() {
   const ws = useWorkspaceStore()
   const backup = useBackupStore()
@@ -64,7 +68,9 @@ function createAssistant() {
       const ctx = ws.context
       const context = ctx
         ? `scene ${ctx.scene.meta.id} (“${ctx.scene.meta.title}”) in book ${ctx.book.id}`
-        : ''
+        : ws.bookId
+          ? `book ${ws.bookId}`
+          : ''
       for await (const e of askAgent({ folder: folder.value, message: text, history, context })) {
         if (e.t === 'text') live.text += (live.text ? '\n\n' : '') + e.text
         else if (e.t === 'tool') live.tools.push(e.label)
@@ -81,6 +87,9 @@ function createAssistant() {
     if (live.error) await refresh()
     return !live.error
   }
+
+  /** The guided start (ADR-0016): the assistant asks one short question at a time, then proposes. */
+  const guidedStart = () => send(GUIDED_START)
 
   async function startLogin(useConsole = false) {
     loginAbort.value?.abort()
@@ -129,6 +138,7 @@ function createAssistant() {
     loginResult,
     refresh,
     send,
+    guidedStart,
     startLogin,
     sendLine,
     cancelLogin,

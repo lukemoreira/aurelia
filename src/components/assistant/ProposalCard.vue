@@ -7,7 +7,7 @@ import Field from '@/components/ui/Field.vue'
 import Icon from '@/components/ui/Icon.vue'
 import Textarea from '@/components/ui/Textarea.vue'
 import type { Proposal } from '@/domain/proposals'
-import { diffWords } from '@/domain/word-diff'
+import { diffsOf, targetOf } from './proposal-view'
 
 /**
  * One suggestion: what it changes (removed words crossed out, added words underlined), why, and the
@@ -28,16 +28,8 @@ const asking = ref(false)
 const note = ref('')
 const noteBox = ref<{ $el: HTMLTextAreaElement }>()
 
-const target = computed(() =>
-  props.proposal.kind === 'edit'
-    ? props.proposal.sceneTitle
-    : `New scene in this chapter: “${props.proposal.title}”`,
-)
-const diffs = computed(() =>
-  props.proposal.kind === 'edit'
-    ? props.proposal.changes.map((c) => diffWords(c.before, c.after))
-    : [diffWords('', props.proposal.text)],
-)
+const target = computed(() => targetOf(props.proposal))
+const diffs = computed(() => diffsOf(props.proposal))
 
 async function openAsk() {
   asking.value = true
@@ -71,7 +63,10 @@ function sendAsk() {
     </header>
     <p v-if="proposal.why" class="m-0 text-[12.5px] text-ink-2">{{ proposal.why }}</p>
     <div class="relative flex max-h-80 flex-col gap-2 overflow-y-auto">
-      <WordDiff v-for="(parts, i) in diffs" :key="i" :parts="parts" />
+      <div v-for="(d, i) in diffs" :key="i" class="flex flex-col gap-0.5">
+        <h4 v-if="d.label" class="m-0 text-[11px] font-semibold text-ink-3">{{ d.label }}</h4>
+        <WordDiff :parts="d.parts" />
+      </div>
     </div>
     <p v-if="outOfDate" class="m-0 text-[12.5px] font-medium text-warn" role="note">
       Out of date: the text changed after this was suggested. Ask again, or reject it.

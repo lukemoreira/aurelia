@@ -6,6 +6,7 @@ import Field from '@/components/ui/Field.vue'
 import Icon from '@/components/ui/Icon.vue'
 import Textarea from '@/components/ui/Textarea.vue'
 import { useAssistant } from '@/composables/useAssistant'
+import { useStoryBase } from '@/composables/useStoryBase'
 import { useLayoutStore } from '@/stores/layout'
 import ConnectClaude from './ConnectClaude.vue'
 import ReviewInbox from './ReviewInbox.vue'
@@ -13,6 +14,7 @@ import ReviewInbox from './ReviewInbox.vue'
 /** The assistant's tab: connect, the conversation with its activity log, and the Review inbox. */
 const a = useAssistant()
 const layout = useLayoutStore()
+const base = useStoryBase()
 const message = ref('')
 
 async function send() {
@@ -45,6 +47,15 @@ async function send() {
         >
           Assistant
         </h3>
+        <div v-if="!a.turns.value.length" class="flex flex-col gap-1.5">
+          <p v-if="base.empty.value" class="m-0 text-[12.5px] text-ink-2">
+            This book has no story base yet: its objectives, world and history, main narrative and
+            main characters. The assistant can set it up with you, one short question at a time.
+          </p>
+          <Button size="sm" :disabled="a.busy.value" @click="a.guidedStart()"
+            ><Icon name="spark" :size="14" />Set up the story base with the assistant</Button
+          >
+        </div>
         <ol class="m-0 flex list-none flex-col gap-3 p-0" aria-live="polite">
           <li v-for="(t, i) in a.turns.value" :key="i" class="flex flex-col gap-1.5">
             <p

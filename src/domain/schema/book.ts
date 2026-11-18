@@ -22,6 +22,16 @@ export const bookSchema = z.looseObject({
   // Capitalised words the author said are not names, so the Names panel stops offering them (ADR-0010).
   notNames: z.array(z.string()).optional(),
   targets: z.looseObject({ words: z.number().int().nonnegative().optional() }).optional(),
+  // The story base (ADR-0016): what grounds the book's lore. Its main characters are Character records.
+  // Written by hand into something else, it is left out when read, never a reason to refuse the book.
+  storyBase: z
+    .looseObject({
+      objectives: z.string().optional(),
+      world: z.string().optional(),
+      narrative: z.string().optional(),
+    })
+    .optional()
+    .catch(undefined),
 })
 
 export type Book = z.infer<typeof bookSchema>

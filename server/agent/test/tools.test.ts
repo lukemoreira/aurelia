@@ -183,6 +183,110 @@ describe('the propose tools', () => {
   })
 })
 
+describe('the story base (ADR-0016)', () => {
+  const proposalsIn = async () => {
+    const dir = join(rig!.root, FOLDER, 'current/.aurelia/proposals')
+    return Promise.all(
+      (await readdir(dir)).map(async (f) =>
+        proposalSchema.parse(JSON.parse(await readFile(join(dir, f), 'utf8'))),
+      ),
+    )
+  }
+
+  it('get_story_base says there is none yet and offers the guided start; then reads it fenced, with the characters', async () => {
+    const ctx = await context()
+    const book = ctx.ws.data.books[0]!
+    const empty = await run(ctx, 'get_story_base', { bookId: book.id })
+    expect(empty.label).toBe(`Read the story base of “${book.title}”`)
+    expect(empty.data).toContain('no story base yet')
+    expect(empty.data).toContain('guided start')
+    book.storyBase = { world: `A port city. ${INJECTION}` }
+    ctx.ws.data.records.push({
+      meta: {
+        title: 'Tomas Brandt',
+        schemaVersion: 1,
+        id: 'chr_abcdefghjk',
+        type: 'character',
+        scope: 'universe',
+        role: 'Protagonist',
+      },
+      universe: ctx.ws.data.universes[0]!.id,
+    } as never)
+    const read = await run(ctx, 'get_story_base', { bookId: book.id })
+    expect(read.data).toMatch(/^The text between the <story-data> tags/)
+    expect(read.data.match(/<\/story-data>/g)).toHaveLength(1) // the injection cannot close the fence
+    expect(read.data).toContain('## World and history (world)\nA port city.')
+    expect(read.data).toContain('## Objectives (objectives)\n(not written yet)')
+    expect(read.data).toContain('- chr_abcdefghjk: Tomas Brandt — role: Protagonist')
+    expect((await run(ctx, 'get_story_base', { bookId: 'bok_nope' })).error).toBe(true)
+  })
+
+  it('propose_story_base writes one proposal with each section’s text as it read it; nothing new is refused', async () => {
+    const ctx = await context()
+    const book = ctx.ws.data.books[0]!
+    book.storyBase = { world: 'An island.' }
+    expect(
+      (await run(ctx, 'propose_story_base', { bookId: book.id, why: 'x', world: 'An island.' }))
+        .error,
+    ).toBe(true)
+    const r = await run(ctx, 'propose_story_base', {
+      bookId: book.id,
+      why: 'From your answers.',
+      objectives: ' A mystery for adults. ',
+      world: 'Two islands.',
+    })
+    expect(r.label).toBe(`Suggested the story base of “${book.title}”`)
+    const [p] = await proposalsIn()
+    expect(p).toMatchObject({
+      kind: 'base',
+      bookId: book.id,
+      sections: {
+        objectives: { before: '', after: 'A mystery for adults.' },
+        world: { before: 'An island.', after: 'Two islands.' },
+      },
+    })
+    expect(p!.kind === 'base' && p!.sections.narrative).toBeUndefined()
+  })
+
+  it('propose_character suggests a new character with its sheet, and refuses a name the world already has', async () => {
+    const ctx = await context()
+    const book = ctx.ws.data.books[0]!
+    const r = await run(ctx, 'propose_character', {
+      bookId: book.id,
+      name: 'Tomas Brandt',
+      why: 'Your protagonist.',
+      role: 'Protagonist',
+      goal: 'To leave the port',
+      fear: ' ',
+    })
+    expect(r.label).toBe('Suggested a character “Tomas Brandt”')
+    const [p] = await proposalsIn()
+    expect(p).toMatchObject({
+      kind: 'character',
+      name: 'Tomas Brandt',
+      fields: { role: 'Protagonist', goal: 'To leave the port' },
+    })
+    expect(p!.kind === 'character' && 'fear' in p!.fields).toBe(false)
+    ctx.ws.data.records.push({
+      meta: {
+        title: 'Tomas Brandt',
+        schemaVersion: 1,
+        id: 'chr_abcdefghjk',
+        type: 'character',
+        scope: 'universe',
+      },
+      universe: ctx.ws.data.universes[0]!.id,
+    } as never)
+    const again = await run(ctx, 'propose_character', {
+      bookId: book.id,
+      name: 'tomas brandt',
+      why: 'x',
+    })
+    expect(again.error).toBe(true)
+    expect(again.data).toContain('chr_abcdefghjk')
+  })
+})
+
 describe('the workspace folder', () => {
   it('only takes a folder the app made, never a way out of it', () => {
     expect(checkFolder(FOLDER)).toBe(FOLDER)

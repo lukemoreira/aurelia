@@ -8,6 +8,16 @@ import { continuityFindings, splitDismissed } from '@/domain/continuity-checks'
 import { newId } from '@/domain/ids'
 import { bookOutline, bookUnfiled, sceneContext, sceneLabels } from '@/domain/outline'
 import { anchorOf, proposalPath, sceneBlocks, type Proposal } from '@/domain/proposals'
+import { RECORD_INFO } from '@/domain/record-types'
+import {
+  BASE_SECTIONS,
+  CHARACTER_FIELDS,
+  baseOf,
+  bookCharacters,
+  sameName,
+  universeOfBook,
+  type BaseSection,
+} from '@/domain/story-base'
 import { continuityInput } from '@/index/continuity-input'
 import { encode, hashText } from '@/storage/hash'
 import type { RemoteStore } from '@/storage/remote/remote-store'
@@ -64,6 +74,12 @@ async function writeProposal(ctx: ToolContext, proposal: Proposal) {
     { ifNoneMatch: '*' },
   )
 }
+
+const sectionText = z.string().max(20_000)
+const characterText = z.string().max(4000)
+const CHARACTER_HINT = new Map<string, string>(
+  RECORD_INFO.character.fields.map((f) => [f.key, `${f.label} (${f.hint})`]),
+)
 
 const replaces = z
   .string()
@@ -227,6 +243,153 @@ export const TOOLS = {
       return {
         label: 'Read an earlier suggestion',
         data: untrusted(new TextDecoder().decode(file.bytes)),
+      }
+    },
+  },
+
+  get_story_base: {
+    description:
+      'The story base of a book: its objectives (audience, genre, tone, length, themes), its world and history outline, its main narrative, and its main characters (the Character records of its world). It grounds the book’s lore: read it first, before answering anything about a book.',
+    input: { bookId: z.string() },
+    run: (ctx: ToolContext, a: { bookId: string }): ToolResult => {
+      const { data } = ctx.ws
+      const book = data.books.find((b) => b.id === a.bookId)
+      if (!book) return fail('Read the story base', 'No such book.')
+      const base = baseOf(book)
+      const characters = bookCharacters(data, book.id)
+      const label = `Read the story base of ${quoted(book.title)}`
+      if (!Object.values(base).some((t) => t.trim()) && !characters.length)
+        return {
+          label,
+          data: 'This book has no story base yet. You may offer the author the guided start.',
+        }
+      const lines = BASE_SECTIONS.map(
+        (sec) => `## ${sec.label} (${sec.key})\n${base[sec.key].trim() || '(not written yet)'}`,
+      )
+      lines.push(
+        `## Main characters\n${
+          characters
+            .map((c) => {
+              const details = [
+                c.meta.summary,
+                ...CHARACTER_FIELDS.map((k) => c.meta[k] && `${k}: ${c.meta[k]}`),
+              ].filter(Boolean)
+              return `- ${c.meta.id}: ${c.meta.title}${details.length ? ` — ${details.join('; ')}` : ''}`
+            })
+            .join('\n') || '(none yet)'
+        }`,
+      )
+      return { label, data: untrusted(`Book ${book.id}: ${book.title}\n\n${lines.join('\n\n')}`) }
+    },
+  },
+
+  propose_story_base: {
+    description:
+      'Suggest the text of one or more sections of a book’s story base (objectives, world, narrative): each is the whole new text of that section. It becomes a proposal the author reviews; nothing changes until they accept it.',
+    input: {
+      bookId: z.string(),
+      why: z.string().min(1).max(2000),
+      objectives: sectionText.optional().describe('Audience, genre, tone, length, themes.'),
+      world: sectionText.optional().describe('The world and its history, in outline.'),
+      narrative: sectionText
+        .optional()
+        .describe('The premise, the main arc, and where the ending goes.'),
+      replaces,
+    },
+    run: async (
+      ctx: ToolContext,
+      a: { bookId: string; why: string; replaces?: string } & Partial<Record<BaseSection, string>>,
+    ): Promise<ToolResult> => {
+      const book = ctx.ws.data.books.find((b) => b.id === a.bookId)
+      if (!book) return fail('Suggested a story base', 'No such book.')
+      const now = baseOf(book)
+      const sections: Partial<Record<BaseSection, { before: string; after: string }>> = {}
+      for (const { key } of BASE_SECTIONS) {
+        const after = a[key]?.trim()
+        if (after !== undefined && after !== now[key]) sections[key] = { before: now[key], after }
+      }
+      if (!Object.keys(sections).length)
+        return fail('Suggested a story base', 'Name at least one section, with new text.')
+      const proposal: Proposal = {
+        schemaVersion: 1,
+        id: newId('prp'),
+        createdAt: (ctx.now?.() ?? new Date()).toISOString(),
+        by: 'Claude',
+        why: a.why,
+        ...(a.replaces ? { replaces: a.replaces } : {}),
+        kind: 'base',
+        bookId: book.id,
+        bookTitle: book.title,
+        sections,
+      }
+      await writeProposal(ctx, proposal)
+      return {
+        label: `Suggested the story base of ${quoted(book.title)}`,
+        data: `Proposal ${proposal.id} is waiting for the author.`,
+      }
+    },
+  },
+
+  propose_character: {
+    description:
+      'Suggest a main character of a book: a new Character record in its world, with the details of its sheet. It becomes a proposal the author reviews; nothing is created until they accept it.',
+    input: {
+      bookId: z.string(),
+      name: z.string().min(1).max(200),
+      why: z.string().min(1).max(2000),
+      summary: characterText.optional().describe('One or two sentences: who they are.'),
+      ...(Object.fromEntries(
+        CHARACTER_FIELDS.map((k) => [
+          k,
+          characterText.optional().describe(CHARACTER_HINT.get(k) ?? k),
+        ]),
+      ) as Record<(typeof CHARACTER_FIELDS)[number], z.ZodOptional<z.ZodString>>),
+      replaces,
+    },
+    run: async (
+      ctx: ToolContext,
+      a: {
+        bookId: string
+        name: string
+        why: string
+        summary?: string
+        replaces?: string
+      } & Partial<Record<(typeof CHARACTER_FIELDS)[number], string>>,
+    ): Promise<ToolResult> => {
+      const { data } = ctx.ws
+      const book = data.books.find((b) => b.id === a.bookId)
+      const universe = book && universeOfBook(data, book.id)
+      if (!book || !universe) return fail('Suggested a character', 'No such book.')
+      const name = a.name.trim()
+      const known = data.records.find(
+        (r) =>
+          r.universe === universe && r.meta.type === 'character' && sameName(r.meta.title, name),
+      )
+      if (known)
+        return fail(
+          'Suggested a character',
+          `There is already a character named ${name} (${known.meta.id}): read it with get_record.`,
+        )
+      const fields = Object.fromEntries(
+        CHARACTER_FIELDS.flatMap((k) => (a[k]?.trim() ? [[k, a[k].trim()]] : [])),
+      )
+      const proposal: Proposal = {
+        schemaVersion: 1,
+        id: newId('prp'),
+        createdAt: (ctx.now?.() ?? new Date()).toISOString(),
+        by: 'Claude',
+        why: a.why,
+        ...(a.replaces ? { replaces: a.replaces } : {}),
+        kind: 'character',
+        bookId: book.id,
+        name,
+        ...(a.summary?.trim() ? { summary: a.summary.trim() } : {}),
+        fields,
+      }
+      await writeProposal(ctx, proposal)
+      return {
+        label: `Suggested a character ${quoted(name)}`,
+        data: `Proposal ${proposal.id} is waiting for the author.`,
       }
     },
   },
