@@ -277,6 +277,58 @@ describe('a character is found by the short forms of its title (ADR-0010, 2026-1
     expect(mentions(off, 'Then Archie ran.')).toEqual([])
   })
 
+  it('asks about an epithet that is an ordinary word ("Old habits die hard.")', () => {
+    expect(mentions([{ n: 1, title: 'Old Tom' }], 'Old habits die hard.')).toEqual([
+      ['Old', 'suggest', id('chr', 1)],
+    ])
+  })
+
+  it('does not let a stopped short form silence the title it became', () => {
+    const renamed = [
+      { n: 1, title: 'Archibald', aliases: [{ text: 'Archibald', match: 'never' as const }] },
+    ]
+    expect(mentions(renamed, 'Then Archibald ran.')).toEqual([
+      ['Archibald', 'tagged', id('chr', 1)],
+    ])
+  })
+
+  it('does not resolve a link by a name the author said never to', () => {
+    const idx = indexOf(
+      fixture(
+        [],
+        [
+          { ...ARCHIE, aliases: [{ text: 'Collins', match: 'never' as const }] },
+          { n: 2, title: 'Mary Collins' },
+        ],
+      ),
+    )
+    expect(idx.resolveName('Collins', scope1)).toEqual({ status: 'missing' })
+  })
+
+  it('compares names as the matcher does: José is not Jose', () => {
+    const jose = [
+      { n: 1, title: 'José Garcia' },
+      { n: 2, title: 'Jose', type: 'place' as const },
+    ]
+    expect(mentions(jose, 'Then José ran.')).toEqual([['José', 'tagged', id('chr', 1)]])
+  })
+
+  it('says a short form asks first when any book of the universe shares it', () => {
+    const idx = indexOf(
+      fixture(
+        [],
+        [
+          { n: 1, title: 'Archibald Collins' },
+          { n: 2, title: 'Mary Collins', scope: 1 },
+        ],
+      ),
+    )
+    expect(idx.shortFormsOf(id('chr', 1)).map((f) => [f.text, f.mode])).toEqual([
+      ['Archibald', 'auto'],
+      ['Collins', 'ask'],
+    ])
+  })
+
   it('is for characters only, and lists them for the character’s page', () => {
     const place = [{ n: 1, title: 'Lantern Gate', type: 'place' as const }]
     expect(mentions(place, 'At the Gate, by the Lantern.')).toEqual([])

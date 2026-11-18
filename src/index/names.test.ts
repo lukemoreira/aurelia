@@ -187,6 +187,14 @@ describe('a character’s short forms, from its title', () => {
     expect(shortForms('Major')).toEqual([])
   })
 
+  it('strips a rank only at the front and a suffix only at the end: a surname that is a rank gives no last name', () => {
+    expect(shortForms('Martin Luther King Jr.')).toEqual(['Martin'])
+    expect(shortForms('Edward Bishop')).toEqual(['Edward'])
+    expect(shortForms('Grandma Rose Hill')).toEqual(['Rose', 'Hill'])
+    expect(shortForms('Ser Duncan Tall')).toEqual(['Duncan', 'Tall'])
+    expect(shortForms('DCI Jane Tennison')).toEqual(['Jane', 'Tennison'])
+  })
+
   it('gives nothing extra for a one-word title', () => {
     expect(shortForms('Corin')).toEqual([])
     expect(shortForms('Élodie')).toEqual([])

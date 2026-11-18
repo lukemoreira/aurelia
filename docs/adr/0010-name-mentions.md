@@ -156,22 +156,30 @@ Archibald, Tommy for Tommy Kent." Chosen: automatic.
   `src/index/names.ts`): a nickname in quotes (straight or curly double quotes, or single quotes
   around a whole word), the first name and the last name. `“Archie” Archibald Collins` is also
   Archie, Archibald and Collins; `Thomas "Tommy" Kent` is Tommy, Thomas and Kent; `Major Dempsey`
-  is Dempsey. A rank or a way of addressing someone (Mr, Dr, Professor, Major, Corporal, Sir,
-  Queen…), a particle (de, van, von, da, del, la, le, the), a suffix (Jr, Sr, II, III), an initial
-  and a single letter are never one, and nothing after "of" is. A one-word title gives nothing.
-  Other record types get none.
+  is Dempsey. A rank or a way of addressing someone (Mr, Dr, Professor, Major, Corporal, Sir, Ser,
+  Grandma, DCI, Queen…) is stripped at the front and a suffix (Jr, Sr, II, III) at the end; a
+  lowercase particle (de, van, von), an initial and a single letter are never one, and nothing
+  after "of" is. A last name that is also such a word gives no last name (`Martin Luther King Jr.`
+  is Martin only, never "Luther"). A one-word title gives nothing. Other record types get none.
 - They are worked out with the rest of a scope's names (`WorkspaceIndex.formsFor`), once per change
   to names or titles, never stored. Rules, so nothing is guessed:
   - A short form that is any record's own title or alias (not a `never` one) is left to that name.
   - A short form two or more characters share is asked about for each (`ask`, "Which Collins?").
     One that is also an ordinary word (the common-words list, which gained young, little, long,
-    white, black, brown, green, grey, gray, hill, wood and stone) is asked about too.
+    white, black, brown, green, grey, gray, hill, wood, stone, old, big and man) is asked about too.
+  - Names are compared as the matcher compares them, by exact text: a place titled `Jose` does not
+    take "José" from `José Garcia`.
   - The author's answers win: an alias of that character with `match: never` turns the short form
     off (another character may still have it, and then has it alone); "Not a name" answers a place
-    as it does for any name.
+    as it does for any name. A `never` alias that is the record's own title (a short form stopped,
+    then the title renamed to it) is ignored, so it never silences the title. A `never` alias is
+    not a name a `[[link]]` resolves by.
 - **Find new names** does not offer them: every word of a known name was already left out.
 - **Rename everywhere** is unchanged: it renames the title and the typed aliases only, never a
-  short form (the next title gives its own).
-- A character's page lists them under Other names ("Also found as"); "Stop finding Archie" adds
+  short form (the next title gives its own). Accepted as designed: renaming `Archibald Collins` to
+  `Archibald Smith` leaves the plain "Collins" mentions as written, untagged, or tagged to another
+  character with that last name.
+- A character's page lists them under Other names ("Also found as", with "asks first" when the
+  form is asked about in any book that sees the record); "Stop finding Archie" adds
   the alias `{ text: "Archie", match: never }` through the sheet's alias writer, so the answer is in
   the record's file and every device and the MCP server agree.
