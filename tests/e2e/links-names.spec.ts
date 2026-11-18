@@ -448,3 +448,36 @@ test('"Only rename the record" leaves the text as it is', async ({ page }) => {
   await waitSaved(page)
   expect(await opfs.read(page, path)).toBe(before)
 })
+
+test('a short form of a character’s name is found, and the character’s page can turn it off', async ({
+  page,
+}) => {
+  const ARCHIE = 'chr_archie0001'
+  const title = '“Archie” Archibald Collins'
+  const { base } = await seeded(page, 'Elena reached the Lantern Gate. Then Archie waited.')
+  const file = `${base}/records/characters/${ARCHIE}.md`
+  await opfs.write(page, file, record(ARCHIE, 'character', title))
+  await page.reload()
+  await expect(sceneText(page)).toContainText('Then Archie waited')
+  await showNames(page).click()
+  const archie = page.locator('.manuscript .aur-name', { hasText: /^Archie$/ })
+  await expect(archie).toHaveCount(1)
+  await archie.hover()
+  await expect(card(page, title)).toBeVisible()
+
+  await page.getByRole('link', { name: 'World' }).click()
+  await page.getByRole('button', { name: title }).click()
+  const sheet = page.getByRole('region', { name: 'Record' })
+  const found = sheet.getByRole('region', { name: 'Also found as' })
+  await expect(found.getByRole('listitem')).toHaveText(['Archie', 'Archibald', 'Collins'])
+  await found.getByRole('button', { name: 'Stop finding Archie' }).click()
+  await expect(found.getByRole('listitem')).toHaveText(['Archibald', 'Collins'])
+  await expect.poll(() => opfs.read(page, file)).toMatch(/text: "?Archie"?[\s\S]*never/)
+  expect(await seriousViolations(page)).toEqual([])
+
+  await page.getByRole('link', { name: 'Write' }).click()
+  await expect(sceneText(page)).toContainText('Then Archie waited')
+  // Names are found again (the place still is), and Archie no longer.
+  await expect(page.locator('.manuscript .aur-name', { hasText: 'Lantern Gate' })).toHaveCount(1)
+  await expect(page.locator('.manuscript .aur-name', { hasText: /^Archie$/ })).toHaveCount(0)
+})

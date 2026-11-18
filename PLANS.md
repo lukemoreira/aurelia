@@ -808,3 +808,10 @@ backup — ADR-0009.)
   Accept moves it to Recently deleted, and how many scenes and records link to it. Accept moves it there
   through `deleteItem`, only while the record still reads as it did (checked inside the delete's turn);
   otherwise the card is out of date and Accept refuses. Never a scene, chapter, part or book.
+- 2026-11-18 — Short forms of a character's name (branch `feat/names-short-forms`, ADR-0010
+  amendment; owner: "Archie for Archibald, Tommy for Tommy Kent", automatic): a character is also
+  found by the nickname in quotes, the first name and the last name of its title (never a rank, a
+  particle, a suffix or an initial). A record's own title or alias wins; a form two characters share,
+  or an ordinary word, is asked about; an alias with `never` turns one off. Worked out with the names
+  of a scope, never stored; Rename everywhere is unchanged. The character's page lists them ("Also
+  found as") with "Stop finding …", which writes a `never` alias.

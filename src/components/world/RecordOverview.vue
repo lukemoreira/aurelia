@@ -8,6 +8,7 @@ import AliasEditor from './AliasEditor.vue'
 import FieldList from './FieldList.vue'
 import PlaceContext from './PlaceContext.vue'
 import RecordNames from './RecordNames.vue'
+import ShortForms from './ShortForms.vue'
 
 /** The Overview of a sheet: the type's basic fields, where a place sits, the other names, and how the name is written in the text. */
 defineProps<{ id: string; fields: BasicField[]; disabled: boolean; place: boolean }>()
@@ -20,6 +21,7 @@ defineEmits<{
   saveAliases: []
   addAlias: []
   removeAlias: [i: number]
+  neverAlias: [text: string]
 }>()
 </script>
 
@@ -43,6 +45,7 @@ defineEmits<{
       @add="$emit('addAlias')"
       @remove="$emit('removeAlias', $event)"
     />
+    <ShortForms :id="id" :disabled="disabled" @off="$emit('neverAlias', $event)" />
     <RecordNames :id="id" />
   </div>
 </template>

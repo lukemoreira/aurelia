@@ -155,7 +155,10 @@ describe('what is drawn over the text', () => {
     t.index.sync({
       ...t.data,
       records: t.data.records.map((r) =>
-        r.meta.id === id('chr', 1) ? { ...r, meta: { ...r.meta, aliases: [{ text: 'Lena' }] } } : r,
+        // "Elena" is also the first name of the title (a short form): never tagging it turns it off.
+        r.meta.id === id('chr', 1)
+          ? { ...r, meta: { ...r.meta, aliases: [{ text: 'Elena', match: 'never' as const }] } }
+          : r,
       ),
     })
     refreshLinks(t.view)

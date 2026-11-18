@@ -232,6 +232,67 @@ describe('names found in a scene (ADR-0010)', () => {
   })
 })
 
+describe('a character is found by the short forms of its title (ADR-0010, 2026-11-18)', () => {
+  const ARCHIE = { n: 1, title: '“Archie” Archibald Collins' }
+  const mentions = (records: Parameters<typeof fixture>[1], body: string) =>
+    indexOf(fixture([{ n: 1, body }], records))
+      .analysis(id('scn', 1))!
+      .mentions.map((m) => [m.text, m.status, m.recordIds.join(',')])
+
+  it('tags a nickname, a first name and a last name one character has', () => {
+    expect(mentions([ARCHIE], 'Then Archie ran, and Collins too.')).toEqual([
+      ['Archie', 'tagged', id('chr', 1)],
+      ['Collins', 'tagged', id('chr', 1)],
+    ])
+  })
+
+  it('leaves a word that is any record’s own name to that record', () => {
+    const kent = [
+      { n: 1, title: 'Thomas "Tommy" Kent' },
+      { n: 2, title: 'Kent', type: 'place' as const },
+    ]
+    expect(mentions(kent, 'So Tommy rode to Kent.')).toEqual([
+      ['Tommy', 'tagged', id('chr', 1)],
+      ['Kent', 'tagged', id('plc', 2)],
+    ])
+    const alias = [ARCHIE, { n: 2, title: 'Mr Archer', aliases: [{ text: 'Archie' }] }]
+    expect(mentions(alias, 'Then Archie ran.')).toEqual([['Archie', 'tagged', id('chr', 2)]])
+  })
+
+  it('asks about a short form two characters share, and about an ordinary word', () => {
+    const two = [ARCHIE, { n: 2, title: 'Mary Collins' }, { n: 3, title: 'Will Turner' }]
+    expect(mentions(two, 'Then Collins ran, and Will.')).toEqual([
+      ['Collins', 'suggest', `${id('chr', 1)},${id('chr', 2)}`],
+      ['Will', 'suggest', id('chr', 3)],
+    ])
+  })
+
+  it('drops one the character said never to, and then the other character has it alone', () => {
+    const two = [
+      { ...ARCHIE, aliases: [{ text: 'Collins', match: 'never' as const }] },
+      { n: 2, title: 'Mary Collins' },
+    ]
+    expect(mentions(two, 'Then Collins ran.')).toEqual([['Collins', 'tagged', id('chr', 2)]])
+    const off = [{ ...ARCHIE, aliases: [{ text: 'Archie', match: 'never' as const }] }]
+    expect(mentions(off, 'Then Archie ran.')).toEqual([])
+  })
+
+  it('is for characters only, and lists them for the character’s page', () => {
+    const place = [{ n: 1, title: 'Lantern Gate', type: 'place' as const }]
+    expect(mentions(place, 'At the Gate, by the Lantern.')).toEqual([])
+    // An ordinary word that is a last name is asked about, not tagged ("Young people…").
+    expect(mentions([{ n: 1, title: 'Grace Young' }], 'Then Young came.')).toEqual([
+      ['Young', 'suggest', id('chr', 1)],
+    ])
+    const idx = indexOf(fixture([], [ARCHIE, { n: 2, title: 'Mary Collins' }]))
+    expect(idx.shortFormsOf(id('chr', 1)).map((f) => [f.text, f.mode])).toEqual([
+      ['Archie', 'auto'],
+      ['Archibald', 'auto'],
+      ['Collins', 'ask'],
+    ])
+  })
+})
+
 describe('an edit re-reads only the file it changed', () => {
   it('keeps the other files’ results, and re-works a file when a name changes', () => {
     const data = fixture(
