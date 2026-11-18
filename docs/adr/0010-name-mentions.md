@@ -146,3 +146,32 @@ Renaming a record opens **"Change the name in your text too?"**:
   universe is the book's own). The word is then a name and leaves the list; no alias is added.
 - The panel is in World (›New names, with a count) and in the Names tab of the inspector (the design's
   "New names in this book"). After typing it is worked out again after a 0.7 s pause.
+
+## Amendment (2026-11-18): short forms of a character's name
+
+Owner: "Would like to see shortened versions of name being recognized. Example Archie for
+Archibald, Tommy for Tommy Kent." Chosen: automatic.
+
+- A **character** is also found by the short forms of its title (`shortForms` in
+  `src/index/names.ts`): a nickname in quotes (straight or curly double quotes, or single quotes
+  around a whole word), the first name and the last name. `“Archie” Archibald Collins` is also
+  Archie, Archibald and Collins; `Thomas "Tommy" Kent` is Tommy, Thomas and Kent; `Major Dempsey`
+  is Dempsey. A rank or a way of addressing someone (Mr, Dr, Professor, Major, Corporal, Sir,
+  Queen…), a particle (de, van, von, da, del, la, le, the), a suffix (Jr, Sr, II, III), an initial
+  and a single letter are never one, and nothing after "of" is. A one-word title gives nothing.
+  Other record types get none.
+- They are worked out with the rest of a scope's names (`WorkspaceIndex.formsFor`), once per change
+  to names or titles, never stored. Rules, so nothing is guessed:
+  - A short form that is any record's own title or alias (not a `never` one) is left to that name.
+  - A short form two or more characters share is asked about for each (`ask`, "Which Collins?").
+    One that is also an ordinary word (the common-words list, which gained young, little, long,
+    white, black, brown, green, grey, gray, hill, wood and stone) is asked about too.
+  - The author's answers win: an alias of that character with `match: never` turns the short form
+    off (another character may still have it, and then has it alone); "Not a name" answers a place
+    as it does for any name.
+- **Find new names** does not offer them: every word of a known name was already left out.
+- **Rename everywhere** is unchanged: it renames the title and the typed aliases only, never a
+  short form (the next title gives its own).
+- A character's page lists them under Other names ("Also found as"); "Stop finding Archie" adds
+  the alias `{ text: "Archie", match: never }` through the sheet's alias writer, so the answer is in
+  the record's file and every device and the MCP server agree.

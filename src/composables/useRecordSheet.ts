@@ -145,6 +145,11 @@ export function useRecordSheet(idOf: () => string | undefined) {
   /** The picture of this record: an imported image, or none. */
   const saveImage = (mediaId: string | undefined) => save({ image: mediaId })
   const addAlias = () => draft.aliases.push({ text: '', match: 'auto' })
+  /** Stop finding a short form of the title: it becomes an other name that is never tagged. */
+  const neverAlias = (text: string) => {
+    draft.aliases.push({ text, match: 'never' })
+    return saveAliases()
+  }
   const removeAlias = (i: number) => {
     draft.aliases.splice(i, 1)
     void saveAliases()
@@ -185,6 +190,7 @@ export function useRecordSheet(idOf: () => string | undefined) {
     saveImage,
     addAlias,
     removeAlias,
+    neverAlias,
     typeNotes,
     flush: () => ws.flush(),
   }

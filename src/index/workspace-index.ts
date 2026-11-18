@@ -14,6 +14,8 @@ import {
   skipZones,
   withoutIgnored,
   ignoreKey,
+  isCommonWord,
+  shortForms,
   type NameForm,
   type NameMatcher,
 } from './names'
@@ -82,7 +84,7 @@ export class WorkspaceIndex {
     aliases: Map<string, RecordDoc[]>
     scenes: Map<string, SceneDoc[]>
   } | null = null
-  private matchers = new Map<string, { version: number; matcher: NameMatcher }>()
+  private matchers = new Map<string, { version: number; forms: NameForm[]; matcher: NameMatcher }>()
   private search_ = new SearchIndex()
 
   /** The version of what names and titles say: a screen that shows names reads this to know when to look again. */
@@ -277,30 +279,59 @@ export class WorkspaceIndex {
     return this.resolveName(link.target, scope)
   }
 
-  /** Every name (title and aliases) of the records seen from a scope. */
+  /**
+   * Every name of the records seen from a scope: titles, aliases, and each character's short forms
+   * (ADR-0010, 2026-11-18). A short form that is any record's title or alias is left to that name; one
+   * the character said never to is dropped; one two characters share, or an ordinary word, is asked.
+   */
   formsFor(scope: Scope): NameForm[] {
+    return this.namesFor(scope).forms
+  }
+
+  /** The names of a scope, ready to look for in a text. */
+  matcherFor(scope: Scope): NameMatcher {
+    return this.namesFor(scope).matcher
+  }
+
+  /** The short forms the index looks for as this character's names, worked out from its title. */
+  shortFormsOf(recordId: string): NameForm[] {
+    const scope = this.docs.get(recordId)?.scope
+    return scope ? this.formsFor(scope).filter((f) => f.derived && f.recordId === recordId) : []
+  }
+
+  private namesFor(scope: Scope) {
+    const key = `${scope.universe}|${scope.book ?? ''}`
+    const known = this.matchers.get(key)
+    if (known?.version === this.structure) return known
     const forms: NameForm[] = []
+    const explicit = new Set<string>()
+    const derived = new Map<string, string[]>() // form → the characters it is a short form of
     for (const r of this.data?.records ?? []) {
       const visible =
         r.meta.scope === 'universe'
           ? r.universe === scope.universe
           : !!scope.book && r.meta.scope === `book:${scope.book}`
       if (!visible) continue
+      const aliases = r.meta.aliases ?? []
       forms.push({ recordId: r.meta.id, text: r.meta.title, mode: 'auto' })
-      for (const a of r.meta.aliases ?? [])
+      explicit.add(fold(r.meta.title))
+      for (const a of aliases) {
         forms.push({ recordId: r.meta.id, text: a.text, mode: a.match ?? 'auto' })
+        if (a.match !== 'never') explicit.add(fold(a.text))
+      }
+      if (r.meta.type !== 'character') continue
+      const off = new Set(aliases.filter((a) => a.match === 'never').map((a) => fold(a.text)))
+      for (const text of shortForms(r.meta.title))
+        if (!off.has(fold(text))) derived.set(text, [...(derived.get(text) ?? []), r.meta.id])
     }
-    return forms
-  }
-
-  /** The names of a scope, ready to look for in a text. */
-  matcherFor(scope: Scope): NameMatcher {
-    const key = `${scope.universe}|${scope.book ?? ''}`
-    const known = this.matchers.get(key)
-    if (known?.version === this.structure) return known.matcher
-    const matcher = buildMatcher(this.formsFor(scope))
-    this.matchers.set(key, { version: this.structure, matcher })
-    return matcher
+    for (const [text, owners] of derived) {
+      if (explicit.has(fold(text))) continue
+      const mode = owners.length > 1 || isCommonWord(text) ? 'ask' : 'auto'
+      for (const recordId of owners) forms.push({ recordId, text, mode, derived: true })
+    }
+    const value = { version: this.structure, forms, matcher: buildMatcher(forms) }
+    this.matchers.set(key, value)
+    return value
   }
 
   /** Every scene and every record's notes, in reading order, with what a pass over the text needs. */

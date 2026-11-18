@@ -244,3 +244,31 @@ describe('renaming Elena', () => {
     expect(() => applyPlaces('Someone typed here.', [first!])).toThrow('changed')
   })
 })
+
+describe('renaming a character found by its short forms', () => {
+  it('changes only the title and the typed names, never a short form of the title', () => {
+    const index = new WorkspaceIndex()
+    const body = '“Archie” Archibald Collins came. Archie ran, Collins hid.'
+    index.sync(fixture([{ n: 1, body }], [{ n: 1, title: 'Archibald Collinson' }]))
+    const p = planRename(
+      index,
+      id('chr', 1),
+      { title: '“Archie” Archibald Collins', aliases: [] },
+      [{ from: '“Archie” Archibald Collins', to: 'Archibald Collinson' }],
+    )
+    expect(p.places).toEqual([])
+    const typed = new WorkspaceIndex()
+    typed.sync(
+      fixture(
+        [{ n: 1, body: 'Archibald Collins came. Collins hid.' }],
+        [{ n: 1, title: 'Archibald Collinson' }],
+      ),
+    )
+    const q = planRename(typed, id('chr', 1), { title: 'Archibald Collins', aliases: [] }, [
+      { from: 'Archibald Collins', to: 'Archibald Collinson' },
+    ])
+    expect(q.places.map((x) => [x.old, x.next])).toEqual([
+      ['Archibald Collins', 'Archibald Collinson'],
+    ])
+  })
+})

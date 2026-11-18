@@ -6,6 +6,7 @@ import {
   findNames,
   ignoreKey,
   isWholeAt,
+  shortForms,
   skipZones,
   withoutIgnored,
   type NameForm,
@@ -157,5 +158,49 @@ describe('the author’s "not a name" answers', () => {
     }
     expect(key(before, 1)).toBe('Will:2')
     expect(key(after, 0)).toBe('Will:2')
+  })
+})
+
+describe('a character’s short forms, from its title', () => {
+  it('takes the nickname in quotes, the first name and the last name', () => {
+    expect(shortForms('“Archie” Archibald Collins')).toEqual(['Archie', 'Archibald', 'Collins'])
+    expect(shortForms('Thomas "Tommy" Kent')).toEqual(['Tommy', 'Thomas', 'Kent'])
+    expect(shortForms('Professor Reginald Baines')).toEqual(['Reginald', 'Baines'])
+    expect(shortForms('Major Dempsey')).toEqual(['Dempsey'])
+    expect(shortForms('Corporal Jeremy Todd')).toEqual(['Jeremy', 'Todd'])
+  })
+
+  it('reads straight, curly and single quotes around a whole word, never an apostrophe', () => {
+    expect(shortForms('Thomas “Tommy” Kent')).toEqual(['Tommy', 'Thomas', 'Kent'])
+    expect(shortForms("Thomas 'Tommy' Kent")).toEqual(['Tommy', 'Thomas', 'Kent'])
+    expect(shortForms('Thomas ‘Tommy’ Kent')).toEqual(['Tommy', 'Thomas', 'Kent'])
+    expect(shortForms("Patrick O'Brien")).toEqual(['Patrick', "O'Brien"])
+  })
+
+  it('never gives a rank, a particle, an initial, a suffix, or anything after “of”', () => {
+    expect(shortForms('Dr. Mary Shaw')).toEqual(['Mary', 'Shaw'])
+    expect(shortForms('Captain Sir John Moore Jr.')).toEqual(['John', 'Moore'])
+    expect(shortForms('Ludwig van Beethoven')).toEqual(['Ludwig', 'Beethoven'])
+    expect(shortForms('J. R. Hartley III')).toEqual(['Hartley'])
+    expect(shortForms('Arthur of Camelot')).toEqual(['Arthur'])
+    expect(shortForms('Queen Mab')).toEqual(['Mab'])
+    expect(shortForms('Major')).toEqual([])
+  })
+
+  it('gives nothing extra for a one-word title', () => {
+    expect(shortForms('Corin')).toEqual([])
+    expect(shortForms('Élodie')).toEqual([])
+  })
+
+  it('is found as a whole word, with the possessive', () => {
+    const f = shortForms('“Archie” Archibald Collins').map((text): NameForm => ({
+      recordId: 'a',
+      text,
+      mode: 'auto',
+    }))
+    expect(words('Archie’s coat. Archibald waited; Collinses did not.', f)).toEqual([
+      ['Archie', 'tagged', ''],
+      ['Archibald', 'tagged', ''],
+    ])
   })
 })

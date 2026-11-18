@@ -9,6 +9,8 @@ export interface NameForm {
   recordId: string
   text: string
   mode: MatchMode
+  /** A short form taken from a character's title, not typed by the author. */
+  derived?: true
 }
 
 interface Owner {
@@ -32,10 +34,46 @@ const LEADING_WORD = /^[\p{L}\p{M}\p{N}]+/u
 
 /** Names that are also ordinary words: at the start of a sentence the author is asked ("Will you…"). */
 const COMMON_WORDS = new Set(
-  'will mark grace rose hope may bill art faith joy pat rob ray sue dawn summer autumn june april frank jack bob rich bell wren sage ash brook lane drew chase miles page grant rush'.split(
+  'will mark grace rose hope may bill art faith joy pat rob ray sue dawn summer autumn june april frank jack bob rich bell wren sage ash brook lane drew chase miles page grant rush young little long white black brown green grey gray hill wood stone'.split(
     ' ',
   ),
 )
+
+/** A name that is also an ordinary word ("Will", "Rose"). */
+export const isCommonWord = (text: string) =>
+  !/\s/.test(text) && COMMON_WORDS.has(text.toLowerCase())
+
+/** Words of a name that are never a name on their own: how a person is addressed, particles, suffixes. */
+const NOT_ALONE = new Set(
+  'mr mrs ms miss mx dr doctor sir dame lady lord madam professor prof major captain capt corporal cpl sergeant sgt colonel col general gen lieutenant lt private pte admiral commander officer inspector detective constable father mother sister brother uncle aunt saint st king queen prince princess duke duchess earl count countess baron baroness emperor empress rev reverend pastor bishop judge de du van von der den da di del della la le el al bin ibn the jr sr ii iii iv'.split(
+    ' ',
+  ),
+)
+
+/**
+ * The short forms a character's title gives (ADR-0010, 2026-11-18): a nickname in quotes, the
+ * first name and the last name. "“Archie” Archibald Collins" gives Archie, Archibald and Collins;
+ * "Major Dempsey" gives Dempsey. A rank, a particle, a suffix or an initial is never one, and
+ * nothing after "of" is ("Arthur of Camelot" is Arthur). A one-word title gives nothing.
+ */
+export function shortForms(title: string): string[] {
+  const out = new Set<string>()
+  const quoted =
+    /["“”]([^"“”]+)["“”]|(?<![\p{L}\p{M}\p{N}])['‘]([\p{L}\p{M}]+)['’](?![\p{L}\p{M}\p{N}])/gu
+  for (const m of title.matchAll(quoted)) out.add((m[1] ?? m[2]!).trim())
+  const words = title
+    .replace(quoted, ' ')
+    .replace(/\([^)]*\)/g, ' ')
+    .split(/\s+/)
+    .map((w) => w.replace(/^[^\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+$/gu, ''))
+  const end = words.findIndex((w) => w.toLowerCase() === 'of')
+  const name = (end < 0 ? words : words.slice(0, end)).filter(
+    (w) => /^\p{Lu}/u.test(w) && !/^\p{L}(\.\p{L})*$/u.test(w) && !NOT_ALONE.has(w.toLowerCase()),
+  )
+  if (name.length) out.add(name[0]!).add(name.at(-1)!)
+  out.delete(title.trim())
+  return [...out].filter((f) => [...f].length > 1 && !NOT_ALONE.has(f.toLowerCase()))
+}
 
 /** The names to look for, grouped by exact text so two records with one name are known. */
 export function buildMatcher(forms: NameForm[]): NameMatcher {

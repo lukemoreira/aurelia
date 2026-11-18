@@ -37,6 +37,17 @@ describe('find new names (ADR-0010 §5)', () => {
     ])
   })
 
+  it('does not offer a short form of a character it knows ("Archie" is Archie Collins)', () => {
+    const body =
+      'They saw Archie. Then Archie ran. Later Archie hid, and Tommy laughed with Tommy and Tommy.'
+    const records = [
+      { n: 1, title: '“Archie” Archibald Collins' },
+      { n: 2, title: 'Thomas "Tommy" Kent' },
+    ]
+    expect(words(indexOf(fixture([{ n: 1, body }], records)))).toEqual([])
+    expect(words(indexOf(fixture([{ n: 1, body }])))).toEqual(['Archie', 'Tommy'])
+  })
+
   it(`needs ${MIN_TIMES} times, not one or two`, () => {
     const index = indexOf(
       fixture([{ n: 1, body: 'They went to Greywater. They left Greywater behind.' }]),

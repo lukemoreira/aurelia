@@ -168,6 +168,7 @@ const role = computed(() => s.record.value?.meta.role?.trim() || s.record.value?
             @save-aliases="s.saveAliases()"
             @add-alias="s.addAlias()"
             @remove-alias="s.removeAlias"
+            @never-alias="s.neverAlias"
           >
             <RecordTime
               v-if="type === 'character'"
