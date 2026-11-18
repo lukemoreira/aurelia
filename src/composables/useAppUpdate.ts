@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 type Register = typeof import('virtual:pwa-register').registerSW
 
@@ -7,6 +7,8 @@ type Register = typeof import('virtual:pwa-register').registerSW
 export const UPDATE_CHECK_MS = 60 * 60 * 1000
 
 const updateReady = ref(false)
+/** "Later" on the toast hides it only: the update still waits, and the inbox still offers it. */
+const toastHidden = ref(false)
 const signInNeeded = ref(false)
 let applyUpdate: ((reload?: boolean) => Promise<void>) | undefined
 
@@ -32,7 +34,10 @@ async function probeSignIn(): Promise<void> {
 export function startUpdates(register: Register): void {
   applyUpdate = register({
     immediate: true,
-    onNeedRefresh: () => (updateReady.value = true),
+    onNeedRefresh: () => {
+      updateReady.value = true
+      toastHidden.value = false
+    },
     // Opened after the session ended: the browser cannot fetch /sw.js, so registering fails.
     onRegisterError: () => void probeSignIn(),
     onRegisteredSW: (_url, registration) => {
@@ -46,11 +51,13 @@ export function startUpdates(register: Register): void {
 export function useAppUpdate() {
   return {
     updateReady,
+    /** The toast's own "Update available", until "Later". */
+    updateToast: computed(() => updateReady.value && !toastHidden.value),
     reload: () => void applyUpdate?.(true),
     signInNeeded,
     signIn: () => location.assign('/signin'),
     dismiss: () => {
-      updateReady.value = false
+      toastHidden.value = true
       signInNeeded.value = false
     },
   }

@@ -19,6 +19,7 @@ beforeEach(() => {
   vi.useFakeTimers()
   vi.stubGlobal('fetch', () => Promise.reject(new TypeError('offline')))
   useAppUpdate().dismiss()
+  useAppUpdate().updateReady.value = false
 })
 afterEach(() => {
   vi.useRealTimers()
@@ -43,12 +44,17 @@ describe('app updates', () => {
     expect(apply).toHaveBeenCalledWith(true)
   })
 
-  it('can be put off: "Later" hides it without reloading', () => {
+  it('can be put off: "Later" hides the toast without reloading, and the update still waits', () => {
     const { options, apply } = register()
     options().onNeedRefresh?.()
+    expect(useAppUpdate().updateToast.value).toBe(true)
     useAppUpdate().dismiss()
-    expect(useAppUpdate().updateReady.value).toBe(false)
+    expect(useAppUpdate().updateToast.value).toBe(false)
+    // Still waiting: the Review inbox and the read-only notice still offer it.
+    expect(useAppUpdate().updateReady.value).toBe(true)
     expect(apply).not.toHaveBeenCalled()
+    options().onNeedRefresh?.() // a newer one again: the toast says so again
+    expect(useAppUpdate().updateToast.value).toBe(true)
   })
 
   it('asks for a new version every hour, and survives being offline', async () => {

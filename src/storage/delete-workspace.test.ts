@@ -172,7 +172,7 @@ describe('deleting a browser workspace', () => {
 })
 
 describe('removing a folder workspace from the list', () => {
-  it('forgets only the list entry: the folder’s files, the journal and the other entries stay', async () => {
+  it('forgets the list entry and its chat: the folder’s files, the journal and the other entries stay', async () => {
     const folder = new FakeDirectory('Saltmarch')
     folder.seed('aurelia.json', '{"id":"x"}')
     folder.seed('scenes/one.md', 'my words')
@@ -184,6 +184,7 @@ describe('removing a folder workspace from the list', () => {
       baseHash: null,
       time: 1,
     })
+    await chat.save('wsp_ffffffffff', [{ role: 'author', text: 'Who is Tomas?', tools: [] }])
     await removeFolderFromList(recent('wsp_ffffffffff', 'folder'), {
       ...deps,
       removeDirectory: async () => {
@@ -193,6 +194,8 @@ describe('removing a folder workspace from the list', () => {
     expect(await recents.get('wsp_ffffffffff')).toBeUndefined()
     expect(folder.paths().sort()).toEqual(['aurelia.json', 'scenes/one.md'])
     expect(await journal.list('wsp_ffffffffff')).toHaveLength(1) // unsaved words are kept
+    expect(await chat.load('wsp_ffffffffff')).toEqual([]) // this device's chat about it goes
+    expect((await rowsOf(B)).chat).toBe(1)
     expect((await rowsOf(A)).recent).toBe(true)
     expect((await rowsOf(B)).recent).toBe(true)
     expect(calls).toEqual(['forget wsp_ffffffffff'])

@@ -242,7 +242,7 @@ test('a suggestion this version cannot read is said in the inbox, and its file i
   await page.reload()
   await assistantTab(page).click()
   await expect(inspector(page)).toContainText(
-    '1 suggestion could not be read by this version of Aurelia.',
+    '1 suggestion could not be read (a newer Aurelia may have written it, or the file is damaged).',
   )
   await expect(inspector(page)).not.toContainText('No suggestions waiting.')
   expect(await opfs.read(page, file)).toBe(newer)

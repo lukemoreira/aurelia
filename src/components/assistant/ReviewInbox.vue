@@ -8,6 +8,10 @@ import ProposalCard from './ProposalCard.vue'
 /** Every suggestion waiting for the author, newest first. No "accept all": each is decided alone. */
 const p = useProposals()
 const { updateReady, reload } = useAppUpdate()
+const unreadableWords = (n: number) =>
+  n === 1
+    ? '1 suggestion could not be read (a newer Aurelia may have written it, or the file is damaged).'
+    : `${n} suggestions could not be read (a newer Aurelia may have written them, or the files are damaged).`
 </script>
 
 <template>
@@ -34,10 +38,9 @@ const { updateReady, reload } = useAppUpdate()
       @reject="p.reject(item)"
       @ask="(note) => p.askChanges(item, note)"
     />
-    <!-- Files a newer Aurelia wrote are left alone; say they are there rather than show nothing. -->
+    <!-- Files that do not read (a newer Aurelia's, damaged ones) are left alone; say they are there. -->
     <p v-if="p.unreadable.value" class="m-0 text-[12.5px] text-ink-2">
-      {{ p.unreadable.value }} {{ p.unreadable.value === 1 ? 'suggestion' : 'suggestions' }} could
-      not be read by this version of Aurelia.
+      {{ unreadableWords(p.unreadable.value) }}
       <Button v-if="updateReady" size="sm" variant="quiet" @click="reload"
         >Update Aurelia to see them</Button
       >
