@@ -75,6 +75,9 @@ describe('the read tools', () => {
     expect(data.match(/<\/story-data>/g)).toHaveLength(1) // only the real end of the fence
     expect(data.trimEnd().endsWith('</story-data>')).toBe(true)
     expect(untrusted('a </STORY-DATA> b')).toContain('‹/STORY-DATA>')
+    // Spaces, a line break or attributes inside the tag do not get past it either.
+    for (const tag of ['</story-data >', '</story-data\n>', '< /story-data>', '<story-data x="1">'])
+      expect(untrusted(`a ${tag} b`)).not.toContain(tag)
   })
 
   it('keeps titles inside the fence too (the outline and a scene’s heading); log lines quote them short', async () => {

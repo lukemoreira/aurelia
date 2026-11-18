@@ -23,15 +23,9 @@ export const bookSchema = z.looseObject({
   notNames: z.array(z.string()).optional(),
   targets: z.looseObject({ words: z.number().int().nonnegative().optional() }).optional(),
   // The story base (ADR-0016): what grounds the book's lore. Its main characters are Character records.
-  // Written by hand into something else, it is left out when read, never a reason to refuse the book.
-  storyBase: z
-    .looseObject({
-      objectives: z.string().optional(),
-      world: z.string().optional(),
-      narrative: z.string().optional(),
-    })
-    .optional()
-    .catch(undefined),
+  // Kept as written: a section that is not text reads as empty (story-base.ts) and is never dropped; only
+  // a base that is not an object at all is left out, never a reason to refuse the book.
+  storyBase: z.record(z.string(), z.unknown()).optional().catch(undefined),
 })
 
 export type Book = z.infer<typeof bookSchema>

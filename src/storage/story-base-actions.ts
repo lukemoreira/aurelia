@@ -1,16 +1,35 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // The story base of a book (ADR-0016), written by the author by hand or by an accepted suggestion: the
 // `storyBase` key of `book.json`, set through the session like the book's other details.
-import { baseOf, type BaseSection, type StoryBase } from '@/domain/story-base'
+import { baseOf, type BaseSection } from '@/domain/story-base'
 import { StorageError } from './errors'
 import type { WorkspaceSession } from './session'
 
-/** Put these sections in the book's story base and wait until `book.json` is saved. Not exclusive. */
-export async function writeBase(s: WorkspaceSession, bookId: string, base: StoryBase) {
+export const CHANGED_ELSEWHERE =
+  'This section changed on another device. What you typed is kept here: save again to replace it.'
+
+/** The base as `book.json` keeps it: empty sections left out, any other value (a key a later version adds) kept. */
+export const cleanBase = (base: Record<string, unknown> | undefined) =>
+  Object.fromEntries(
+    Object.entries(base ?? {}).filter(
+      ([, v]) => v !== undefined && (typeof v !== 'string' || v.trim()),
+    ),
+  )
+
+/** The stored base of a book, as read: the caller puts its changes over it, so nothing else is lost. */
+export const storedBase = (s: WorkspaceSession, bookId: string) =>
+  s.data.books.find((b) => b.id === bookId)?.storyBase ?? {}
+
+/** Put this base in the book and wait until `book.json` is saved. Not exclusive. */
+export async function writeBase(
+  s: WorkspaceSession,
+  bookId: string,
+  base: Record<string, unknown>,
+) {
   const path = s.pathOf(bookId)
   if (!path || !s.data.books.some((b) => b.id === bookId))
     throw new StorageError('other', 'That book is no longer in the workspace.')
-  const kept = Object.fromEntries(Object.entries(base).filter(([, v]) => v?.trim()))
+  const kept = cleanBase(base)
   await s.setFields(bookId, { storyBase: Object.keys(kept).length ? kept : undefined })
   await s.flushPaths([path])
   if (s.pipeline.isBusy(path))
@@ -20,16 +39,21 @@ export async function writeBase(s: WorkspaceSession, bookId: string, base: Story
     )
 }
 
-/** One section typed by the author: read and written inside one action, so two edits never cross. */
+/**
+ * One section typed by the author, read and written inside one action. `expected` is the text the author
+ * started from: when the section reads otherwise now (another device's sync), nothing is written over it.
+ */
 export function setBaseSection(
   s: WorkspaceSession,
   bookId: string,
   key: BaseSection,
   text: string,
+  expected: string,
 ): Promise<void> {
   return s.exclusive(async () => {
-    const now = baseOf(s.data.books.find((b) => b.id === bookId))
-    if (now[key] === text) return
-    await writeBase(s, bookId, { ...now, [key]: text })
+    const now = baseOf(s.data.books.find((b) => b.id === bookId))[key]
+    if (now === text) return
+    if (now !== expected) throw new StorageError('other', CHANGED_ELSEWHERE)
+    await writeBase(s, bookId, { ...storedBase(s, bookId), [key]: text })
   })
 }

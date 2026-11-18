@@ -10,13 +10,13 @@ import { useBackupStore } from '@/stores/backup'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { fixture, id } from '../../../tests/helpers/index-fixture'
 
-async function inspectorWith(answer: () => Promise<Response>) {
+async function inspectorWith(answer: () => Promise<Response>, open = true) {
   vi.stubGlobal('fetch', vi.fn(answer))
   const pinia = createPinia()
   setActivePinia(pinia)
   const ws = useWorkspaceStore()
   ws.load(fixture([{ n: 1, title: 'The Gate', body: 'Text.' }], []))
-  ws.select(id('bok', 1), id('scn', 1))
+  if (open) ws.select(id('bok', 1), id('scn', 1))
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: '/:rest(.*)*', name: 'write', component: { render: () => null } }],
@@ -101,6 +101,25 @@ describe('the guided start (ADR-0016)', () => {
     expect(base.text()).toContain('World and history')
     expect(base.text()).toContain('Main narrative')
     expect(base.text()).toContain('Main characters')
+  })
+})
+
+describe('the guided start with no book open', () => {
+  it('is not offered: there is no book to set up', async () => {
+    const w = await inspectorWith(() => json({ state: 'signed-in' }), false)
+    useBackupStore().view = {
+      enabled: true,
+      mode: 'sync',
+      folder: 'Aurelia/W (wsp_abcdefghjk)',
+      status: 'idle',
+      lastBackup: null,
+      error: null,
+    } as never
+    expect(useWorkspaceStore().bookId).toBeFalsy()
+    await w.find('[role="tab"][aria-label="Assistant"]').trigger('mousedown')
+    await flushPromises()
+    expect(w.text()).toContain('Message the assistant')
+    expect(w.text()).not.toContain('Set up the story base with the assistant')
   })
 })
 

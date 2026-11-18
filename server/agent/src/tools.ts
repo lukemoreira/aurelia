@@ -41,7 +41,8 @@ export interface ToolResult {
  * Story text is the author's, and may hold text written to steer an AI (imported research, a pasted web
  * page). It goes to the model fenced and named as data, with the fence itself made impossible to close.
  */
-const unfence = (text: string) => text.replace(/<\/?story-data>/gi, (m) => m.replace('<', '‹'))
+const unfence = (text: string) =>
+  text.replace(/<\s*\/?\s*story-data[^>]*>/gi, (m) => m.replace('<', '‹'))
 
 export function untrusted(text: string): string {
   return [

@@ -12,14 +12,19 @@
   `world` (the world and its history, in outline) and `narrative` (premise, main arc, the direction of the
   ending), each plain text. It is a key of the book's own file, not a new file kind: it syncs, backs up,
   snapshots and conflicts exactly as `book.json` already does (ADR-0012, ADR-0013). The field is optional
-  and unknown keys inside it are kept, so no migration and no new `schemaVersion`. A value that is not an
-  object is read as no base, never a reason to refuse the book.
+  and unknown keys inside it are kept, so no migration and no new `schemaVersion`. Every write starts from
+  the stored object and changes only its own sections, so a key a later version adds, or a section that is
+  not text (read as empty), is never dropped. A value that is not an object is read as no base, never a
+  reason to refuse the book.
 - **Main characters are real Character records** of the book's universe (shared by the universe), not
   text in the base. The base lists them.
 - The author reads and edits it by hand on the inspector's **Book** tab, "Story base" (each section saved
-  when the author leaves it, `storage/story-base-actions.ts`). No Claude needed.
-- Restoring a book snapshot puts back the base's sections the snapshot has; a section written since and
-  empty in the snapshot stays (as a scene that is not in a snapshot stays).
+  when the author leaves it, `storage/story-base-actions.ts`). No Claude needed. A save names the text the
+  author started from; when a sync brought other words into that section meanwhile, it is refused ("This
+  section changed on another device") and what was typed stays; saving again replaces it.
+- Restoring a book snapshot that holds a story base puts it back exactly as it was, empty sections
+  included, so undoing an accepted suggestion undoes all of it. The "Before restore" snapshot every restore
+  takes keeps the newer text. A snapshot with no story base (an older one) leaves the base as it is.
 
 ### The guided start
 
@@ -46,8 +51,11 @@
 - `propose_character(bookId, name, summary?, role?, age?, appearance?, background?, goal?, fear?, flaw?,
   belief?, secret?, voice?)` writes a `character` proposal. Accept makes one new Character record in the
   book's universe with those details; only those keys can be set (others are stripped when read). A name the
-  universe already has (case and spaces aside) is refused by the tool and by Accept, so a second Accept
-  makes no second record. Nothing is overwritten, so no snapshot.
+  universe already has (case and spaces aside) is refused by the tool, shows the card as out of date and is
+  refused by Accept, so a second Accept makes no second record. Nothing is overwritten, so no snapshot.
+- A section's `before` has no length limit (the author's text can be long; a proposal over a limit would
+  be skipped as unreadable). Every fence tag in story text, written with spaces, a line break or
+  attributes, is made harmless.
 - Both are reviewed in the Review inbox with Accept, Reject and Ask for changes; no accept-all. They are
   the book's, not a scene's, so they are not shown inside the text. A revision `replaces` only a proposal of
   the same kind for the same book.

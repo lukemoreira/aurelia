@@ -7,8 +7,8 @@ import {
   isBaseEmpty,
   type BaseSection,
 } from '@/domain/story-base'
-import { wordsFor } from '@/storage/errors'
-import { setBaseSection } from '@/storage/story-base-actions'
+import { StorageError, wordsFor } from '@/storage/errors'
+import { CHANGED_ELSEWHERE, setBaseSection } from '@/storage/story-base-actions'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useAssistant } from './useAssistant'
@@ -32,22 +32,30 @@ export function useStoryBase() {
     () => [ws.bookId, ...BASE_SECTIONS.map((s) => stored.value[s.key])],
     (_, old) => {
       const otherBook = old?.[0] !== ws.bookId
-      for (const { key } of BASE_SECTIONS) {
-        const now = stored.value[key]
-        if (otherBook || draft[key] === seen[key]) draft[key] = now
-        seen[key] = now
-      }
+      // A section the author is typing in keeps what they started from (`seen`): their save then finds
+      // it changed and refuses, rather than writing over another device's words.
+      for (const { key } of BASE_SECTIONS)
+        if (otherBook || draft[key] === seen[key]) draft[key] = seen[key] = stored.value[key]
     },
   )
 
   async function save(key: BaseSection) {
     const bookId = ws.bookId
-    if (!ws.session || !bookId || draft[key] === stored.value[key]) return
+    if (!ws.session || !bookId) return
+    if (draft[key] === stored.value[key]) {
+      seen[key] = draft[key] // nothing to save: it follows the files again
+      return
+    }
     error.value = ''
+    const text = draft[key]
     try {
-      await setBaseSection(ws.session, bookId, key, draft[key])
+      await setBaseSection(ws.session, bookId, key, text, seen[key])
+      seen[key] = text
     } catch (e) {
       error.value = wordsFor(e) // what was typed stays, to be tried again
+      // Changed on another device: the author has been told, so saving again replaces it.
+      if (e instanceof StorageError && e.message === CHANGED_ELSEWHERE)
+        seen[key] = stored.value[key]
     }
   }
 

@@ -59,8 +59,8 @@ export function anchorOf(blocks: readonly Block[], block: Block) {
   return { occurrence: same.indexOf(block), copies: same.length }
 }
 
-/** A story-base section: its text when proposed ('' when empty), and what it becomes. */
-const section = z.object({ before: z.string().max(20_000), after: z.string().max(20_000) })
+/** A story-base section: its text when proposed ('' when empty; any length the author wrote), and what it becomes. */
+const section = z.object({ before: z.string(), after: z.string().max(20_000) })
 
 const common = {
   schemaVersion: z.literal(1),
@@ -128,13 +128,14 @@ export type BaseProposal = Extract<Proposal, { kind: 'base' }>
 /**
  * Accept of a story-base proposal: every section it changes must still read as it did (`before`), else
  * nothing changes. A section accepted already reads as `after` and no longer as `before`, so a second
- * Accept is refused too. Sections it does not name stay as they are.
+ * Accept is refused too. `base` holds only the sections it changes: the caller puts them over the stored
+ * base, so the others, and keys this version does not know, stay as they are.
  */
 export function mergeBase(
   now: Record<BaseSection, string>,
   sections: BaseProposal['sections'],
 ): { ok: true; base: StoryBase; replaced: boolean } | { ok: false } {
-  const base: StoryBase = { ...now }
+  const base: StoryBase = {}
   let replaced = false
   for (const [key, c] of Object.entries(sections) as [
     BaseSection,

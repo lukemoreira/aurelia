@@ -23,6 +23,13 @@ describe('the story base', () => {
       world: 'x',
       later: 1,
     }) // a key a later version adds is kept
+    // One section that is not text does not take the others away, and is itself kept.
+    const odd = bookSchema.parse({
+      ...book,
+      storyBase: { objectives: 'Long text', world: { draft: 'x' } },
+    })
+    expect(baseOf(odd)).toEqual({ ...EMPTY, objectives: 'Long text' })
+    expect(odd.storyBase).toEqual({ objectives: 'Long text', world: { draft: 'x' } })
   })
 
   it('a name is the same whatever its case and spaces', () => {
@@ -35,11 +42,7 @@ describe('mergeBase', () => {
   it('changes only the sections it names, and says when it replaces the author’s text', () => {
     expect(
       mergeBase({ ...EMPTY, narrative: 'Mine.' }, { objectives: { before: '', after: 'A.' } }),
-    ).toEqual({
-      ok: true,
-      base: { ...EMPTY, objectives: 'A.', narrative: 'Mine.' },
-      replaced: false,
-    })
+    ).toEqual({ ok: true, base: { objectives: 'A.' }, replaced: false }) // only what it changes
     expect(
       mergeBase({ ...EMPTY, world: 'Old.' }, { world: { before: 'Old.', after: 'New.' } }),
     ).toMatchObject({ ok: true, replaced: true })
@@ -71,6 +74,16 @@ describe('the proposal kinds', () => {
         bookId: 'bok_abcdefghjk',
         bookTitle: 'B',
         sections: { world: { before: '', after: 'W' } },
+      }).success,
+    ).toBe(true)
+    // A section of any length the author wrote is read: a proposal that replaces it is not hidden.
+    expect(
+      proposalSchema.safeParse({
+        ...common,
+        kind: 'base',
+        bookId: 'bok_abcdefghjk',
+        bookTitle: 'B',
+        sections: { world: { before: 'w'.repeat(25_000), after: 'W' } },
       }).success,
     ).toBe(true)
     const character = { ...common, kind: 'character', bookId: 'bok_abcdefghjk', name: 'T' }
