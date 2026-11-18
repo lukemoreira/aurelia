@@ -123,6 +123,30 @@ describe('an Accept that already happened', () => {
     // A shorter text that the paragraph happens to begin with is a real change, not "done already".
     expect(mergeChanges(body, [{ block: one!.id, before: 'One.', after: 'One' }]).ok).toBe(true)
   })
+
+  it('also when the change adds paragraphs on both sides', () => {
+    const body = 'A.\n\nB.\n\nC.'
+    const b = sceneBlocks(body)[1]!
+    const both = { block: b.id, before: 'B.', after: 'X.\n\nB.\n\nY.' }
+    const first = mergeChanges(body, [both])
+    expect(first).toEqual({ ok: true, body: 'A.\n\nX.\n\nB.\n\nY.\n\nC.' })
+    expect(mergeChanges(first.ok ? first.body : '', [both]).ok).toBe(false)
+  })
+
+  it('but a first Accept is not refused because a neighbour only begins or ends with the same words', () => {
+    const below = 'Door.\n\nHe left. Then he came back.'
+    const [door] = sceneBlocks(below)
+    expect(
+      mergeChanges(below, [{ block: door!.id, before: 'Door.', after: 'Door.\n\nHe left.' }]).ok,
+    ).toBe(true)
+    const above = 'Then. Silence.\n\nNight.'
+    const night = sceneBlocks(above)[1]!
+    expect(
+      mergeChanges(above, [{ block: night.id, before: 'Night.', after: 'Silence.\n\nNight.' }]).ok,
+    ).toBe(true)
+    const end = { block: 'end', before: '', after: 'The end.' }
+    expect(mergeChanges('It was over. The end.', [end]).ok).toBe(true)
+  })
 })
 
 describe('the proposal file', () => {
