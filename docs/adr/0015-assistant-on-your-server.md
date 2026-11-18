@@ -120,6 +120,21 @@ CI test runs the real MCP server in plain Node.
 - Before each question the app saves and runs one sync round, so the assistant reads what the author sees;
   after the answer, another round brings the proposals in. `.aurelia/proposals/` syncs like any file (test).
 
+### Amendment: the same tools from the author's own computer
+
+The MCP server (`server/agent/src/mcp.ts`) is a plain stdio program. The author may also run it from
+Claude Code on their own computer, from the published `aurelia-agent` image
+([self-hosting §10](../self-hosting.md)). It is the same program with the same tools: it reads the synced
+copy and writes proposals, and nothing changes until the author accepts. `cloudflared` gives it the
+author's own Access token. It reaches the store on the home network, at the NAS address: nginx passes
+`Cf-Access-Jwt-Assertion` on, and the store checks the token as it checks the app's. Aurelia does not
+store that token.
+
+It does not go through Cloudflare. With **Binding Cookie** on, Access accepts only the browser that
+signed in, so the edge refuses the token there. The owner keeps Binding Cookie on (2026-11-18): the
+tools work at home only. The author's own Claude Code also has its own built-in tools there; they reach
+the author's computer, not the store.
+
 ## What it does not do
 
 - It works only for a workspace kept in sync with the server (the assistant reads the server's copy).
