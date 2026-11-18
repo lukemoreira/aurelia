@@ -8,6 +8,7 @@ import Textarea from '@/components/ui/Textarea.vue'
 import { useAssistant } from '@/composables/useAssistant'
 import { useStoryBase } from '@/composables/useStoryBase'
 import { useLayoutStore } from '@/stores/layout'
+import { useWorkspaceStore } from '@/stores/workspace'
 import ConnectClaude from './ConnectClaude.vue'
 import ReviewInbox from './ReviewInbox.vue'
 
@@ -15,6 +16,7 @@ import ReviewInbox from './ReviewInbox.vue'
 const a = useAssistant()
 const layout = useLayoutStore()
 const base = useStoryBase()
+const ws = useWorkspaceStore()
 const message = ref('')
 
 async function send() {
@@ -47,7 +49,7 @@ async function send() {
         >
           Assistant
         </h3>
-        <div v-if="!a.turns.value.length" class="flex flex-col gap-1.5">
+        <div v-if="ws.bookId && !a.turns.value.length" class="flex flex-col gap-1.5">
           <p v-if="base.empty.value" class="m-0 text-[12.5px] text-ink-2">
             This book has no story base yet: its objectives, world and history, main narrative and
             main characters. The assistant can set it up with you, one short question at a time.

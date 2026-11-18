@@ -18,7 +18,7 @@ import type { WorkspaceSession } from './session'
 import { addRecord } from './record-actions'
 import { blocker, bodyNow, put } from './snapshot-restore'
 import { writeSnapshot } from './snapshots'
-import { writeBase } from './story-base-actions'
+import { storedBase, writeBase } from './story-base-actions'
 
 export const OUT_OF_DATE = 'The text changed after this was suggested — ask again.'
 
@@ -66,7 +66,10 @@ const targetOf = (p: Proposal) =>
 /** Whether Accept would apply as things stand (an edit's blocks, a base's sections still read as they did). */
 export function stillApplies(s: WorkspaceSession, p: Proposal): boolean {
   if (p.kind === 'scene') return s.data.chapters.some((c) => c.id === p.chapterId)
-  if (p.kind === 'character') return s.data.books.some((b) => b.id === p.bookId)
+  if (p.kind === 'character') {
+    const universe = universeOfBook(s.data, p.bookId)
+    return !!universe && !hasCharacter(s, universe, p.name)
+  }
   if (p.kind === 'base') {
     const book = s.data.books.find((b) => b.id === p.bookId)
     return !!book && mergeBase(baseOf(book), p.sections).ok
@@ -74,6 +77,12 @@ export function stillApplies(s: WorkspaceSession, p: Proposal): boolean {
   const body = bodyNow(s, p.sceneId)
   return body !== undefined && mergeChanges(body, p.changes).ok
 }
+
+/** A character of this universe already goes by this name. */
+const hasCharacter = (s: WorkspaceSession, universe: string, name: string) =>
+  s.data.records.some(
+    (r) => r.universe === universe && r.meta.type === 'character' && sameName(r.meta.title, name),
+  )
 
 /** `id`: the scene, book or record it changed or made. `cleared`: false when the change is in but the suggestion's file could not be removed. */
 export type Accepted = { id: string; snapshot?: string; cleared: boolean }
@@ -127,14 +136,7 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
     const universeId = universeOfBook(s.data, p.bookId)
     if (!universeId) throw new StorageError('other', 'That book is no longer in the workspace.')
     // Accepted before (the suggestion could not be cleared then), or the author made them meanwhile.
-    if (
-      s.data.records.some(
-        (r) =>
-          r.universe === universeId &&
-          r.meta.type === 'character' &&
-          sameName(r.meta.title, p.name),
-      )
-    )
+    if (hasCharacter(s, universeId, p.name))
       throw new StorageError(
         'other',
         `A character named “${p.name.trim()}” is already in this world. Reject the suggestion.`,
@@ -193,7 +195,7 @@ function acceptBase(s: WorkspaceSession, p: Extract<Proposal, { kind: 'base' }>)
     // The snapshot was awaited: merge again on the base as it is now, so nothing typed meanwhile is lost.
     const now = mergeBase(baseOf(s.data.books.find((b) => b.id === p.bookId)), p.sections)
     if (!now.ok) throw new StorageError('other', OUT_OF_DATE)
-    await writeBase(s, p.bookId, now.base)
+    await writeBase(s, p.bookId, { ...storedBase(s, p.bookId), ...now.base })
     return { id: p.bookId, ...(before ? { snapshot: before.id } : {}) }
   })
 }

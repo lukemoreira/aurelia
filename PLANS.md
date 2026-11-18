@@ -795,4 +795,7 @@ backup — ADR-0009.)
   question, fenced), `propose_story_base` (each section with the text it replaces; Accept refused when one
   changed, a book snapshot first when it replaces the author's text) and `propose_character` (a new
   Character record; refused for a name the world has, so a second Accept makes none). Restoring a book
-  snapshot now puts the story base's sections back too.
+  snapshot now puts the story base back as the snapshot holds it. Review fixes: writes keep unknown and
+  non-text keys of `storyBase`; a save is refused when another device changed that section meanwhile; no
+  length cap on a section's `before`; a character whose name the world has shows as out of date; wider
+  fence matching; no guided start with no book open.

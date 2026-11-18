@@ -37,11 +37,13 @@ export const CHARACTER_FIELDS = [
 ] as const satisfies readonly TextField[]
 export type CharacterField = (typeof CHARACTER_FIELDS)[number]
 
-/** The base as it stands: only the three sections, each a string ('' when not written). */
-export const baseOf = (book: Book | undefined): Record<BaseSection, string> => ({
-  objectives: book?.storyBase?.objectives ?? '',
-  world: book?.storyBase?.world ?? '',
-  narrative: book?.storyBase?.narrative ?? '',
+const textOf = (v: unknown) => (typeof v === 'string' ? v : '')
+
+/** The base as it stands: only the three sections, each a string ('' when not written, or not text). */
+export const baseOf = (book: Pick<Book, 'storyBase'> | undefined): Record<BaseSection, string> => ({
+  objectives: textOf(book?.storyBase?.objectives),
+  world: textOf(book?.storyBase?.world),
+  narrative: textOf(book?.storyBase?.narrative),
 })
 
 /** The universe a book is in (a universe lists its books). */
