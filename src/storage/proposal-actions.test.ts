@@ -2,9 +2,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { outlineRig } from '../../tests/helpers/outline-rig'
 import { newId } from '@/domain/ids'
-import { proposalPath, sceneBlocks, type Proposal } from '@/domain/proposals'
+import { anchorOf, proposalPath, sceneBlocks, type Proposal } from '@/domain/proposals'
 import { hashText } from './hash'
 import {
+  NOT_CLEARED,
   OUT_OF_DATE,
   acceptProposal,
   listProposals,
@@ -34,7 +35,8 @@ async function editProposal(
 ) {
   const id = sceneOf(s)
   const b = body(s, id)!
-  const first = sceneBlocks(b)[0]!
+  const blocks = sceneBlocks(b)
+  const first = blocks[0]!
   return write(s, {
     schemaVersion: 1,
     id: newId('prp'),
@@ -45,9 +47,22 @@ async function editProposal(
     sceneId: id,
     sceneTitle: 'Untitled scene',
     baseHash: await hashText(b),
-    changes: [{ block: first.id, before: first.text, after }],
+    changes: [{ block: first.id, before: first.text, after, ...anchorOf(blocks, first) }],
   })
 }
+
+const sceneProposal = (s: WorkspaceSession, title = 'The Gate'): Promise<Proposal> =>
+  write(s, {
+    schemaVersion: 1,
+    id: newId('prp'),
+    createdAt: new Date().toISOString(),
+    by: 'Claude',
+    why: 'A bridge.',
+    kind: 'scene',
+    chapterId: s.data.chapters[0]!.id,
+    title,
+    text: 'Night fell over the gate.',
+  })
 
 describe('Accept', () => {
   beforeEach(async () => {
@@ -107,6 +122,44 @@ describe('Accept', () => {
   })
 })
 
+describe('Accept that goes wrong half way', () => {
+  beforeEach(async () => {
+    await rig.session.editScene(sceneOf(rig.session), TEXT)
+    await rig.session.flush()
+  })
+
+  it('says so when the change is in but the suggestion could not be cleared, and a second Accept adds nothing', async () => {
+    const s = rig.session
+    const p = await editProposal(s, 'Tomas came down to the quay at dusk.\n\nThe lamps were lit.')
+    rig.adapter.beforeRemove = (path) => {
+      if (path.includes('/proposals/')) throw new Error('disk said no')
+    }
+    expect(NOT_CLEARED).toBe('Accepted, but the suggestion could not be cleared — reject it.')
+    const done = await acceptProposal(s, p)
+    expect(done.cleared).toBe(false)
+    const after = body(s, sceneOf(s))!
+    expect(after.match(/The lamps were lit\./g)).toHaveLength(1)
+    expect(await s.adapter.read(proposalPath(p.id))).not.toBeNull()
+    await expect(acceptProposal(s, p)).rejects.toThrow(OUT_OF_DATE)
+    expect(body(s, sceneOf(s))).toBe(after)
+
+    const scene = await sceneProposal(s)
+    expect((await acceptProposal(s, scene)).cleared).toBe(false)
+    const count = s.data.scenes.length
+    await expect(acceptProposal(s, scene)).rejects.toThrow('already in the book')
+    expect(s.data.scenes).toHaveLength(count)
+  })
+
+  it('a new scene that cannot be finished leaves no empty "Untitled scene" behind, and the suggestion stays', async () => {
+    const s = rig.session
+    const p = await sceneProposal(s, '   ') // a title the outline refuses, after the scene was made
+    const before = s.data.scenes.map((x) => x.meta.id)
+    await expect(acceptProposal(s, p)).rejects.toThrow()
+    expect(s.data.scenes.map((x) => x.meta.id)).toEqual(before)
+    expect(await s.adapter.read(proposalPath(p.id))).not.toBeNull()
+  })
+})
+
 describe('the inbox', () => {
   it('Reject removes the proposal file and nothing else', async () => {
     const s = rig.session
@@ -131,5 +184,16 @@ describe('the inbox', () => {
     expect(listed.map((p) => p.id)).toEqual([revised.id])
     expect(await s.adapter.read(proposalPath(old.id))).toBeNull()
     expect(await s.adapter.read('.aurelia/proposals/prp_zzzzzzzzzz.json')).not.toBeNull()
+  })
+
+  it('a revision clears only a suggestion about the same thing; a "replaces" that names another is ignored', async () => {
+    const s = rig.session
+    await s.editScene(sceneOf(s), TEXT)
+    const edit = await editProposal(s)
+    const scene = await sceneProposal(s)
+    const other = await write(s, { ...(await editProposal(s, 'Elsewhere.')), replaces: scene.id })
+    const listed = (await listProposals(s.adapter)).map((p) => p.id).sort()
+    expect(listed).toEqual([edit.id, scene.id, other.id].sort())
+    expect(await s.adapter.read(proposalPath(scene.id))).not.toBeNull()
   })
 })

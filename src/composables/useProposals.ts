@@ -3,6 +3,7 @@ import { computed, effectScope, ref, shallowRef, watch } from 'vue'
 import type { Proposal } from '@/domain/proposals'
 import { wordsFor } from '@/storage/errors'
 import {
+  NOT_CLEARED,
   acceptProposal,
   listProposals,
   rejectProposal,
@@ -84,12 +85,14 @@ function createProposals() {
     act(p, async () => {
       const done = await acceptProposal(ws.session!, p)
       if (done.snapshot) noteSnapshot()
-      edits.toast = {
-        text:
-          p.kind === 'scene'
-            ? `“${p.title}” is in the book.`
-            : `Accepted for “${p.sceneTitle}”. A snapshot was saved first, in History.`,
-      }
+      edits.toast = !done.cleared
+        ? { text: NOT_CLEARED, error: true }
+        : {
+            text:
+              p.kind === 'scene'
+                ? `“${p.title}” is in the book.`
+                : `Accepted for “${p.sceneTitle}”. A snapshot was saved first, in History.`,
+          }
     })
 
   const reject = (p: Proposal) => act(p, () => rejectProposal(ws.session!, p.id))

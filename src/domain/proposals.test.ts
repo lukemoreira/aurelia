@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { mergeChanges, proposalSchema, sceneBlocks } from './proposals'
+import { anchorOf, mergeChanges, proposalSchema, sceneBlocks } from './proposals'
 
 const body = 'First paragraph.\n\nSecond *one*,\non two lines.\n\n\nThird.\n'
 const ids = () => sceneBlocks(body).map((b) => b.id)
@@ -84,6 +84,44 @@ describe('Accept: a per-block 3-way merge', () => {
   it('the same block twice in one proposal is a refusal', () => {
     const c = { block: ids()[0]!, before: 'First paragraph.', after: 'x' }
     expect(mergeChanges(body, [c, c]).ok).toBe(false)
+  })
+})
+
+describe('two paragraphs that read the same', () => {
+  const text = 'He asked.\n\n“Yes.”\n\nShe asked.\n\n“Yes.”'
+  const blocks = sceneBlocks(text)
+  const second = blocks[3]!
+  const change = { block: second.id, before: '“Yes.”', after: '“No.”', ...anchorOf(blocks, second) }
+
+  it('the proposal says which one it was: Accept changes that one, even with paragraphs added above', () => {
+    expect(change).toMatchObject({ occurrence: 1, copies: 2 })
+    const now = `A new opening.\n\nAnother.\n\n${text}`
+    expect(mergeChanges(now, [change])).toEqual({
+      ok: true,
+      body: now.replace(/“Yes\.”$/, '“No.”'),
+    })
+  })
+
+  it('is refused when their number changed, since which one is then a guess', () => {
+    expect(mergeChanges(`“Yes.”\n\n${text}`, [change]).ok).toBe(false)
+    expect(mergeChanges(text.replace(/“Yes\.”$/, 'Maybe.'), [change]).ok).toBe(false)
+  })
+})
+
+describe('an Accept that already happened', () => {
+  it('is refused rather than inserting the new text a second time', () => {
+    const body = 'One.\n\nTwo.'
+    const [one] = sceneBlocks(body)
+    const below = { block: one!.id, before: 'One.', after: 'One.\n\nOne and a half.' }
+    const above = { block: one!.id, before: 'One.', after: 'Zero.\n\nOne.' }
+    const end = { block: 'end', before: '', after: 'Three.' }
+    for (const c of [below, above, end]) {
+      const first = mergeChanges(body, [c])
+      expect(first.ok).toBe(true)
+      expect(mergeChanges(first.ok ? first.body : '', [c]).ok).toBe(false)
+    }
+    // A shorter text that the paragraph happens to begin with is a real change, not "done already".
+    expect(mergeChanges(body, [{ block: one!.id, before: 'One.', after: 'One' }]).ok).toBe(true)
   })
 })
 
