@@ -11,7 +11,7 @@ import {
 } from '@/domain/proposals'
 import type { StorageAdapter } from './adapter'
 import { StorageError } from './errors'
-import { renameItem } from './outline-actions'
+import { deleteItem, renameItem } from './outline-actions'
 import type { WorkspaceSession } from './session'
 import { blocker, bodyNow, put } from './snapshot-restore'
 import { writeSnapshot } from './snapshots'
@@ -35,13 +35,24 @@ export async function listProposals(adapter: StorageAdapter): Promise<Proposal[]
       // not listed
     }
   }
-  const replaced = new Set(found.flatMap((p) => (p.replaces ? [p.replaces] : [])))
+  // A revision may stand in only for a suggestion about the same thing: the model writes `replaces`,
+  // and a wrong or hostile one must not clear the author's other suggestions.
+  const byId = new Map(found.map((p) => [p.id, p]))
+  const replaced = new Set(
+    found.flatMap((p) => {
+      const old = p.replaces ? byId.get(p.replaces) : undefined
+      return old && old.id !== p.id && targetOf(old) === targetOf(p) ? [old.id] : []
+    }),
+  )
   for (const p of found)
     if (replaced.has(p.id)) await adapter.remove(proposalPath(p.id)).catch(() => undefined)
   return found
     .filter((p) => !replaced.has(p.id))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
 }
+
+/** What a suggestion is about: one scene's text, or a new scene in one chapter. */
+const targetOf = (p: Proposal) => (p.kind === 'edit' ? `edit:${p.sceneId}` : `scene:${p.chapterId}`)
 
 /** Whether Accept would apply as things stand (an edit's blocks still read as they did). */
 export function stillApplies(s: WorkspaceSession, p: Proposal): boolean {
@@ -50,7 +61,17 @@ export function stillApplies(s: WorkspaceSession, p: Proposal): boolean {
   return body !== undefined && mergeChanges(body, p.changes).ok
 }
 
-export type Accepted = { sceneId: string; snapshot?: string }
+/** `cleared`: false when the change is in but the suggestion's file could not be removed. */
+export type Accepted = { sceneId: string; snapshot?: string; cleared: boolean }
+
+export const NOT_CLEARED = 'Accepted, but the suggestion could not be cleared — reject it.'
+
+/** Remove the suggestion once its change is in; a failure is said, never taken for "nothing changed". */
+const clear = (s: WorkspaceSession, id: string) =>
+  rejectProposal(s, id).then(
+    () => true,
+    () => false,
+  )
 
 /** Reject: the proposal file goes; nothing else changes. */
 export const rejectProposal = (s: WorkspaceSession, id: string) =>
@@ -66,12 +87,24 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
   if (p.kind === 'scene') {
     if (!s.data.chapters.some((c) => c.id === p.chapterId))
       throw new StorageError('other', 'That chapter is no longer in the book.')
+    // Accepted before, and the suggestion could not be cleared then: a second Accept would make it twice.
+    if (
+      s.data.scenes.some(
+        (x) => x.meta.chapter === p.chapterId && x.meta.title === p.title && x.body === p.text,
+      )
+    )
+      throw new StorageError('other', 'This scene is already in the book. Reject the suggestion.')
     const id = await s.createScene(p.chapterId)
-    await renameItem(s, id, p.title)
-    await s.editScene(id, p.text)
-    await s.flush()
-    await rejectProposal(s, p.id)
-    return { sceneId: id }
+    try {
+      await renameItem(s, id, p.title)
+      await s.editScene(id, p.text)
+      await s.flush()
+    } catch (e) {
+      // No half-made "Untitled scene" left behind (a retry would make another): it goes to Recently deleted.
+      await deleteItem(s, id).catch(() => undefined)
+      throw e
+    }
+    return { sceneId: id, cleared: await clear(s, p.id) }
   }
   const snapshot = await s.exclusive(async () => {
     const path = s.pathOf(p.sceneId)
@@ -91,6 +124,5 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
       throw new StorageError('other', OUT_OF_DATE)
     return before.id
   })
-  await rejectProposal(s, p.id)
-  return { sceneId: p.sceneId, snapshot }
+  return { sceneId: p.sceneId, snapshot, cleared: await clear(s, p.id) }
 }
