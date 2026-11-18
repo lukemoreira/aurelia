@@ -68,6 +68,13 @@ export const useLayoutStore = defineStore('layout', () => {
     else if (inspector.collapsed.value) inspector.toggle()
     choicesWanted.value = true
   }
+  /** "Ask the assistant" (the palette): the inspector opens on the assistant's tab. */
+  const assistantWanted = ref(false)
+  function askAssistant() {
+    if (!wide.value) inspectorSheet.value = true
+    else if (inspector.collapsed.value) inspector.toggle()
+    assistantWanted.value = true
+  }
   const toggleFocus = () => (focus.value = !focus.value)
   const closeSheets = () => (navSheet.value = inspectorSheet.value = false)
 
@@ -89,6 +96,8 @@ export const useLayoutStore = defineStore('layout', () => {
     toggleFocus,
     choicesWanted,
     askChoices,
+    assistantWanted,
+    askAssistant,
     filesOpen,
     comparing,
     toggleNavigator,

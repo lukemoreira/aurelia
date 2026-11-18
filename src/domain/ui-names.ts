@@ -60,6 +60,7 @@ export type IconName =
   | 'more'
   | 'download'
   | 'upload'
+  | 'spark'
 
 export type StatusKind = 'idea' | 'outline' | 'draft' | 'revised' | 'final'
 

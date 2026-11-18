@@ -6,15 +6,19 @@ import type { Snapshot } from './snapshots'
 
 const many = (n: number, one: string, more = `${one}s`) => `${n} ${n === 1 ? one : more}`
 const quoted = (titles: string[]) => titles.map((t) => `“${t}”`).join(', ')
+const REASON_NAMES: Record<string, string> = {
+  'before-restore': 'Before restore',
+  'before-assistant': 'Before a suggestion',
+}
 
 /** The line a snapshot is listed by: the author's name for it, else why it was made. */
 export const snapshotName = (s: Pick<Snapshot, 'name' | 'reason'>) =>
-  s.name ?? (s.reason === 'before-restore' ? 'Before restore' : 'Snapshot')
+  s.name ?? REASON_NAMES[s.reason] ?? 'Snapshot'
 
 /** One snapshot in a sentence, told apart by its time when it has no name: "the snapshot “First draft” from Today, 10:41". */
 export function snapshotRef(s: Pick<Snapshot, 'name' | 'reason' | 'at'>, now = Date.now()): string {
   const when = versionWhen(new Date(s.at), now)
-  const named = s.name ?? (s.reason === 'before-restore' ? 'Before restore' : undefined)
+  const named = s.name ?? REASON_NAMES[s.reason]
   return named ? `the snapshot “${named}” from ${when}` : `the snapshot from ${when}`
 }
 
