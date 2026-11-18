@@ -35,10 +35,36 @@ it('serves exactly Aurelia’s tools over stdio in plain Node, reading the store
     expect(tools.map((t) => `mcp__aurelia__${t.name}`).sort()).toEqual([...ALLOWED_TOOLS].sort())
     const outline = await client.callTool({ name: 'get_outline', arguments: {} })
     const [label, data] = outline.content as { text: string }[]
-    expect(label!.text).toBe('Read the outline of The Lantern Gate')
+    expect(label!.text).toBe('Read the outline of “The Lantern Gate”')
     expect(data!.text).toMatch(/Chapter 1 chp_/)
     expect(new Set(rig.tokens)).toEqual(new Set(['token-of-bob']))
   } finally {
     await client.close()
   }
 }, 30_000)
+
+it('a workspace read that failed once is tried again at the next tool call', async () => {
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js')
+  const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js')
+  const { createMcpServer, storeAs } = await import('../src/mcp.ts')
+  const { readWorkspace } = await import('../src/workspace.ts')
+  rig = await startStoreWith()
+  const store = storeAs(rig.url, 't')
+  let tries = 0
+  const server = createMcpServer(async () => {
+    if (++tries === 1) throw new Error('The store did not answer.')
+    return { store, folder: FOLDER, ws: () => readWorkspace(store, FOLDER) }
+  })
+  const [a, b] = InMemoryTransport.createLinkedPair()
+  await server.connect(a)
+  const client = new Client({ name: 'test', version: '0' })
+  await client.connect(b)
+  const first = await client.callTool({ name: 'get_outline', arguments: {} })
+  expect(first.isError).toBe(true)
+  const second = await client.callTool({ name: 'get_outline', arguments: {} })
+  expect(second.isError).toBeFalsy()
+  expect((second.content as { text: string }[])[0]!.text).toBe(
+    'Read the outline of “The Lantern Gate”',
+  )
+  await client.close()
+})

@@ -25,8 +25,14 @@ export function createMcpServer(
 ) {
   const server = new McpServer({ name: SERVER_NAME, version: '0.1.0' })
   let ctx: Promise<ToolContext> | undefined
+  // A failed read (the store did not answer) is not kept: the next tool call tries again.
   const context = () =>
-    (ctx ??= load().then(async ({ ws, ...rest }) => ({ ...rest, ws: await ws() })))
+    (ctx ??= load()
+      .then(async ({ ws, ...rest }) => ({ ...rest, ws: await ws() }))
+      .catch((e: unknown) => {
+        ctx = undefined
+        throw e
+      }))
   for (const [name, tool] of Object.entries(TOOLS))
     server.registerTool(name, { description: tool.description, inputSchema: tool.input }, (async (
       args: never,

@@ -50,7 +50,10 @@ async function prepare(data: string, email: string) {
 }
 
 function run(data: string, home: string, args: string[], stdio: 'pipe' | 'ignore' = 'pipe') {
-  return spawn(binOf(data), args, { cwd: join(home, 'work'), env: childEnv(home), stdio })
+  const child = spawn(binOf(data), args, { cwd: join(home, 'work'), env: childEnv(home), stdio })
+  // A child that dies before it has read its input (EPIPE) must not take the server, and everyone's runs, down.
+  child.stdin?.on('error', () => undefined)
+  return child
 }
 
 const exitOf = (child: ChildProcess) =>
@@ -211,6 +214,7 @@ export async function* ask(data: string, email: string, o: AskOptions): AsyncGen
   const stop = () => child.kill('SIGTERM')
   const timer = setTimeout(stop, RUN_LIMIT_MS)
   o.signal?.addEventListener('abort', stop)
+  if (o.signal?.aborted) stop() // asked to stop before anyone was listening
   const exited = exitOf(child)
   child.stdin!.end(o.prompt)
   child.stderr!.resume() // never shown: it can hold the program's own diagnostics
