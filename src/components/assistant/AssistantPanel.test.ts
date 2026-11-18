@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import Inspector from '@/components/shell/Inspector.vue'
 import { agentState, sendLoginLine } from '@/assistant/client'
-import { GUIDED_START } from '@/composables/useAssistant'
+import { STOPPED, chatStore } from '@/assistant/chat-store'
+import { GUIDED_START, useAssistant } from '@/composables/useAssistant'
 import { useBackupStore } from '@/stores/backup'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { fixture, id } from '../../../tests/helpers/index-fixture'
@@ -140,5 +142,102 @@ describe('agentState', () => {
     expect(calls).toHaveLength(1)
     expect(calls[0]![0]).toBe('/agent/login/input')
     expect(JSON.parse(String(calls[0]![1].body))).toEqual({ text: 'abc#123 ' })
+  })
+})
+
+describe('the chat across a reload', () => {
+  // The device database outlives a test: start each with no chat kept (the guided start left one).
+  beforeEach(() => chatStore.clear(id('wsp', 1)))
+  const syncing = {
+    enabled: true,
+    mode: 'sync',
+    folder: 'Aurelia/W (wsp_abcdefghjk)',
+    status: 'idle',
+    lastBackup: null,
+    error: null,
+  } as never
+  /** The server answers one line of text, or cuts the answer after it when `cut`. */
+  async function chatOnce(answer: string, cut = false) {
+    const w = await inspectorWith(() => json({ state: 'signed-in' }))
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url) !== '/agent/ask') return json({ state: 'signed-in' })
+      const lines = [
+        { t: 'tool', label: 'Read 1.1 The Gate' },
+        { t: 'text', text: answer },
+      ]
+      if (!cut) lines.push({ t: 'end', ok: true } as never)
+      return new Response(lines.map((l) => `${JSON.stringify(l)}\n`).join(''), {
+        headers: { 'Content-Type': 'application/x-ndjson' },
+      })
+    })
+    useBackupStore().view = syncing
+    await w.find('[role="tab"][aria-label="Assistant"]').trigger('mousedown')
+    await flushPromises()
+    return w
+  }
+  const other = () => {
+    const f = fixture([{ n: 1, title: 'The Gate', body: 'Text.' }], [])
+    return { ...f, workspace: { ...f.workspace, id: id('wsp', 2) } }
+  }
+
+  it('comes back in the same workspace, only there, and Clear chat removes it from this device', async () => {
+    await chatOnce('Tomas is a ferryman.')
+    expect(await useAssistant().send('Who is Tomas?')).toBe(true)
+    await flushPromises()
+
+    // A reload: a new app, the same device.
+    const w = await chatOnce('unused')
+    await vi.waitFor(() => expect(w.text()).toContain('Tomas is a ferryman.'))
+    expect(w.text()).toContain('Who is Tomas?')
+    expect(w.text()).toContain('Read 1.1 The Gate')
+    expect(w.text()).not.toContain(STOPPED) // it finished
+
+    // Another workspace opens: not its chat. Switching back mid-load never shows the wrong one.
+    const ws = useWorkspaceStore()
+    ws.load(other())
+    await flushPromises()
+    expect(useAssistant().turns.value).toEqual([])
+    ws.load(fixture([{ n: 1, title: 'The Gate', body: 'Text.' }], []))
+    await nextTick() // its chat is being read...
+    ws.load(other()) // ...when another workspace opens
+    await flushPromises()
+    await new Promise((r) => setTimeout(r, 20))
+    expect(useAssistant().turns.value).toEqual([])
+
+    ws.load(fixture([{ n: 1, title: 'The Gate', body: 'Text.' }], []))
+    ws.select(id('bok', 1), id('scn', 1))
+    await vi.waitFor(() => expect(useAssistant().turns.value).toHaveLength(2))
+    await flushPromises()
+    await w
+      .findAll('button')
+      .find((b) => b.text() === 'Clear chat')!
+      .trigger('click')
+    await vi.waitFor(() => expect(w.text()).not.toContain('Tomas is a ferryman.'))
+    const after = await chatOnce('unused')
+    await new Promise((r) => setTimeout(r, 20))
+    expect(after.text()).not.toContain('Who is Tomas?')
+  })
+
+  it('restores an answer cut off by a reload as what arrived, marked as stopped', async () => {
+    await chatOnce('unused')
+    // The answer is still arriving when the page goes: the stream never ends here.
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url) !== '/agent/ask') return json({ state: 'signed-in' })
+      const body = new ReadableStream({
+        start(c) {
+          c.enqueue(
+            new TextEncoder().encode(`${JSON.stringify({ t: 'text', text: 'Half an answer' })}\n`),
+          )
+        },
+      })
+      return new Response(body, { headers: { 'Content-Type': 'application/x-ndjson' } })
+    })
+    void useAssistant().send('Tell me about the quay.')
+    await vi.waitFor(() => expect(useAssistant().turns.value.at(-1)?.text).toBe('Half an answer'))
+    await new Promise((r) => setTimeout(r, 20))
+
+    const w = await chatOnce('unused')
+    await vi.waitFor(() => expect(w.text()).toContain('Half an answer'))
+    expect(w.text()).toContain(STOPPED)
   })
 })

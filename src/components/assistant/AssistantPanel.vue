@@ -109,7 +109,20 @@ async function send() {
               :disabled="!message.trim() || a.busy.value"
               >Send</Button
             >
-            <Button size="sm" variant="quiet" class="ml-auto" @click="a.disconnect()"
+            <Button
+              v-if="a.turns.value.length"
+              size="sm"
+              variant="quiet"
+              class="ml-auto"
+              :disabled="a.busy.value"
+              @click="a.clearChat()"
+              >Clear chat</Button
+            >
+            <Button
+              size="sm"
+              variant="quiet"
+              :class="{ 'ml-auto': !a.turns.value.length }"
+              @click="a.disconnect()"
               >Sign out of Claude Code</Button
             >
           </div>

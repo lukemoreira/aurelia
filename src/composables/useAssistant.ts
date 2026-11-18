@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { computed, effectScope, ref, shallowRef } from 'vue'
+import { computed, effectScope, ref, shallowRef, watch } from 'vue'
+import { chatStore, type ChatTurn } from '@/assistant/chat-store'
 import {
   agentState,
   askAgent,
@@ -11,13 +12,7 @@ import {
 import { useBackupStore } from '@/stores/backup'
 import { useWorkspaceStore } from '@/stores/workspace'
 
-export interface ChatTurn {
-  role: 'author' | 'assistant'
-  text: string
-  /** The assistant's activity, one line per tool call ("Read 6.3 The Customs House"). */
-  tools: string[]
-  error?: string
-}
+export type { ChatTurn }
 
 /** The author's message that starts the guided start; the system prompt says how it goes. */
 export const GUIDED_START =
@@ -43,6 +38,46 @@ function createAssistant() {
     backup.view?.enabled && backup.view.mode === 'sync' ? backup.view.folder : null,
   )
 
+  /** The open workspace: its chat is the one shown, restored from this device when it opens. */
+  const workspaceId = computed(() => ws.data?.workspace.id ?? null)
+  watch(
+    workspaceId,
+    async (id) => {
+      turns.value = []
+      if (!id) return
+      const list = turns.value
+      const kept = await chatStore.load(id).catch(() => [])
+      // Another workspace opened meanwhile, or the chat was cleared: this is not what it shows now.
+      // A message sent while it loaded stays after what was kept, and the two are kept together.
+      if (turns.value !== list) return
+      const sent = list.length
+      list.unshift(...kept)
+      if (sent) keep(id, list)
+    },
+    { immediate: true },
+  )
+
+  /**
+   * Keep this list as the chat of that workspace. A tab that opened the workspace read-only (another tab
+   * writes it) keeps nothing, so it never overwrites that tab's chat. A failure costs only the copy.
+   */
+  function keep(id: string | null, list: ChatTurn[]) {
+    if (id && !cleared.has(list) && !ws.session?.view().otherTab)
+      void chatStore.save(id, list).catch(() => undefined)
+  }
+  /** Lists cleared away: an answer still arriving into one must not bring it back. */
+  const cleared = new WeakSet<ChatTurn[]>()
+
+  /** "Clear chat" (and signing out): gone from the panel and from this device. */
+  async function clearChat() {
+    const id = workspaceId.value
+    const list = turns.value
+    cleared.add(list)
+    // Off the device first: once the panel shows it gone, a reload cannot bring it back.
+    if (id) await chatStore.clear(id).catch(() => undefined)
+    if (turns.value === list) turns.value = []
+  }
+
   async function refresh() {
     state.value = await agentState()
   }
@@ -59,10 +94,14 @@ function createAssistant() {
     busy.value = true
     error.value = ''
     const history = turns.value.map(({ role, text }) => ({ role, text }))
-    turns.value.push({ role: 'author', text, tools: [] })
-    const reply: ChatTurn = { role: 'assistant', text: '', tools: [] }
-    turns.value.push(reply)
-    const live = turns.value[turns.value.length - 1]!
+    // This workspace's list, even if another opens before the answer ends.
+    const id = workspaceId.value
+    const list = turns.value
+    list.push({ role: 'author', text, tools: [] })
+    const reply: ChatTurn = { role: 'assistant', text: '', tools: [], pending: true }
+    list.push(reply)
+    const live = list[list.length - 1]!
+    keep(id, list)
     try {
       await syncNow()
       const ctx = ws.context
@@ -75,11 +114,14 @@ function createAssistant() {
         if (e.t === 'text') live.text += (live.text ? '\n\n' : '') + e.text
         else if (e.t === 'tool') live.tools.push(e.label)
         else if (!e.ok) live.error = e.error ?? 'The assistant stopped before it finished.'
+        keep(id, list)
       }
     } catch (e) {
       live.error = e instanceof Error ? e.message : 'The assistant did not answer.'
     } finally {
       busy.value = false
+      delete live.pending
+      keep(id, list)
     }
     // Its proposals were written on the server: one more round brings them here.
     await syncNow().catch(() => undefined)
@@ -122,7 +164,7 @@ function createAssistant() {
 
   async function disconnect() {
     await logoutAgent().catch(() => false)
-    turns.value = []
+    await clearChat()
     await refresh()
   }
 
@@ -138,6 +180,7 @@ function createAssistant() {
     loginResult,
     refresh,
     send,
+    clearChat,
     guidedStart,
     startLogin,
     sendLine,
