@@ -37,9 +37,11 @@ export const CHARACTER_FIELDS = [
 ] as const satisfies readonly TextField[]
 export type CharacterField = (typeof CHARACTER_FIELDS)[number]
 
-const textOf = (v: unknown) => (typeof v === 'string' ? v : '')
+/** A section that is not text (written elsewhere) reads as its JSON, so replacing it counts as replacing. */
+const textOf = (v: unknown) =>
+  typeof v === 'string' ? v : v === undefined ? '' : JSON.stringify(v)
 
-/** The base as it stands: only the three sections, each a string ('' when not written, or not text). */
+/** The base as it stands: only the three sections, each a string ('' when not written). */
 export const baseOf = (book: Pick<Book, 'storyBase'> | undefined): Record<BaseSection, string> => ({
   objectives: textOf(book?.storyBase?.objectives),
   world: textOf(book?.storyBase?.world),

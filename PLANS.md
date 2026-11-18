@@ -798,4 +798,7 @@ backup — ADR-0009.)
   snapshot now puts the story base back as the snapshot holds it. Review fixes: writes keep unknown and
   non-text keys of `storyBase`; a save is refused when another device changed that section meanwhile; no
   length cap on a section's `before`; a character whose name the world has shows as out of date; wider
-  fence matching; no guided start with no book open.
+  fence matching; no guided start with no book open. Second round: a save that could not finish yet is not
+  taken for another device's change; a non-text section reads as its JSON (a suggestion over it takes a
+  snapshot); an emptied base stays `{}`; a restore compares bases whatever their key order; the
+  character card says why it is out of date.

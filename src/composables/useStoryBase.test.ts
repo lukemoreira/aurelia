@@ -19,12 +19,12 @@ beforeEach(() => {
 })
 
 async function rig() {
-  const { session } = await outlineRig()
+  const { session, adapter } = await outlineRig()
   const ws = useWorkspaceStore()
   ws.attach(session)
   const bookId = session.data.books[0]!.id
   ws.select(bookId, session.data.scenes[0]!.meta.id)
-  return { session, bookId, b: useStoryBase() }
+  return { session, adapter, bookId, b: useStoryBase() }
 }
 
 describe('a section another device changes while the author types in it', () => {
@@ -40,6 +40,22 @@ describe('a section another device changes while the author types in it', () => 
     expect(b.draft.world).toBe('Mine.')
     await b.save('world') // told, and saved again on purpose
     expect(baseOf(session.data.books[0]).world).toBe('Mine.')
+  })
+
+  it('a save that could not finish yet is not taken for another device’s change', async () => {
+    const { session, adapter, b } = await rig()
+    let down = true
+    adapter.beforeWrite = (path) => {
+      if (down && path.endsWith('book.json')) throw new Error('disk busy')
+    }
+    b.draft.world = 'A'
+    await b.save('world')
+    expect(b.error.value).not.toBe('')
+    b.draft.world = 'AB'
+    down = false
+    await b.save('world')
+    expect(b.error.value).not.toBe(CHANGED_ELSEWHERE)
+    expect(baseOf(session.data.books[0]).world).toBe('AB')
   })
 
   it('a section the author is not typing in follows the files', async () => {

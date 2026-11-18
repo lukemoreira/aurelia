@@ -28,7 +28,8 @@ describe('the story base', () => {
       ...book,
       storyBase: { objectives: 'Long text', world: { draft: 'x' } },
     })
-    expect(baseOf(odd)).toEqual({ ...EMPTY, objectives: 'Long text' })
+    // A section that is not text reads as its JSON: a suggestion over it counts as replacing it.
+    expect(baseOf(odd)).toEqual({ ...EMPTY, objectives: 'Long text', world: '{"draft":"x"}' })
     expect(odd.storyBase).toEqual({ objectives: 'Long text', world: { draft: 'x' } })
   })
 

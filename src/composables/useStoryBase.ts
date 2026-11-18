@@ -56,6 +56,8 @@ export function useStoryBase() {
       // Changed on another device: the author has been told, so saving again replaces it.
       if (e instanceof StorageError && e.message === CHANGED_ELSEWHERE)
         seen[key] = stored.value[key]
+      // Not saved yet, but the session holds it: the next save starts from it.
+      else if (stored.value[key] === text) seen[key] = text
     }
   }
 
