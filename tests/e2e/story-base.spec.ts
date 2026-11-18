@@ -4,6 +4,9 @@
 // a file in the workspace (as sync brings it in), so it is tested by writing one.
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
+import { recordFingerprint } from '@/domain/proposals'
+import type { RecordDoc } from '@/domain/workspace-data'
+import { parseFile } from '@/storage/entities'
 import { createBrowserWorkspace, opfs } from '../helpers/browser-workspace'
 
 test.use({ serviceWorkers: 'block', viewport: { width: 1440, height: 900 } })
@@ -113,4 +116,73 @@ test('the story base: written by hand, then a section and a main character sugge
   expect(manifests).toHaveLength(1)
   expect(await opfs.read(page, manifests[0]!)).toContain('"reason": "before-assistant"')
   expect(files.some((f) => /\/records\/characters\/chr_\w+\.md$/.test(f))).toBe(true)
+})
+
+test('a suggested record delete: the card says what goes and what links to it; Accept moves it to Recently deleted', async ({
+  page,
+}) => {
+  await page.route('**/agent/status', (r) =>
+    r.fulfill({ contentType: 'application/json', body: JSON.stringify({ state: 'signed-in' }) }),
+  )
+  await createBrowserWorkspace(page)
+  const { bookId, home } = await bookFile(page)
+  await suggest(page, {
+    id: 'prp_charaaaaaa',
+    kind: 'character',
+    bookId,
+    name: 'Archie Collins',
+    fields: { role: 'Clerk' },
+  })
+  await page.reload()
+  await tab(page, 'Assistant').click()
+  await page
+    .locator('[data-proposal="prp_charaaaaaa"]')
+    .getByRole('button', { name: 'Accept' })
+    .click()
+  await expect(page.locator('[data-proposal="prp_charaaaaaa"]')).toHaveCount(0)
+
+  // The record as the app wrote it, read as the server reads it; and a scene that links to it.
+  const files = await opfs.list(page)
+  const recordFile = files.find((f) => /^[^.]*\/records\/characters\/chr_\w+\.md$/.test(f))!
+  const recordId = /(chr_\w+)\.md$/.exec(recordFile)![1]!
+  const parsed = parseFile(
+    recordFile.slice(home.length + 1),
+    await opfs.read(page, recordFile),
+    () => {},
+  )
+  const fingerprint = recordFingerprint((parsed as { doc: RecordDoc }).doc)
+  const scene = files.find((f) => /^[^.]*\/scenes\/scn_\w+\.md$/.test(f))!
+  await opfs.write(
+    page,
+    scene,
+    `${(await opfs.read(page, scene)).trimEnd()}\n\n[[id:${recordId}|Archie]] waited.\n`,
+  )
+  const del = { kind: 'delete-record', recordId, recordType: 'character', title: 'Archie Collins' }
+  await suggest(page, { id: 'prp_delaaaaaaa', ...del, fingerprint, why: 'A duplicate of Archie.' })
+  // One made before the record last changed: it no longer applies.
+  await suggest(page, { id: 'prp_delbbbbbbb', ...del, fingerprint: '00000000' })
+  await page.reload()
+  await tab(page, 'Assistant').click()
+
+  const card = page.locator('[data-proposal="prp_delaaaaaaa"]')
+  await expect(card).toContainText('Delete character: “Archie Collins”')
+  await expect(card).toContainText('A duplicate of Archie.')
+  await expect(card).toContainText('Accept moves it to Recently deleted')
+  await expect(card).toContainText('1 scene links to it')
+  const stale = page.locator('[data-proposal="prp_delbbbbbbb"]')
+  await expect(stale).toContainText('Out of date: this record was changed or deleted')
+  await expect(stale.getByRole('button', { name: 'Accept' })).toHaveCount(0)
+  const { violations } = await new AxeBuilder({ page }).include('[data-proposal]').analyze()
+  expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([])
+
+  await card.getByRole('button', { name: 'Accept' }).click()
+  await expect(card).toHaveCount(0)
+  await expect(page.getByText('Moved “Archie Collins” to Recently deleted.')).toBeVisible()
+  const after = await opfs.list(page)
+  expect(after).not.toContain(recordFile)
+  expect(after.some((f) => f.includes('/.aurelia/trash/') && f.endsWith(`${recordId}.md`))).toBe(
+    true,
+  )
+  expect(after).toContain(scene) // the scene that linked to it stays
+  await expect(stale.getByRole('button', { name: 'Accept' })).toHaveCount(0)
 })

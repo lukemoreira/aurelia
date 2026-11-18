@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // The assistant's tools (ADR-0008, ADR-0015): read tools, and propose tools that only ever write a new
-// proposal file. Nothing here writes, moves or deletes the author's own files.
+// proposal file. Nothing here writes, moves or deletes the author's own files: even a suggested delete
+// is only a proposal, and the author's Accept moves the record to Recently deleted.
 import { z } from 'zod'
 import { currentPath } from '@/backup/layout'
 import { continuityModel } from '@/domain/continuity'
 import { continuityFindings, splitDismissed } from '@/domain/continuity-checks'
 import { newId } from '@/domain/ids'
 import { bookOutline, bookUnfiled, sceneContext, sceneLabels } from '@/domain/outline'
-import { anchorOf, proposalPath, sceneBlocks, type Proposal } from '@/domain/proposals'
+import {
+  anchorOf,
+  proposalPath,
+  recordFingerprint,
+  sceneBlocks,
+  type Proposal,
+} from '@/domain/proposals'
 import { RECORD_INFO } from '@/domain/record-types'
 import {
   BASE_SECTIONS,
@@ -390,6 +397,52 @@ export const TOOLS = {
       await writeProposal(ctx, proposal)
       return {
         label: `Suggested a character ${quoted(name)}`,
+        data: `Proposal ${proposal.id} is waiting for the author.`,
+      }
+    },
+  },
+
+  propose_delete_record: {
+    description:
+      'Suggest deleting one record (a character, place, item, event, lore, research…) of a book’s world: a duplicate, one the author asked to remove, or one that contradicts the story base when the author agrees. Records only: never a scene, chapter, part, book or the story base. It becomes a proposal the author reviews; nothing is deleted unless they accept it, and then it goes to Recently deleted, where they can bring it back.',
+    input: {
+      recordId: z.string().describe('The record’s id, from list_records or search.'),
+      why: z.string().min(1).max(2000).describe('One or two sentences, for the author: why.'),
+      replaces,
+    },
+    run: async (
+      ctx: ToolContext,
+      a: { recordId: string; why: string; replaces?: string },
+    ): Promise<ToolResult> => {
+      const { data } = ctx.ws
+      const r = data.records.find((x) => x.meta.id === a.recordId)
+      // Only a record of a world that holds a book of this workspace.
+      const inBook =
+        r &&
+        data.universes.some(
+          (u) => u.id === r.universe && u.books.some((b) => data.books.some((x) => x.id === b)),
+        )
+      if (!r || !inBook)
+        return fail(
+          'Suggested deleting a record',
+          'No such record in a book’s world. Only records (characters, places…) can be suggested for deletion: find them with list_records.',
+        )
+      const proposal: Proposal = {
+        schemaVersion: 1,
+        id: newId('prp'),
+        createdAt: (ctx.now?.() ?? new Date()).toISOString(),
+        by: 'Claude',
+        why: a.why,
+        ...(a.replaces ? { replaces: a.replaces } : {}),
+        kind: 'delete-record',
+        recordId: r.meta.id,
+        recordType: r.meta.type,
+        title: r.meta.title,
+        fingerprint: recordFingerprint(r),
+      }
+      await writeProposal(ctx, proposal)
+      return {
+        label: `Suggested deleting ${quoted(r.meta.title)}`,
         data: `Proposal ${proposal.id} is waiting for the author.`,
       }
     },

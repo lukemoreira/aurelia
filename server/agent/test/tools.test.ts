@@ -2,7 +2,8 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mergeChanges, proposalSchema } from '@/domain/proposals'
+import { mergeChanges, proposalSchema, recordFingerprint } from '@/domain/proposals'
+import { recordPath } from '@/storage/paths'
 import { storeAs } from '../src/mcp.ts'
 import { TOOLS, untrusted, type ToolContext } from '../src/tools.ts'
 import { checkFolder, readWorkspace } from '../src/workspace.ts'
@@ -287,6 +288,50 @@ describe('the story base (ADR-0016)', () => {
     })
     expect(again.error).toBe(true)
     expect(again.data).toContain('chr_abcdefghjk')
+  })
+  it('propose_delete_record suggests deleting one record of a book’s world, as it read it, and nothing else', async () => {
+    rig = await startStoreWith((files) => {
+      const universe = /^universes\/(unv_\w+)\//.exec(
+        [...files.keys()].find((p) => p.startsWith('universes/'))!,
+      )![1]!
+      files.set(
+        recordPath(universe, 'universe', 'characters', 'chr_abcdefghjk'),
+        `---\nschemaVersion: 1\nid: chr_abcdefghjk\ntype: character\ntitle: Archie Collins\nscope: universe\nrole: Clerk\n---\n\n${INJECTION}\n`,
+      )
+    })
+    const store = storeAs(rig.url, 'token-of-alice')
+    const ctx: ToolContext = { store, folder: FOLDER, ws: await readWorkspace(store, FOLDER) }
+    const record = ctx.ws.data.records.find((r) => r.meta.id === 'chr_abcdefghjk')!
+    const r = await run(ctx, 'propose_delete_record', {
+      recordId: 'chr_abcdefghjk',
+      why: 'A duplicate of Archie.',
+    })
+    expect(r).toMatchObject({ label: 'Suggested deleting “Archie Collins”' })
+    expect(r.error).toBeUndefined()
+    const [p] = await proposalsIn()
+    expect(p).toMatchObject({
+      kind: 'delete-record',
+      recordId: 'chr_abcdefghjk',
+      recordType: 'character',
+      title: 'Archie Collins',
+      fingerprint: recordFingerprint(record),
+    })
+    // Never a scene, a chapter, a book, an unknown id, or a record of a world with no book here.
+    const { data } = ctx.ws
+    data.records.push({
+      ...record,
+      meta: { ...record.meta, id: 'plc_abcdefghjk' },
+      universe: 'unv_elsewhere',
+    })
+    for (const id of [
+      data.scenes[0]!.meta.id,
+      data.chapters[0]!.id,
+      data.books[0]!.id,
+      'chr_nope',
+      'plc_abcdefghjk',
+    ])
+      expect((await run(ctx, 'propose_delete_record', { recordId: id, why: 'x' })).error).toBe(true)
+    expect(await proposalsIn()).toHaveLength(1)
   })
 })
 

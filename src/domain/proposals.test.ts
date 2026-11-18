@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { anchorOf, mergeChanges, proposalSchema, sceneBlocks } from './proposals'
+import { anchorOf, mergeChanges, proposalSchema, recordFingerprint, sceneBlocks } from './proposals'
 
 const body = 'First paragraph.\n\nSecond *one*,\non two lines.\n\n\nThird.\n'
 const ids = () => sceneBlocks(body).map((b) => b.id)
@@ -190,5 +190,43 @@ describe('the proposal file', () => {
         changes: [],
       }).success,
     ).toBe(false)
+  })
+})
+
+describe('a suggested record delete', () => {
+  const base = {
+    schemaVersion: 1,
+    id: 'prp_abcdefghjk',
+    createdAt: '2026-11-18T00:00:00Z',
+    by: 'Claude',
+    why: 'A duplicate of Archie.',
+    kind: 'delete-record',
+    recordType: 'character',
+    title: 'Archie Collins',
+    fingerprint: '0123abcd',
+  }
+
+  it('names a record only: never a scene, chapter, part, book, image or proposal', () => {
+    expect(proposalSchema.safeParse({ ...base, recordId: 'chr_abcdefghjk' }).success).toBe(true)
+    expect(proposalSchema.safeParse({ ...base, recordId: 'lor_abcdefghjk' }).success).toBe(true)
+    for (const id of ['scn', 'chp', 'prt', 'bok', 'unv', 'wsp', 'med', 'prp'])
+      expect(proposalSchema.safeParse({ ...base, recordId: `${id}_abcdefghjk` }).success).toBe(
+        false,
+      )
+    expect(
+      proposalSchema.safeParse({ ...base, recordId: 'chr_abcdefghjk', fingerprint: '' }).success,
+    ).toBe(false)
+  })
+
+  it('fingerprints a record by its details and notes, whatever order its keys were read in', () => {
+    const meta = { id: 'chr_abcdefghjk', type: 'character', title: 'Archie', role: 'Clerk' }
+    const fp = recordFingerprint({ meta, body: 'Notes.' } as never)
+    expect(fp).toMatch(/^[0-9a-f]{8}$/)
+    const reordered = { role: 'Clerk', title: 'Archie', type: 'character', id: 'chr_abcdefghjk' }
+    expect(recordFingerprint({ meta: reordered, body: '\nNotes.\n' } as never)).toBe(fp)
+    expect(
+      recordFingerprint({ meta: { ...meta, role: 'Pilot' }, body: 'Notes.' } as never),
+    ).not.toBe(fp)
+    expect(recordFingerprint({ meta, body: 'Other notes.' } as never)).not.toBe(fp)
   })
 })

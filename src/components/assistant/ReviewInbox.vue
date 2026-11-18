@@ -25,6 +25,7 @@ const p = useProposals()
       :key="item.id"
       :proposal="item"
       :out-of-date="p.outOfDate.value.has(item.id)"
+      :notice="p.noticeFor(item)"
       :busy="!!p.working.value"
       @accept="p.accept(item)"
       @reject="p.reject(item)"

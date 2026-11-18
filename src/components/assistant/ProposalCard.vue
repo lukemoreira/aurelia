@@ -21,6 +21,8 @@ const props = defineProps<{
   busy: boolean
   /** Shown inside the text on the writing page (else in the Review inbox). */
   inText?: boolean
+  /** What else the author should know before deciding (a delete: where it goes, what links to it). */
+  notice?: string
 }>()
 const emit = defineEmits<{ accept: []; reject: []; ask: [note: string] }>()
 const id = useId()
@@ -62,6 +64,7 @@ function sendAsk() {
       </h3>
     </header>
     <p v-if="proposal.why" class="m-0 text-[12.5px] text-ink-2">{{ proposal.why }}</p>
+    <p v-if="notice" class="m-0 text-[12.5px] text-ink-2">{{ notice }}</p>
     <div class="relative flex max-h-80 flex-col gap-2 overflow-y-auto">
       <div v-for="(d, i) in diffs" :key="i" class="flex flex-col gap-0.5">
         <h4 v-if="d.label" class="m-0 text-[11px] font-semibold text-ink-3">{{ d.label }}</h4>

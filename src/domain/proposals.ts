@@ -3,7 +3,10 @@
 // server writes them; the app shows them and only the author's Accept changes the manuscript. Plain TS:
 // the same code runs in the browser and in Node (server/agent), so both read a scene's blocks alike.
 import { z } from 'zod'
+import { RECORD_INFO } from './record-types'
+import { RECORD_TYPES } from './schema/record'
 import { CHARACTER_FIELDS, type BaseSection, type StoryBase } from './story-base'
+import type { RecordDoc } from './workspace-data'
 
 export const PROPOSALS_DIR = '.aurelia/proposals'
 export const proposalPath = (id: string) => `${PROPOSALS_DIR}/${id}.json`
@@ -23,6 +26,23 @@ function fingerprint(text: string): string {
   for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193)
   return (h >>> 0).toString(16).padStart(8, '0')
 }
+
+/** Keys in one order, so the same record reads the same however its details were loaded or edited. */
+const sorted = (_: string, v: unknown) =>
+  v && typeof v === 'object' && !Array.isArray(v)
+    ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    : v
+
+/** A record's details and notes as one fingerprint: a delete Accept requires it unchanged. */
+export const recordFingerprint = (r: Pick<RecordDoc, 'meta' | 'body'>) =>
+  fingerprint(JSON.stringify({ meta: r.meta, body: (r.body ?? '').trim() }, sorted))
+
+/** A record's ID (a character, place…): never a scene's, chapter's, part's or book's. */
+const RECORD_ID = new RegExp(
+  `^(${Object.values(RECORD_INFO)
+    .map((i) => i.prefix)
+    .join('|')})_[a-z0-9]{10}$`,
+)
 
 /** The blocks of a scene's text (the body the editor shows), in order. */
 export function sceneBlocks(body: string): Block[] {
@@ -120,10 +140,22 @@ export const proposalSchema = z.discriminatedUnion('kind', [
       ) as Record<(typeof CHARACTER_FIELDS)[number], z.ZodOptional<z.ZodString>>,
     ),
   }),
+  z.object({
+    ...common,
+    kind: z.literal('delete-record'),
+    /** A record of a book's world, moved to Recently deleted on Accept. Never a scene or the outline. */
+    recordId: z.string().regex(RECORD_ID),
+    /** Its type and title as read when proposed: what the card names. */
+    recordType: z.enum(RECORD_TYPES),
+    title: z.string().max(1000),
+    /** `recordFingerprint` of the record as read: Accept requires it unchanged. */
+    fingerprint: z.string().regex(/^[0-9a-f]{8}$/),
+  }),
 ])
 export type Proposal = z.infer<typeof proposalSchema>
 export type EditProposal = Extract<Proposal, { kind: 'edit' }>
 export type BaseProposal = Extract<Proposal, { kind: 'base' }>
+export type DeleteRecordProposal = Extract<Proposal, { kind: 'delete-record' }>
 
 /**
  * Accept of a story-base proposal: every section it changes must still read as it did (`before`), else

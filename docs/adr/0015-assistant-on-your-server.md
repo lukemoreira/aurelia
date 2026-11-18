@@ -6,7 +6,7 @@
   generate the story", "suggestions had a visual wrapper with actions (accept, reject, ask for changes)").
 - Amends [ADR-0008](0008-ai-assistant.md). Every safety rule of ADR-0008 stays.
 - Extended by [ADR-0016](0016-story-base.md) (2026-11-18): the story base and the guided start add
-  `get_story_base`, `propose_story_base` and `propose_character`.
+  `get_story_base`, `propose_story_base`, `propose_character` and `propose_delete_record`.
 - Facts checked on 2026-11-18. Provider rules change often: check them again before a release.
 
 ## Facts that shape the design
@@ -88,7 +88,8 @@ CI test runs the real MCP server in plain Node.
 - Propose: `propose_edit` (replace, remove, insert or add paragraphs) and `propose_scene` (a new scene with
   draft text at the end of a chapter). Each writes one new file, `.aurelia/proposals/prp_….json`, with
   `If-None-Match: *`. Nothing else is ever written. `propose_record` is not built (YAGNI); ADR-0016 adds
-  `propose_story_base` and `propose_character` (a new main character only).
+  `propose_story_base`, `propose_character` (a new main character only) and `propose_delete_record` (a
+  record to Recently deleted, on Accept).
 - Every result that holds story text is fenced as untrusted data, and the fence cannot be closed from inside.
   Titles are inside the fence too. The activity-log line, which the model also sees, quotes a title cut to
   80 characters, with the fence tags made harmless.

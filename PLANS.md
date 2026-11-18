@@ -802,3 +802,9 @@ backup — ADR-0009.)
   taken for another device's change; a non-text section reads as its JSON (a suggestion over it takes a
   snapshot); an emptied base stays `{}`; a restore compares bases whatever their key order; the
   character card says why it is out of date.
+- 2026-11-18 — Suggested record deletes (branch `feat/m8-delete-record`, ADR-0016; owner: "I want the agent
+  to be able to delete records when needed"): `propose_delete_record` writes a `delete-record` proposal (a
+  record's ID, type, title and a fingerprint of its details and notes). The card says what goes, why, that
+  Accept moves it to Recently deleted, and how many scenes and records link to it. Accept moves it there
+  through `deleteItem`, only while the record still reads as it did (checked inside the delete's turn);
+  otherwise the card is out of date and Accept refuses. Never a scene, chapter, part or book.

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
 import type { Proposal } from '@/domain/proposals'
-import { outOfDateWords } from './proposal-view'
+import type { Backlink } from '@/index/types'
+import { deleteWords, outOfDateWords, targetOf } from './proposal-view'
 
 const common = {
   schemaVersion: 1 as const,
@@ -31,5 +32,30 @@ describe('why a suggestion is out of date', () => {
       sections: { world: { before: '', after: 'W' } },
     }
     expect(outOfDateWords(base)).toContain('the text changed after this was suggested')
+  })
+})
+
+describe('a suggested record delete', () => {
+  const del: Proposal = {
+    ...common,
+    kind: 'delete-record',
+    recordId: 'chr_abcdefghjk',
+    recordType: 'character',
+    title: 'Archie Collins',
+    fingerprint: '0123abcd',
+  }
+  const from = (kind: 'scene' | 'record', links: number) =>
+    ({ from: { kind, id: 'x', title: 'X' }, links, names: 0 }) as unknown as Backlink
+
+  it('says plainly what goes, where to, and what links to it', () => {
+    expect(targetOf(del)).toBe('Delete character: “Archie Collins”')
+    expect(outOfDateWords(del)).toContain('this record was changed or deleted')
+    expect(deleteWords([])).toBe(
+      'Accept moves it to Recently deleted, where you can bring it back.',
+    )
+    expect(deleteWords([from('scene', 2)])).toContain('1 scene links to it')
+    expect(
+      deleteWords([from('scene', 1), from('scene', 1), from('record', 1), from('scene', 0)]),
+    ).toContain('2 scenes and 1 record link to it')
   })
 })
