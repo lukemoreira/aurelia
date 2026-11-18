@@ -8,7 +8,7 @@ import { classify } from './paths'
 import { listTrash } from './set-aside'
 import { syncOutline } from './outline-actions'
 import { listSnapshots, readSnapshot, writeSnapshot, type Snapshot } from './snapshots'
-import { cleanBase, storedBase, writeBase } from './story-base-actions'
+import { sameBase, storedBase, writeBase } from './story-base-actions'
 import type { WorkspaceSession } from './session'
 
 export interface SceneRestore {
@@ -186,9 +186,7 @@ export function restoreBook(s: WorkspaceSession, snapshotId: string): Promise<Bo
         // a book.json that does not read gives nothing back
       }
     }
-    const baseBack =
-      !!base &&
-      JSON.stringify(cleanBase(base)) !== JSON.stringify(cleanBase(storedBase(s, snap.book)))
+    const baseBack = !!base && !sameBase(base, storedBase(s, snap.book))
     for (const [path, text] of texts) {
       const k = classify(path)
       const id = ID_IN_PATH.exec(path)?.[1]

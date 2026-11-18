@@ -7,7 +7,7 @@ import Field from '@/components/ui/Field.vue'
 import Icon from '@/components/ui/Icon.vue'
 import Textarea from '@/components/ui/Textarea.vue'
 import type { Proposal } from '@/domain/proposals'
-import { diffsOf, targetOf } from './proposal-view'
+import { diffsOf, outOfDateWords, targetOf } from './proposal-view'
 
 /**
  * One suggestion: what it changes (removed words crossed out, added words underlined), why, and the
@@ -69,7 +69,7 @@ function sendAsk() {
       </div>
     </div>
     <p v-if="outOfDate" class="m-0 text-[12.5px] font-medium text-warn" role="note">
-      Out of date: the text changed after this was suggested. Ask again, or reject it.
+      {{ outOfDateWords(proposal) }}
     </p>
     <div role="toolbar" :aria-label="`Suggestion: ${target}`" class="flex flex-wrap gap-1.5">
       <Button v-if="!outOfDate" size="sm" variant="primary" :disabled="busy" @click="emit('accept')"

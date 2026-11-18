@@ -16,6 +16,13 @@ export const cleanBase = (base: Record<string, unknown> | undefined) =>
     ),
   )
 
+/** Two bases hold the same, whatever the order of their keys. */
+export const sameBase = (a: Record<string, unknown>, b: Record<string, unknown>) => {
+  const sorted = (x: Record<string, unknown>) =>
+    JSON.stringify(Object.entries(cleanBase(x)).sort(([k], [l]) => (k < l ? -1 : 1)))
+  return sorted(a) === sorted(b)
+}
+
 /** The stored base of a book, as read: the caller puts its changes over it, so nothing else is lost. */
 export const storedBase = (s: WorkspaceSession, bookId: string) =>
   s.data.books.find((b) => b.id === bookId)?.storyBase ?? {}
@@ -29,8 +36,8 @@ export async function writeBase(
   const path = s.pathOf(bookId)
   if (!path || !s.data.books.some((b) => b.id === bookId))
     throw new StorageError('other', 'That book is no longer in the workspace.')
-  const kept = cleanBase(base)
-  await s.setFields(bookId, { storyBase: Object.keys(kept).length ? kept : undefined })
+  // Kept even when empty: a snapshot taken now then holds an empty base, which a restore puts back.
+  await s.setFields(bookId, { storyBase: cleanBase(base) })
   await s.flushPaths([path])
   if (s.pipeline.isBusy(path))
     throw new StorageError(

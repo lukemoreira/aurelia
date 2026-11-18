@@ -8,7 +8,7 @@ import { baseOf, type BaseSection } from '@/domain/story-base'
 import { OUT_OF_DATE, acceptProposal, stillApplies } from './proposal-actions'
 import { restoreBook } from './snapshot-restore'
 import { listSnapshots, readSnapshot } from './snapshots'
-import { CHANGED_ELSEWHERE, setBaseSection } from './story-base-actions'
+import { CHANGED_ELSEWHERE, setBaseSection, storedBase } from './story-base-actions'
 import type { WorkspaceSession } from './session'
 
 type Rig = Awaited<ReturnType<typeof outlineRig>>
@@ -56,7 +56,7 @@ const characterProposal = (s: WorkspaceSession, name = 'Tomas Brandt') =>
   })
 
 describe('the story base by hand', () => {
-  it('is kept in book.json, one section at a time, and an emptied base takes the key away', async () => {
+  it('is kept in book.json, one section at a time, and an emptied base stays as an empty one', async () => {
     const s = rig.session
     const path = s.pathOf(bookOf(s).id)!
     await type(s, 'objectives', 'A slow-burn mystery for adults.')
@@ -74,7 +74,8 @@ describe('the story base by hand', () => {
     expect(saved.title).toBe('My Book') // the rest of the file stays
     await type(s, 'objectives', '')
     await type(s, 'world', '  ')
-    expect('storyBase' in JSON.parse((await rig.adapter.read(path))!.text)).toBe(false)
+    // Kept, empty: a snapshot taken now holds an empty base, which a restore puts back.
+    expect(JSON.parse((await rig.adapter.read(path))!.text).storyBase).toEqual({})
     // Read again from the files, by a new session.
     await type(s, 'narrative', 'Tomas finds the ledger.')
     const again = await rig.open()
@@ -96,7 +97,7 @@ describe('what the story base holds that this version does not write', () => {
 
   it('reads the sections that are text, and keeps everything else through a save, an Accept and a restore', async () => {
     const { s, path } = await handWritten()
-    expect(base(s)).toEqual({ objectives: 'Long text', world: '', narrative: '' })
+    expect(base(s)).toEqual({ objectives: 'Long text', world: '{"draft":"x"}', narrative: '' })
     const stored = async () => JSON.parse((await rig.adapter.read(path))!.text).storyBase
     await type(s, 'narrative', 'An ending.')
     expect(await stored()).toEqual({
@@ -120,6 +121,47 @@ describe('what the story base holds that this version does not write', () => {
       later: 1,
       narrative: 'An ending.',
     })
+  })
+})
+
+describe('the snapshot before a suggestion over a section that is not text', () => {
+  it('is taken: replacing it is replacing the author’s words', async () => {
+    const s = rig.session
+    await s.setFields(bookOf(s).id, { storyBase: { world: { draft: 'precious' } } })
+    const p = await baseProposal(s, {
+      world: { before: '{"draft":"precious"}', after: 'An island.' },
+    })
+    const done = await acceptProposal(s, p)
+    expect(done.snapshot).toBeDefined()
+    await restoreBook(s, done.snapshot!)
+    expect(storedBase(s, bookOf(s).id)).toEqual({ world: { draft: 'precious' } })
+  })
+})
+
+describe('a restore and the story base', () => {
+  it('of a snapshot taken while the base was empty clears what was written since', async () => {
+    const s = rig.session
+    await type(s, 'world', 'Soon gone.')
+    await type(s, 'world', '')
+    const { writeSnapshot } = await import('./snapshots')
+    const empty = await writeSnapshot(s, { kind: 'book', id: bookOf(s).id }, {})
+    await type(s, 'world', 'Written after.')
+    await restoreBook(s, empty.id)
+    expect(base(s).world).toBe('')
+  })
+
+  it('with the same base in another key order changes nothing and takes no snapshot', async () => {
+    const s = rig.session
+    await s.setFields(bookOf(s).id, { storyBase: { objectives: 'O', world: 'W' } })
+    const { writeSnapshot } = await import('./snapshots')
+    const snap = await writeSnapshot(s, { kind: 'book', id: bookOf(s).id }, {})
+    await s.setFields(bookOf(s).id, { storyBase: { world: 'W', objectives: 'O' } })
+    await s.flush()
+    const back = await restoreBook(s, snap.id)
+    expect(back.restored).toEqual([])
+    expect((await listSnapshots(s.adapter)).filter((x) => x.reason === 'before-restore')).toEqual(
+      [],
+    )
   })
 })
 

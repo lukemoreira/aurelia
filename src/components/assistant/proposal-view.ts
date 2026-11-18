@@ -13,6 +13,12 @@ export function targetOf(p: Proposal): string {
   return `New character: “${p.name}”`
 }
 
+/** Why a suggestion can no longer be accepted, in words. */
+export const outOfDateWords = (p: Proposal) =>
+  p.kind === 'character'
+    ? 'Out of date: a character with this name is already in this world. Reject it.'
+    : 'Out of date: the text changed after this was suggested. Ask again, or reject it.'
+
 const FIELD_LABEL = new Map<string, string>(
   RECORD_INFO.character.fields.map((f) => [f.key, f.label]),
 )
