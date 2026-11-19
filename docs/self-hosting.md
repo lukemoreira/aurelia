@@ -241,7 +241,9 @@ on for the workspace.
 1. Sign in once, as you:
    `cloudflared access login https://aurelia.example.com`
    A browser tab opens. Sign in there. If the sign-in never finishes in Safari, open the same link in
-   another browser.
+   another browser. The tool can then show `failed to verify token`. That is expected: it checks the
+   sign-in through Cloudflare, and the Binding Cookie refuses it there. The sign-in is saved and works
+   on your home network. Do this again when it ends, after about a day.
 2. Find the workspace folder on your server. It is under the books dataset, in `Aurelia/`, with a name
    like `My book (wsp_…)`.
 3. Make a folder for the book on your computer. In it, put this `.mcp.json`. Change the two addresses and
