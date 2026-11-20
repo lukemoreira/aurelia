@@ -815,3 +815,15 @@ backup — ADR-0009.)
   or an ordinary word, is asked about; an alias with `never` turns one off. Worked out with the names
   of a scope, never stored; Rename everywhere is unchanged. The character's page lists them ("Also
   found as") with "Stop finding …", which writes a `never` alias.
+- 2026-11-20 — Find and replace in the whole book (branch `feat/find-replace`): "Find and replace in
+  this book…" in the palette and ⌘⇧H / Ctrl+Shift+H. Find, Replace with, Match case, Whole words only
+  (a Unicode letter, mark or digit is part of a word); plain text, never a pattern. Only the scene text
+  of the open book: never titles, record notes, the details at the top or snapshots, and never inside a
+  `[[link]]`, code, raw HTML, a link definition, an address or a note label — those are counted ("3
+  inside links, not changed"). Every match is listed by scene (number and title) with the words around
+  it, each can be unticked; with Match case off the replacement keeps the match's ALL CAPS or capital
+  first letter. It goes through the rename writer, now shared: the open scene's words are saved, a
+  version, a "Before replace" snapshot of the book (in History), a copy of each file, a compare before
+  each write, a stop that says how far it got, and one Undo in the toast ("Replaced 12 places in 5
+  scenes."). Also: an indented code block and a link definition are now kept as written by Rename
+  everywhere too.

@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 import {
   certainPlaces,
+  groupPlaces,
   planRename,
   proposeForms,
   renamedAliases,
@@ -16,6 +17,24 @@ import { useEditsStore, type RenameOffer } from '@/stores/edits'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 const many = (n: number, one: string, more: string) => `${n} ${n === 1 ? one : more}`
+
+/** The Undo of a toast after a run of changes (rename everywhere, find and replace): puts the files back and says how it went. */
+export function undoRun(run: RenameRun) {
+  const ws = useWorkspaceStore()
+  const edits = useEditsStore()
+  return async () => {
+    try {
+      const r = await undoRename(ws.session!, run)
+      edits.toast = {
+        text: r.kept.length
+          ? `Put ${many(r.restored, 'file', 'files')} back. ${r.kept.join(', ')} had new words, so it was left as it is.`
+          : `Put ${many(r.restored, 'file', 'files')} back.`,
+      }
+    } catch (e) {
+      edits.toast = { text: wordsFor(e, 'That could not be undone.'), error: true }
+    }
+  }
+}
 
 /**
  * "Change the name in your text too?" (ADR-0010 §6). Opens after a record is renamed, when its old
@@ -95,15 +114,7 @@ export function useRenameEverywhere() {
   const uncertain = computed(() => places.value.filter((p) => p.uncertain))
   const shown = computed(() => (filter.value === 'uncertain' ? uncertain.value : places.value))
   /** Places by where they are, in reading order. */
-  const groups = computed(() => {
-    const out: { where: string; places: RenamePlace[] }[] = []
-    for (const p of shown.value) {
-      const last = out.at(-1)
-      if (last?.where === p.where) last.places.push(p)
-      else out.push({ where: p.where, places: [p] })
-    }
-    return out
-  })
+  const groups = computed(() => groupPlaces(shown.value))
   /** "2 books · 31 scenes · 3 notes": how widely the old name is written. */
   const reach = computed(() => {
     const scenes = new Set<string>()
@@ -136,18 +147,7 @@ export function useRenameEverywhere() {
     const done = many(run.done, 'scene or note', 'scenes and notes')
     // A copy of each file is always kept; a version only when it really reached the server.
     const safe = `A copy of each file was kept first, in the .aurelia folder.${run.versioned ? ' A version was saved too.' : ''}`
-    const undo = async () => {
-      try {
-        const r = await undoRename(ws.session!, run)
-        edits.toast = {
-          text: r.kept.length
-            ? `Put ${many(r.restored, 'file', 'files')} back. ${r.kept.join(', ')} had new words, so it was left as it is.`
-            : `Put ${many(r.restored, 'file', 'files')} back.`,
-        }
-      } catch (e) {
-        edits.toast = { text: wordsFor(e, 'That could not be undone.'), error: true }
-      }
-    }
+    const undo = undoRun(run)
     edits.toast = run.stopped
       ? {
           text: `Stopped: “${run.stopped.title}” ${run.stopped.why === 'changed' ? 'changed while this ran' : 'could not be saved'}. ${many(run.places, 'place', 'places')} in ${done} were changed before it. ${safe}`,

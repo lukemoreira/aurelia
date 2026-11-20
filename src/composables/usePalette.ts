@@ -10,7 +10,7 @@ import { setBookMode } from '@/storage/story-actions'
 import { useLayoutStore } from '@/stores/layout'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { altLabel, focusLabel, modLabel } from './useKeyboardShortcuts'
+import { altLabel, focusLabel, modLabel, replaceLabel } from './useKeyboardShortcuts'
 import { useNavigation } from './useNavigation'
 import { useAddChange } from './useAddChange'
 import { useAssistant } from './useAssistant'
@@ -199,6 +199,20 @@ export function usePalette() {
         ? [snapshotAction('scene', ws.sceneId, ws.scene?.meta.title ?? '')]
         : []),
       ...(edit.canEdit.value && book ? [snapshotAction('book', book.id, book.title)] : []),
+      // Find and replace changes the book's scene text: a real workspace that can be written to.
+      ...(edit.canEdit.value && book
+        ? [
+            {
+              id: 'action:find-replace',
+              title: 'Find and replace in this book…',
+              sub: `Write · ${book.title}`,
+              icon: 'search' as const,
+              hint: replaceLabel,
+              afterClose: true,
+              run: () => (layout.findReplaceOpen = true),
+            },
+          ]
+        : []),
       // A straight book has no Story map tab: this is the way to it from anywhere.
       ...(book && book.mode !== 'branching' && edit.canEdit.value
         ? [

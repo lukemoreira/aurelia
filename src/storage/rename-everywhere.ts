@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Rename everywhere (ADR-0010 §6): the writing of it. The files are changed through the session,
-// so each is a compare-and-write like any edit; a refusal stops the run and says how far it got.
+// Rename everywhere (ADR-0010 §6) and find and replace in a book: the writing of a plan of places.
+// The files are changed through the session, so each is a compare-and-write like any edit; a
+// refusal stops the run and says how far it got.
 import type { Alias } from '@/domain/schema/record'
 import { rewrites, type RenamePlan } from '@/index/rename'
 import { StorageError } from './errors'
 import { aliasesPatch } from './record-actions'
 import { safetyPathFor, stampOf } from './paths'
 import type { WorkspaceSession } from './session'
+import { writeSnapshot } from './snapshots'
 
 /** What was changed: enough to put every file back as it was. */
 export interface RenameRun {
   files: { id: string; kind: 'scene' | 'record'; before: string; after: string }[]
-  recordId: string
+  /** The record renamed; absent for find and replace. */
+  recordId?: string
   /** The record's other names, before and after (undefined: not changed). */
   aliases?: { before: Alias[]; after: Alias[] }
   /** The other names were (being) written. */
@@ -56,9 +59,11 @@ export async function applyRename(
   plan: RenamePlan,
   ticked: ReadonlySet<string>,
   opts: {
-    recordId: string
+    recordId?: string
     /** The record's other names, and what they become. Undefined leaves them. */
     aliases?: { before: Alias[]; after: Alias[] }
+    /** Take a "Before replace" snapshot of this book after the compare, before the first write. */
+    snapshotBook?: string
     /** Save a version of the workspace; true when one was saved. */
     saveVersion: () => Promise<boolean>
   },
@@ -78,16 +83,18 @@ export async function applyRename(
         )
     if (paths.some((p) => !p || s.pipeline.isBusy(p)))
       throw new StorageError('other', 'Aurelia is still saving. Try again in a moment.')
+    if (opts.snapshotBook)
+      await writeSnapshot(s, { kind: 'book', id: opts.snapshotBook }, { reason: 'before-replace' })
 
     // The old texts are always kept in the folder: a version may not have reached the server.
     const stamp = stampOf(new Date())
-    for (const p of [...paths, ...(opts.aliases ? [s.pathOf(opts.recordId) ?? ''] : [])]) {
+    for (const p of [...paths, ...(opts.aliases ? [s.pathOf(opts.recordId ?? '') ?? ''] : [])]) {
       const text = s.current(p)
       if (p && text !== undefined) await s.adapter.write(safetyPathFor(p, stamp), text)
     }
 
     const run: RenameRun = {
-      recordId: opts.recordId,
+      ...(opts.recordId ? { recordId: opts.recordId } : {}),
       files: [],
       done: 0,
       places: 0,
@@ -115,7 +122,7 @@ export async function applyRename(
       run.done++
       run.places += f.count
     }
-    if (opts.aliases) {
+    if (opts.aliases && opts.recordId) {
       run.aliasesDone = true
       try {
         await s.setFields(opts.recordId, { aliases: aliasesPatch(opts.aliases.after) })
@@ -148,7 +155,7 @@ export async function undoRename(s: WorkspaceSession, run: RenameRun): Promise<U
       await put(s, f.id, f.kind, f.before)
       result.restored++
     }
-    if (run.aliasesDone && run.aliases) {
+    if (run.aliasesDone && run.aliases && run.recordId) {
       const now = s.data.records.find((r) => r.meta.id === run.recordId)?.meta.aliases
       const names = (list: Alias[] | undefined) => JSON.stringify(aliasesPatch(list ?? []) ?? [])
       if (names(now) === names(run.aliases.before)) {

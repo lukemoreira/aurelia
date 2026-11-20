@@ -35,6 +35,8 @@ export const useLayoutStore = defineStore('layout', () => {
   /** The book laid out for a PDF (its page, its styles, its name): the print view is open while this is set. */
   const print = shallowRef<{ title: string; css: string; html: string } | null>(null)
   const renameOpen = ref(false)
+  /** Find and replace in the open book. */
+  const findReplaceOpen = ref(false)
   /** Focus mode: the panels, the bars and the counts go, and the text stays. Not kept: every visit starts normal. */
   const focus = ref(false)
   /** The list of files with two versions (conflicted copies) and files that could not be read. */
@@ -92,6 +94,7 @@ export const useLayoutStore = defineStore('layout', () => {
     printReturn,
     print,
     renameOpen,
+    findReplaceOpen,
     focus,
     toggleFocus,
     choicesWanted,
