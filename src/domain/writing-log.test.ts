@@ -22,12 +22,12 @@ const logOf = (...days: [string, number, Record<string, number>][]): WritingLog 
 describe('words written', () => {
   it('today is what the books hold now less what they held at the start', () => {
     const log = logOf(['2026-11-20', 500, { a: 1000, b: 200 }])
-    expect(wordsOn(log, '2026-11-20', { a: 1300, b: 220 })).toBe(320)
+    expect(wordsOn(log, '2026-11-20', { a: 1300, b: 220 }, '2026-11-20')).toBe(320)
   })
 
   it('a book first seen today starts at what it holds, so an import is not writing', () => {
     const log = logOf(['2026-11-20', 500, { a: 1000, imported: 80_000 }])
-    expect(wordsOn(log, '2026-11-20', { a: 1100, imported: 80_000 })).toBe(100)
+    expect(wordsOn(log, '2026-11-20', { a: 1100, imported: 80_000 }, '2026-11-20')).toBe(100)
   })
 
   it('a past day runs to the next recorded day, whatever days have no record between', () => {
@@ -36,8 +36,8 @@ describe('words written', () => {
       ['2026-11-14', 500, { a: 1400, b: 90 }],
       ['2026-11-20', 500, { a: 1500, b: 90 }],
     )
-    expect(wordsOn(log, '2026-11-10', { a: 1600, b: 90 })).toBe(440)
-    expect(wordsOn(log, '2026-11-14', { a: 1600, b: 90 })).toBe(100)
+    expect(wordsOn(log, '2026-11-10', { a: 1600, b: 90 }, '2026-11-20')).toBe(440)
+    expect(wordsOn(log, '2026-11-14', { a: 1600, b: 90 }, '2026-11-20')).toBe(100)
   })
 
   it('a book that is gone, or was not there on the day, adds nothing', () => {
@@ -45,13 +45,19 @@ describe('words written', () => {
       ['2026-11-19', 0, { a: 100, gone: 500 }],
       ['2026-11-20', 0, { a: 150, new: 10 }],
     )
-    expect(wordsOn(log, '2026-11-19', { a: 150 })).toBe(50)
+    expect(wordsOn(log, '2026-11-19', { a: 150 }, '2026-11-20')).toBe(50)
+  })
+
+  it('a recorded day later than today (a clock set ahead) does not end today’s count', () => {
+    const log = logOf(['2026-11-20', 500, { a: 1000 }], ['2026-11-25', 500, { a: 1000 }])
+    expect(wordsOn(log, '2026-11-20', { a: 1300 }, '2026-11-20')).toBe(300)
+    expect(daysInARow(log, '2026-11-20', { a: 1600 })).toBe(1)
   })
 
   it('a day never shows below 0', () => {
     const log = logOf(['2026-11-20', 500, { a: 1000, b: 0 }])
-    expect(wordsOn(log, '2026-11-20', { a: 400, b: 100 })).toBe(0)
-    expect(wordsOn(log, '2026-11-01', { a: 400 })).toBe(0)
+    expect(wordsOn(log, '2026-11-20', { a: 400, b: 100 }, '2026-11-20')).toBe(0)
+    expect(wordsOn(log, '2026-11-01', { a: 400 }, '2026-11-20')).toBe(0)
   })
 })
 
@@ -110,6 +116,8 @@ describe('numbers and dates', () => {
     expect(parseCount(' 500 ')).toBe(500)
     expect(parseCount('')).toBe(0)
     expect(parseCount('1.5')).toBeUndefined()
+    for (const bad of ['90.000', '0x1F4', '1e5', '+5', '1_000'])
+      expect(parseCount(bad)).toBeUndefined()
     expect(parseCount('-3')).toBeUndefined()
     expect(parseCount('lots')).toBeUndefined()
   })

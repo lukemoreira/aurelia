@@ -428,7 +428,8 @@ export class WorkspaceSession {
     this.show(this.data, path, next) // text that does not read throws here, before the disk is touched
     await this.adapter.write(path, next)
     this.pipeline.writes++
-    this.wrote = true
+    // Not `wrote`: a derived file is not the author's work, so it must not count as their first save
+    // (which asks the browser to keep the storage and offers installing).
     this.texts.set(path, next)
     // Shown on what is on screen NOW: a scene made or a word typed during the write stays.
     this.data = this.show(this.data, path, next)

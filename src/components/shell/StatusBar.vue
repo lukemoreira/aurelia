@@ -5,6 +5,7 @@ import WordGoal from '@/components/goals/WordGoal.vue'
 import Icon from '@/components/ui/Icon.vue'
 import Popover from '@/components/ui/Popover.vue'
 import StorageDetails from '@/components/workspace/StorageDetails.vue'
+import type { WritingLogState } from '@/composables/useWritingLog'
 import { backupNeedsAttention, backupWords, twoVersionsOf } from '@/backup/words'
 import { useOpenDialogFromMenu } from '@/composables/useOpenDialogFromMenu'
 import { needsAttention } from '@/storage/status'
@@ -12,6 +13,8 @@ import { useBackupStore } from '@/stores/backup'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 
+/** The words and goals: made once in the shell, so they keep counting while this bar is hidden (focus mode). */
+defineProps<{ goals?: WritingLogState }>()
 const ws = useWorkspaceStore()
 const backup = useBackupStore()
 const layout = useLayoutStore()
@@ -93,7 +96,7 @@ const popoverOpen = computed({
     <span
       ><b class="font-medium text-ink-2">{{ fmt(ws.words.session) }}</b> this session</span
     >
-    <WordGoal />
+    <WordGoal v-if="goals" :goals="goals" />
     <span class="flex-1" />
     <span v-if="where">{{ where }}</span>
     <!-- Always in the page, so a change of its text is read out. Only what needs the author's eye is put in it. -->

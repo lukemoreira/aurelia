@@ -16,7 +16,7 @@ import { wordsFor } from '@/storage/errors'
 import { LOG_PATH, blockedError, readLog, withDailyGoal, withStarts } from '@/storage/writing-log'
 import { useEditsStore } from '@/stores/edits'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { isString, usePersisted } from './usePersisted'
+import { isRecordOfStrings, usePersisted } from './usePersisted'
 
 const TICK = 30_000
 const TOAST_MS = 6_000
@@ -40,14 +40,15 @@ export function useWritingLog() {
   let memory: string | undefined
   let lastText: string | undefined
   const offFile = ref(false)
-  const lastToast = usePersisted('goal-toast', '', isString)
+  /** The day each workspace last showed the toast, on this device. */
+  const lastToast = usePersisted<Record<string, string>>('goal-toasts', {}, isRecordOfStrings)
 
   const totals = computed<Totals>(() => {
     const data = ws.data
     return data ? Object.fromEntries(data.books.map((b) => [b.id, bookWords(data, b.id)])) : {}
   })
   const goal = computed(() => goalFor(log.value, today.value))
-  const words = computed(() => wordsOn(log.value, today.value, totals.value))
+  const words = computed(() => wordsOn(log.value, today.value, totals.value, today.value))
   const streak = computed(() => daysInARow(log.value, today.value, totals.value))
   const met = computed(() => goal.value > 0 && words.value >= goal.value)
   const bookTotal = computed(() => (ws.bookId ? (totals.value[ws.bookId] ?? 0) : 0))
@@ -78,7 +79,8 @@ export function useWritingLog() {
     error.value = ''
     try {
       if (inFile()) {
-        await ws.session!.writeDerived(LOG_PATH, make)
+        // In the session's own turn: after an import or a restore that is still writing its files.
+        await ws.session!.exclusive(() => ws.session!.writeDerived(LOG_PATH, make))
         await load()
       } else {
         memory = make(memory)
@@ -97,21 +99,22 @@ export function useWritingLog() {
   }
 
   let recording = false
-  /** A book seen for the first time today is recorded at the words it holds now. */
+  /** A book seen for the first time today is recorded at the words it holds when the write's turn comes. */
   async function record() {
     if (!ready.value || recording || !ws.data) return
     const day = today.value
     const have = log.value.days[day]?.start ?? {}
-    const fresh = Object.keys(totals.value).filter((id) => !(id in have))
-    if (!fresh.length) return
+    if (Object.keys(totals.value).every((id) => id in have)) return
     recording = true
-    const at = new Date().toISOString()
-    const starts: Record<string, DayStart> = Object.fromEntries(
-      fresh.map((id) => [id, { words: totals.value[id] ?? 0, at }]),
-    )
-    const done = await change((text) =>
-      withStarts(text, day, goalFor(log.value, day), starts),
-    ).finally(() => (recording = false))
+    const done = await change((text) => {
+      const now = readLog(text).log
+      const seen = now.days[day]?.start ?? {}
+      const at = new Date().toISOString()
+      const starts: Record<string, DayStart> = {}
+      for (const [id, words] of Object.entries(totals.value))
+        if (!(id in seen)) starts[id] = { words, at }
+      return withStarts(text, day, goalFor(now, day), starts)
+    }).finally(() => (recording = false))
     if (done) void record() // a book may have come while this was writing
   }
 
@@ -127,7 +130,7 @@ export function useWritingLog() {
 
   // A new workspace starts from its own log.
   watch(
-    () => [ws.session, ws.data?.workspace.id],
+    [() => ws.session, () => ws.data?.workspace.id],
     () => {
       ready.value = false
       offFile.value = false
@@ -139,17 +142,18 @@ export function useWritingLog() {
   )
   watch([totals, today, ready, log], record)
 
-  // One calm toast, the first time each day's goal is reached while writing, never on opening.
-  let before = false
-  watch(ready, (r) => r && (before = met.value))
-  watch(met, (now) => {
-    if (ready.value && now && !before && lastToast.value !== today.value) {
-      lastToast.value = today.value
-      const toast = { text: 'You reached today’s goal.' }
-      edits.toast = toast
-      setTimeout(() => edits.toast === toast && (edits.toast = null), TOAST_MS)
-    }
-    before = now
+  // One calm toast a day for each workspace: when typing takes today's words up to the goal, never on
+  // opening, on lowering the goal, or when another device's log arrives.
+  const sum = (t: Totals) => Object.values(t).reduce((n, w) => n + w, 0)
+  watch(totals, (now, old) => {
+    const id = ws.data?.workspace.id
+    if (!ready.value || !id || goal.value <= 0 || lastToast.value[id] === today.value) return
+    const prior = wordsOn(log.value, today.value, old, today.value)
+    if (prior >= goal.value || words.value < goal.value || sum(now) <= sum(old)) return
+    lastToast.value = { ...lastToast.value, [id]: today.value }
+    const toast = { text: 'You reached today’s goal.' }
+    edits.toast = toast
+    setTimeout(() => edits.toast === toast && (edits.toast = null), TOAST_MS)
   })
 
   // The date changes at midnight; another device may have written the log while this one was away.
@@ -169,3 +173,6 @@ export function useWritingLog() {
 
   return { ready, goal, words, streak, met, bookTotal, error, setDailyGoal, load }
 }
+
+/** What the status bar and its popover read from `useWritingLog`. */
+export type WritingLogState = ReturnType<typeof useWritingLog>

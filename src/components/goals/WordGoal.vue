@@ -3,18 +3,18 @@
 import { watch } from 'vue'
 import Icon from '@/components/ui/Icon.vue'
 import Popover from '@/components/ui/Popover.vue'
-import { useWritingLog } from '@/composables/useWritingLog'
+import type { WritingLogState } from '@/composables/useWritingLog'
 import { useLayoutStore } from '@/stores/layout'
 import WordGoalDetails from './WordGoalDetails.vue'
 
 /** "320 / 500 words today" in the status bar; it opens today's progress, the days in a row and the goals. */
-const goals = useWritingLog()
+const props = defineProps<{ goals: WritingLogState }>()
 const layout = useLayoutStore()
 const fmt = (n: number) => n.toLocaleString('en-US')
 // Another device may have written the log since: look again when it is opened.
 watch(
   () => layout.goalsOpen,
-  (open) => open && void goals.load(),
+  (open) => open && void props.goals.load(),
 )
 </script>
 

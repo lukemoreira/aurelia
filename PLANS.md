@@ -843,4 +843,10 @@ backup — ADR-0009.)
   two devices merge to the earliest `at` per day and book; a newer or unreadable file is never written (goals
   then work for the visit and the popover says why). The status bar shows "320 / 500 words today"; it opens
   today's bar, the streak, the book's bar and the two fields; palette "Set word goals…"; one toast a day
-  ("You reached today's goal."), never when opening the app. No notifications.
+  ("You reached today's goal."), never when opening the app. No notifications. Known and accepted: two devices
+  that each write their first start of a day before sync meets leave one file and a conflict copy the app
+  ignores, so one start can be lost. Review fixes: the log stays loaded while typing (it was re-read on every
+  keystroke); starts are taken inside the session's turn, so an import or a restore is not counted as writing;
+  the log is kept in the shell, so focus mode and midnight still count; recorded days later than today are
+  ignored; goals read digits only ("90.000", "1e5" are refused); a typed goal is kept when the popover closes;
+  the toast fires only when typing takes the words past the goal, once a day per workspace.
