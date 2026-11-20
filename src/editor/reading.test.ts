@@ -71,6 +71,12 @@ Last one.
     )
     expect(readingUnits(ed.state.doc)[0]!.text).toBe('See the map and the list and notes and here.')
   })
+  it('reads such a link without its marks, and every link of kept text that runs together', () => {
+    const ed = start(
+      'A [**bold** word](u "t"), [a `code` b](u "t"), [a\\_b](u "t") and <https://a.com>[the list][l][more][l].\n\n[l]: https://example.com/l\n',
+    )
+    expect(readingUnits(ed.state.doc)[0]!.text).toBe('A bold word, a b, a_b and the list more.')
+  })
   it('puts a hard break between words, and skips an empty paragraph', () => {
     const ed = start('one\\\ntwo\n\n \n')
     expect(readingUnits(ed.state.doc).map((u) => u.text)).toEqual(['one two'])

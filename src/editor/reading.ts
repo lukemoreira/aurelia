@@ -37,9 +37,16 @@ export function spokenText(raw: string): string {
 
 /**
  * Text kept as written (the verbatim mark): a link with a title or a reference link says its words, not
- * its address; inline code, an image, an HTML tag and a bare or `<address>` link say nothing.
+ * its address; inline code, an image, an HTML tag and a bare or `<address>` link say nothing. The editor
+ * joins neighbouring kept text into one piece, so every link in it is read, without its Markdown marks.
  */
-const keptWords = (raw: string) => /^\[(.*?)\](?:\(.*\)|\[[^\]]*\])?$/s.exec(raw)?.[1] ?? ' '
+const keptWords = (raw: string) => {
+  const kept = raw.replace(/`[^`]*`/g, '').replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+  const words = [...kept.matchAll(/\[([^\]]*)\](?:\([^)]*\)|\[[^\]]*\])?/g)].map((m) =>
+    m[1]!.replace(/\\(.)/g, '$1').replace(/[*~]+|(?<!\w)_+|_+(?!\w)/g, ''),
+  )
+  return words.join(' ') || ' '
+}
 
 /** The paragraphs of the scene, in order, that have words to say. */
 export function readingUnits(doc: PmNode): ReadUnit[] {
