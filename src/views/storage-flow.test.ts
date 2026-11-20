@@ -19,6 +19,7 @@ import { FakeLocks } from '../../tests/helpers/fake-locks'
 import { gateRead } from '../../tests/helpers/gate-read'
 import { MemoryAdapter } from '../../tests/helpers/memory-adapter'
 import { WorkspaceSession } from '@/storage/session'
+import { LOG_PATH } from '@/storage/writing-log'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
 
@@ -124,6 +125,10 @@ async function open(adapter: StorageAdapter = new MemoryAdapter()) {
   view.ws.attach(session)
   await view.router.push(view.ws.startPath())
   await flushPromises()
+  // The writing log's first write runs in the session's own turn, and the checks for outside changes
+  // wait for that turn: let it end, or a test's check can be skipped.
+  await vi.waitFor(async () => expect(await adapter.read(LOG_PATH)).not.toBeNull())
+  await session.exclusive(async () => undefined)
   return { ...view, session, adapter }
 }
 const footer = () => document.querySelector('footer')!.textContent ?? ''

@@ -35,6 +35,12 @@ export function spokenText(raw: string): string {
     .trim()
 }
 
+/**
+ * Text kept as written (the verbatim mark): a link with a title or a reference link says its words, not
+ * its address; inline code, an image, an HTML tag and a bare or `<address>` link say nothing.
+ */
+const keptWords = (raw: string) => /^\[(.*?)\](?:\(.*\)|\[[^\]]*\])?$/s.exec(raw)?.[1] ?? ' '
+
 /** The paragraphs of the scene, in order, that have words to say. */
 export function readingUnits(doc: PmNode): ReadUnit[] {
   const units: ReadUnit[] = []
@@ -43,9 +49,10 @@ export function readingUnits(doc: PmNode): ReadUnit[] {
     if (!node.isTextblock) return true
     let raw = ''
     node.forEach((child) => {
-      // Inline code, images, bare links and HTML spans are kept as written (the verbatim mark): not words to say.
       if (child.isText)
-        raw += child.marks.some((m) => m.type.name === 'verbatim') ? ' ' : child.text
+        raw += child.marks.some((m) => m.type.name === 'verbatim')
+          ? keptWords(child.text!)
+          : child.text
       else if (child.type.name === 'hardBreak') raw += ' '
     })
     const text = spokenText(raw)

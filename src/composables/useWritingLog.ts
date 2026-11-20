@@ -128,10 +128,12 @@ export function useWritingLog() {
     if (n !== goal.value) await change((text) => withDailyGoal(text, today.value, n))
   }
 
-  // A new workspace starts from its own log.
+  // A new workspace starts from its own log, and so does a reconnected folder (a write that failed while
+  // it was away left the goals in memory only).
   watch(
-    [() => ws.session, () => ws.data?.workspace.id],
-    () => {
+    [() => ws.session, () => ws.data?.workspace.id, () => !ws.view?.permissionLost],
+    (now, old) => {
+      if (old && now[2] === false && now[0] === old[0] && now[1] === old[1]) return // losing it changes nothing yet
       ready.value = false
       offFile.value = false
       memory = lastText = undefined
@@ -143,11 +145,12 @@ export function useWritingLog() {
   watch([totals, today, ready, log], record)
 
   // One calm toast a day for each workspace: when typing takes today's words up to the goal, never on
-  // opening, on lowering the goal, or when another device's log arrives.
+  // opening, on lowering the goal, when another device's log arrives, or on words nobody typed here.
   const sum = (t: Totals) => Object.values(t).reduce((n, w) => n + w, 0)
-  watch(totals, (now, old) => {
+  watch([totals, () => ws.words.session], ([now, typed], [old, typedBefore]) => {
     const id = ws.data?.workspace.id
     if (!ready.value || !id || goal.value <= 0 || lastToast.value[id] === today.value) return
+    if (typed <= typedBefore) return // a restored version, a sync or an outside change: not typed here
     const prior = wordsOn(log.value, today.value, old, today.value)
     if (prior >= goal.value || words.value < goal.value || sum(now) <= sum(old)) return
     lastToast.value = { ...lastToast.value, [id]: today.value }

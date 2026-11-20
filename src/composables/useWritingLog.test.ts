@@ -2,7 +2,7 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { planFromFiles } from '@/import/sources'
-import { localDay } from '@/domain/writing-log'
+import { goalFor, localDay } from '@/domain/writing-log'
 import { importBook } from '@/storage/import-actions'
 import { LOG_PATH, readLog } from '@/storage/writing-log'
 import { useEditsStore } from '@/stores/edits'
@@ -91,5 +91,36 @@ describe('the writing log of a real workspace', () => {
     await goals.setDailyGoal('1')
     await settle()
     expect(edits.toast).toBeNull()
+  })
+
+  it('does not say the goal is reached for words nobody typed here (a restore, a sync, an outside change)', async () => {
+    const { ws, session, goals, log, day } = await open()
+    await vi.waitFor(async () =>
+      expect(Object.keys((await log()).days[day]?.start ?? {})).toHaveLength(1),
+    )
+    const edits = useEditsStore()
+    await goals.setDailyGoal('3')
+    void session.editScene(ws.data!.scenes[0]!.meta.id, 'One two three four')
+    await vi.waitFor(() => expect(goals.words.value).toBe(4))
+    await new Promise((r) => setTimeout(r, 10))
+    expect(edits.toast).toBeNull()
+  })
+
+  it('writes the goals to the file again once a lost folder is reconnected', async () => {
+    const { ws, session, goals, log, adapter, day } = await open()
+    await vi.waitFor(async () =>
+      expect(Object.keys((await log()).days[day]?.start ?? {})).toHaveLength(1),
+    )
+    adapter.accessLost = true
+    await session.checkAll()
+    await vi.waitFor(() => expect(ws.view?.permissionLost).toBe(true))
+    await goals.setDailyGoal('500') // fails: from here on, in memory only
+    expect(goals.error.value).not.toBe('')
+    adapter.accessLost = false
+    await session.reconnect()
+    await vi.waitFor(() => expect(goals.ready.value).toBe(true))
+    await goals.setDailyGoal('700')
+    expect(goals.error.value).toBe('')
+    expect(goalFor(await log(), day)).toBe(700)
   })
 })

@@ -156,7 +156,7 @@ export function skipZones(text: string, links: LinkRef[]): Range[] {
   // An address, a link's target and title (`](notes.md "Elena")`), a reference link's label (`][elena]`), an email.
   if (text.includes('@') || text.includes('://') || text.includes('](') || text.includes(']['))
     for (const m of text.matchAll(
-      /\b[a-z][a-z0-9+.-]*:\/\/\S+|\]\([^)\n]*\)|\]\[[^\]\n]*\]|[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g,
+      /\b[a-z][a-z0-9+.-]*:\/\/\S+|(?<!\\)\]\([^)\n]*\)|(?<!\\)\]\[[^\]\n]*\]|[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g,
     ))
       zones.push([m.index, m.index + m[0].length])
   return zones.sort((a, b) => a[0] - b[0])
