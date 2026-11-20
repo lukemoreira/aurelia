@@ -3,7 +3,7 @@
 // the rename writer (`applyRename`) can change and undo. Pure: nothing here reads or writes a file.
 import { codeRanges, parseLinks, type Range } from './links'
 import { skipZones } from './names'
-import { around, escapeMarkdown, keptAsWritten, type RenamePlan } from './rename'
+import { around, atLineStart, escapeMarkdown, keptAsWritten, type RenamePlan } from './rename'
 
 export interface FindOptions {
   matchCase: boolean
@@ -27,15 +27,42 @@ export interface Skipped {
 
 /** A letter, a mark or a digit in any script: what a word is made of (é, ß and Å included). */
 const WORD = '[\\p{L}\\p{M}\\p{N}]'
+/** Scripts written without spaces between words: "whole words" means nothing there. */
+const NO_SPACES =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u
 
-/** The pattern for what the author typed: plain text, never a regular expression. */
+/** What is found must hold a letter or a digit: `*` or `#` alone would find the file's own marks. */
+export const hasWord = (find: string) => /[\p{L}\p{N}]/u.test(find)
+/** Whether "Whole words only" can apply to this search. */
+export const wordsApply = (find: string) => !NO_SPACES.test(find)
+
+/**
+ * Each character as the file holds it. The text is Markdown, and the editor writes a character
+ * that would read as a mark escaped (`a\*b`), and leaves it bare where it cannot (`a * b`,
+ * `snake_case`): both forms are found, and a bare mark (`*very*`) never is.
+ */
+const SOURCE: Record<string, string> = {
+  '\\': '\\\\\\\\',
+  '`': '\\\\`',
+  '[': '\\\\\\[',
+  ']': '\\\\\\]',
+  '*': '(?:\\\\\\*|(?<=\\s)\\*(?=\\s))',
+  _: `(?:\\\\_|(?<=${WORD})_(?=${WORD}))`,
+  '<': '(?:\\\\<|<(?![A-Za-z/!?]))',
+  '~': '\\\\?~',
+  '&': '\\\\?&',
+  '|': '\\\\?\\|',
+  '>': '\\\\?>',
+}
+const sourceOf = (c: string) => SOURCE[c] ?? c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** The pattern for what the author typed: plain text, never a regular expression, and never inside another escape. */
 export function findPattern(find: string, o: FindOptions): RegExp | undefined {
-  if (!find.trim()) return undefined
-  const core = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(
-    o.wholeWords ? `(?<!${WORD})${core}(?!${WORD})` : core,
-    o.matchCase ? 'gu' : 'giu',
-  )
+  if (!hasWord(find)) return undefined
+  const core = `(?<!\\\\)${[...find].map(sourceOf).join('')}`
+  // A word goes on through an apostrophe (`don't`), except a trailing `'s` (`cat's`).
+  const whole = `(?<!${WORD})(?<!${WORD}['’])${core}(?!${WORD})(?!['’](?![sS](?!${WORD}))${WORD})`
+  return new RegExp(o.wholeWords && wordsApply(find) ? whole : core, o.matchCase ? 'gu' : 'giu')
 }
 
 /** The replacement in the case shape of the match: ALL CAPS stays all caps, a capital first letter stays capital, else as typed. */
@@ -55,6 +82,9 @@ const htmlTags = (text: string): Range[] =>
         m.index + m[0].length,
       ])
     : []
+
+/** The text as it reads: escapes taken away. */
+const visible = (md: string) => md.replace(/\\(.)/g, '$1')
 
 const touches = (zones: Range[], start: number, end: number) =>
   zones.some(([a, b]) => a < end && start < b)
@@ -89,8 +119,9 @@ export function planReplace(
       else if (touches(code, start, end)) skipped.code++
       else if (touches(other, start, end)) skipped.other++
       else {
-        const next = escapeMarkdown(o.matchCase ? replace : keepCase(m[0], replace))
-        if (next === m[0]) continue
+        const typed = o.matchCase ? replace : keepCase(m[0], replace)
+        const next = escapeMarkdown(typed, atLineStart(doc.body, start))
+        if (visible(next) === visible(m[0])) continue
         found++
         plan.places.push({
           key: `${doc.id}:${start}`,

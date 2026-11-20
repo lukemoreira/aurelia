@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { findPattern, keepCase, planReplace, skippedWords, type FindOptions } from './find-replace'
+import {
+  findPattern,
+  hasWord,
+  keepCase,
+  planReplace,
+  skippedWords,
+  wordsApply,
+  type FindOptions,
+} from './find-replace'
 import { applyPlaces } from './rename'
 
 const OFF: FindOptions = { matchCase: false, wholeWords: false }
@@ -96,6 +104,54 @@ describe('find and replace: finding', () => {
     ])
     expect(plan.places.every((p) => p.kind === 'scene' && p.bookId === 'bok_1')).toBe(true)
     expect([...plan.bodies.keys()]).toEqual(['scn_a', 'scn_c'])
+  })
+})
+
+describe('find and replace: the text as it reads, not its Markdown', () => {
+  it('refuses a search with no letter or digit: it would find the file’s own marks', () => {
+    expect(findPattern('*', OFF)).toBeUndefined()
+    expect(findPattern('#', OFF)).toBeUndefined()
+    expect(hasWord('a*b')).toBe(true)
+  })
+
+  it('finds a character the file holds escaped, and never a mark', () => {
+    const body = 'She was *very* tired and a\\*b.'
+    expect(replaced(body, 'a*b', 'x')).toBe('She was *very* tired and x.')
+    expect(replaced(body, 'very*', 'x')).toBe(body)
+    expect(replaced('a\\_b and a_b', '_b', 'Q')).toBe('aQ and aQ')
+    expect(replaced('snake_case and _snake_', 'snake_case', 'x')).toBe('x and _snake_')
+    expect(replaced('a * b, a \\[b\\]', 'a [b]', 'x')).toBe('a * b, x')
+    // Never from inside another escape.
+    expect(replaced('\\\\n or n', 'n', 'm', { ...OFF, wholeWords: true })).toBe('\\\\n or m')
+  })
+
+  it('never makes a line a heading or a list, nor an entity', () => {
+    const asTyped = { ...OFF, matchCase: true }
+    expect(replaced('Line\nElena here', 'Elena', '- x', asTyped)).toBe('Line\n\\- x here')
+    expect(replaced('Elena here', 'Elena', '1. x', asTyped)).toBe('1\\. x here')
+    expect(replaced('Elena here', 'Elena', '# x', asTyped)).toBe('\\# x here')
+    expect(replaced('Then Elena', 'Elena', '- x', asTyped)).toBe('Then - x')
+    expect(replaced('Elena', 'Elena', '&copy;', asTyped)).toBe('\\&copy;')
+  })
+
+  it('never changes a Markdown link’s target or title, nor a reference link’s label', () => {
+    const body = 'Elena read [the notes](notes/elena.md "Elena") and [the list][elena].'
+    expect(replaced(body, 'elena', 'helena')).toBe(
+      'Helena read [the notes](notes/elena.md "Elena") and [the list][elena].',
+    )
+  })
+
+  it('whole words: a word goes on through an apostrophe, except a trailing ’s', () => {
+    const o = { ...OFF, wholeWords: true }
+    expect(replaced("don't don’t don", 'don', 'Ron', o)).toBe("don't don’t Ron")
+    expect(replaced("Don's car", 'don', 'Ron', o)).toBe("Ron's car")
+    expect(replaced("don't", 't', 'x', o)).toBe("don't")
+  })
+
+  it('whole words do not apply to a script written without spaces', () => {
+    expect(wordsApply('猫')).toBe(false)
+    expect(wordsApply('cat')).toBe(true)
+    expect(replaced('黒猫が', '猫', '犬', { ...OFF, wholeWords: true })).toBe('黒犬が')
   })
 })
 

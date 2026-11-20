@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { bookScenes, sceneLabels } from '@/domain/outline'
-import { planReplace, skippedWords } from '@/index/find-replace'
+import { hasWord, planReplace, skippedWords, wordsApply } from '@/index/find-replace'
 import { groupPlaces } from '@/index/rename'
 import { wordsFor } from '@/storage/errors'
 import { applyRename, type RenameRun } from '@/storage/rename-everywhere'
@@ -52,26 +52,52 @@ export function useFindReplace() {
     const picked = edits.selectedText?.trim()
     if (now && picked && !picked.includes('\n') && picked.length <= 80) find.value = picked
   })
-  watch([find, matchCase, wholeWords], () => (unticked.value = new Set()))
 
-  const found = computed(() => {
+  /**
+   * The places as they were found, frozen: the list never moves under the author's ticks. Found
+   * again only when what is looked for changes, or after a run was refused.
+   */
+  const found = shallowRef(planReplace([], '', '', OPTIONS_OFF))
+  /** What `found` was looked for with; a change of it, or of the text, starts every tick afresh. */
+  let lookedFor = ''
+  /** Typing waits a moment before the whole book is looked through again. */
+  const pending = ref(false)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  function replan() {
+    clearTimeout(timer)
+    pending.value = false
     const data = ws.data
     const book = ws.bookId
-    if (!open.value || !data || !book) return planReplace([], '', '', OPTIONS_OFF)
+    const o = { matchCase: matchCase.value, wholeWords: wholeWords.value }
+    if (!open.value || !data || !book) return
     const labels = sceneLabels(data, book)
     const docs = bookScenes(data, book).map((s) => ({
       id: s.meta.id,
       where: `${labels.get(s.meta.id) ?? ''} · ${s.meta.title}`,
       body: s.body,
     }))
-    return planReplace(
-      docs,
-      find.value,
-      replace.value,
-      { matchCase: matchCase.value, wholeWords: wholeWords.value },
-      book,
-    )
+    const next = planReplace(docs, find.value, replace.value, o, book)
+    const was = found.value.plan.bodies
+    const key = JSON.stringify([find.value, o])
+    // A tick is kept only for the very same place: same search, same text in every scene.
+    const same =
+      key === lookedFor &&
+      was.size === next.plan.bodies.size &&
+      [...next.plan.bodies].every(([id, body]) => was.get(id) === body)
+    if (!same) unticked.value = new Set()
+    found.value = next
+    lookedFor = key
+  }
+  watch([find, replace, matchCase, wholeWords], () => {
+    clearTimeout(timer)
+    pending.value = true
+    timer = setTimeout(replan, 200)
   })
+  watch(open, (now) => {
+    lookedFor = ''
+    if (now) replan()
+  })
+
   const places = computed(() => found.value.plan.places)
   const ticked = computed(
     () => new Set(places.value.filter((p) => !unticked.value.has(p.key)).map((p) => p.key)),
@@ -79,6 +105,8 @@ export function useFindReplace() {
   const sceneCount = computed(
     () => new Set(places.value.filter((p) => ticked.value.has(p.key)).map((p) => p.docId)).size,
   )
+
+  onBeforeUnmount(() => clearTimeout(timer))
 
   function toggle(key: string) {
     const next = new Set(unticked.value)
@@ -104,7 +132,7 @@ export function useFindReplace() {
     const session = ws.session
     const book = ws.bookId
     const plan = found.value.plan
-    if (!session || !book || busy.value || !ticked.value.size) return
+    if (!session || !book || busy.value || pending.value || !ticked.value.size) return
     busy.value = true
     error.value = ''
     try {
@@ -118,7 +146,10 @@ export function useFindReplace() {
       say(run)
       open.value = false
     } catch (e) {
-      error.value = wordsFor(e, 'That did not work. Nothing was changed.')
+      // The text may have changed (a sync brought words in): the places are found again, all ticked.
+      lookedFor = ''
+      replan()
+      error.value = `${wordsFor(e, 'That did not work. Nothing was changed.')} The places were found again and every one is ticked: check them before you replace.`
     } finally {
       busy.value = false
     }
@@ -133,6 +164,10 @@ export function useFindReplace() {
     wholeWords,
     busy,
     error,
+    pending,
+    /** What is typed has no letter or digit: nothing is looked for. */
+    noWord: computed(() => !!find.value.trim() && !hasWord(find.value)),
+    wordsApply: computed(() => wordsApply(find.value)),
     groups: computed(() => groupPlaces(places.value)),
     total: computed(() => places.value.length),
     skipped: computed(() => skippedWords(found.value.skipped)),
