@@ -156,6 +156,12 @@ describe('find and replace: the text as it reads, not its Markdown', () => {
     )
   })
 
+  it('still keeps a link whose words end in an escaped backslash: `\\\\](` is a link', () => {
+    expect(replaced('[C:\\\\](notes.md "Elena") Elena', 'Elena', 'Helena')).toBe(
+      '[C:\\\\](notes.md "Elena") Helena',
+    )
+  })
+
   it('never changes a Markdown link’s target or title, nor a reference link’s label', () => {
     const body = 'Elena read [the notes](notes/elena.md "Elena") and [the list][elena].'
     expect(replaced(body, 'elena', 'helena')).toBe(

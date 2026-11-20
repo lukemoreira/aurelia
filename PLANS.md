@@ -875,4 +875,6 @@ backup — ADR-0009.)
   it; the control returns focus to the text when reading ends under it, and its status line is a live region that
   stays on the page; the tooltip and the palette say "from this paragraph". Second review: a link with a title and
   a reference link (also kept as written) say their words, never the address; only inline code, images, HTML
-  tags and links that show just an address stay silent.
+  tags and links that show just an address stay silent. Third review: such a link's words are said without their
+  Markdown marks, every link in kept text that runs together is read, and the read-aloud bar rises above a toast.
+  The link skip zones of Find and Rename everywhere now treat `\\](` (an escaped backslash) as a real link.
