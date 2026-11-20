@@ -22,6 +22,7 @@ import { useBackup } from '@/composables/useBackup'
 import { useFocusMode } from '@/composables/useFocusMode'
 import { MAIN_CONTENT_ID, panelAttr } from '@/composables/useFocusMain'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
+import { useReadAloud } from '@/composables/useReadAloud'
 import { useSessionWatch } from '@/composables/useSessionWatch'
 import { useWritingLog } from '@/composables/useWritingLog'
 import { entryKey } from '@/index/palette-entries'
@@ -46,6 +47,7 @@ const route = useRoute()
 const addChange = useAddChange()
 // Words today and the goals: here, not in the status bar, so they keep counting in focus mode.
 const goals = useWritingLog()
+const readAloud = useReadAloud()
 useSessionWatch()
 useBackup()
 useFocusMode()
@@ -57,6 +59,8 @@ useKeyboardShortcuts([
   { code: 'KeyM', alt: true, run: addChange.fromSelection },
   // ⌘⇧H: find and replace in the open book.
   { code: 'KeyH', shift: true, run: () => (layout.findReplaceOpen = true) },
+  // ⌘⌥R: read the scene aloud from the caret, or stop.
+  { code: 'KeyR', alt: true, run: () => readAloud.available && readAloud.toggle() },
 ])
 
 // The route is the truth: what it names is what is selected, and what was opened is "recent".

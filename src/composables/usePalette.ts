@@ -10,12 +10,19 @@ import { setBookMode } from '@/storage/story-actions'
 import { useLayoutStore } from '@/stores/layout'
 import { useShortcutsStore } from '@/stores/shortcuts'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { altLabel, focusLabel, modLabel, replaceLabel } from './useKeyboardShortcuts'
+import {
+  altLabel,
+  focusLabel,
+  modLabel,
+  readAloudLabel,
+  replaceLabel,
+} from './useKeyboardShortcuts'
 import { useNavigation } from './useNavigation'
 import { useAddChange } from './useAddChange'
 import { useAssistant } from './useAssistant'
 import { useNewScene } from './useNewScene'
 import { useOutlineEdits } from './useOutlineEdits'
+import { useReadAloud } from './useReadAloud'
 import { useRecordEdits } from './useRecordEdits'
 import { useEditorStore } from '@/stores/editor'
 import { useEditsStore } from '@/stores/edits'
@@ -73,6 +80,7 @@ export function usePalette() {
   const editor = useEditorStore()
   const review = useReviewStore()
   const addChange = useAddChange()
+  const readAloud = useReadAloud()
 
   /** Switch the open book to a branching story, and go to its map. */
   async function makeBranching() {
@@ -322,6 +330,22 @@ export function usePalette() {
               icon: 'focus' as const,
               hint: focusLabel,
               run: layout.toggleFocus,
+            },
+          ]
+        : []),
+      // Reading the scene aloud: only where the browser can speak and a scene's text is on screen.
+      ...(readAloud.available &&
+      readAloud.canRead.value &&
+      router.currentRoute.value.name === 'write'
+        ? [
+            {
+              id: 'action:read-aloud',
+              title:
+                readAloud.status.value === 'idle' ? 'Read this scene aloud' : 'Stop reading aloud',
+              sub: 'Listen',
+              icon: 'volume' as const,
+              hint: readAloudLabel,
+              run: () => readAloud.toggle(),
             },
           ]
         : []),
