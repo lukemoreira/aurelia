@@ -225,6 +225,22 @@ export function usePalette() {
             },
           ]
         : []),
+      // The goals live in the status bar, which focus mode hides.
+      ...(book
+        ? [
+            {
+              id: 'action:word-goals',
+              title: 'Set word goals…',
+              sub: 'Writing',
+              icon: 'flag' as const,
+              afterClose: true,
+              run: () => {
+                layout.focus = false
+                layout.goalsOpen = true
+              },
+            },
+          ]
+        : []),
       // Export works on any open book (the sample too); import makes a new book, so it needs a workspace that can be written to.
       ...(book
         ? [

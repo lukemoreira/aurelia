@@ -29,6 +29,8 @@ export const useLayoutStore = defineStore('layout', () => {
   const paletteThen = ref<(() => void) | null>(null)
   const backupOpen = ref(false)
   const exportOpen = ref(false)
+  /** The word goals popover in the status bar. */
+  const goalsOpen = ref(false)
   const importOpen = ref(false)
   /** What had focus when the Export dialog opened: where focus goes back to when the print view closes. */
   const printReturn = shallowRef<Element | null>(null)
@@ -90,6 +92,7 @@ export const useLayoutStore = defineStore('layout', () => {
     paletteThen,
     backupOpen,
     exportOpen,
+    goalsOpen,
     importOpen,
     printReturn,
     print,
