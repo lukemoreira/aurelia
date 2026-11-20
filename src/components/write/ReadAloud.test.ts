@@ -84,6 +84,24 @@ describe('read aloud in the scene editor', () => {
     expect(wrapper!.emitted('edit') ?? []).toEqual([])
   })
 
+  it('announces from a live region that is already on the page, and gives focus back when reading ends', async () => {
+    const editor = await show()
+    const live = () => [...document.querySelectorAll('[role="status"]')].map((e) => e.textContent)
+    expect(live()).not.toContain('Reading aloud')
+    button('Read aloud')!.click()
+    await flushPromises()
+    expect(live()).toContain('Reading aloud')
+    button('Pause')!.focus()
+    editor.view.dom.blur()
+    button('Pause')!.focus()
+    speech.finish()
+    speech.finish() // the last paragraph ended by itself, with focus on the control
+    await flushPromises()
+    expect(bar()).toBeNull()
+    await new Promise((r) => requestAnimationFrame(r)) // the editor takes focus on the next frame
+    expect(editor.isFocused).toBe(true)
+  })
+
   it('stops when the author types in the text', async () => {
     const editor = await show()
     button('Read aloud')!.click()

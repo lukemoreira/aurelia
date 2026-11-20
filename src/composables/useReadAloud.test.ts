@@ -163,6 +163,53 @@ describe('control', () => {
     expect(reader.current.value).toBeNull()
   })
 
+  it('is not left paused: after Pause and Stop the next reading is not silent', () => {
+    const reader = createReadAloud()
+    reader.start(start())
+    reader.pause()
+    reader.stop()
+    expect(speech.paused).toBe(false)
+    // And a browser that is still paused when a reading starts is resumed first.
+    speech.paused = true
+    reader.start(editor!)
+    expect(speech.paused).toBe(false)
+    expect(speech.current().text).toBe('One.')
+  })
+
+  it('asks the browser for its voices when reading starts, whether or not it said they changed', () => {
+    speech.voices = []
+    const reader = createReadAloud()
+    speech.voices = [{ name: 'Quiet', lang: 'en-US', voiceURI: 'quiet', localService: true }]
+    reader.start(start())
+    expect(speech.spoken[0].voice.name).toBe('Quiet')
+    expect(toast()).toBeUndefined()
+  })
+
+  it('leaves an Esc that something else handled (a dialog, the palette) alone', () => {
+    const reader = createReadAloud()
+    reader.start(start())
+    const handled = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })
+    handled.preventDefault()
+    window.dispatchEvent(handled)
+    expect(reader.status.value).toBe('reading')
+    const dialog = document.body.appendChild(document.createElement('div'))
+    dialog.setAttribute('role', 'dialog')
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(reader.status.value).toBe('reading')
+    dialog.remove()
+    // In the text ProseMirror marks every Esc as handled: that does not count.
+    const text = document.body.appendChild(document.createElement('div'))
+    text.setAttribute('contenteditable', 'true')
+    const typed = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true })
+    typed.preventDefault()
+    text.dispatchEvent(typed)
+    text.remove()
+    expect(reader.status.value).toBe('idle')
+    reader.start(editor!)
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(reader.status.value).toBe('idle')
+  })
+
   it('toggles: the shortcut and the palette start it and stop it', () => {
     const ed = start()
     const reader = createReadAloud()

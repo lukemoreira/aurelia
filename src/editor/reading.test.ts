@@ -57,6 +57,14 @@ Last one.
       'Last one.',
     ])
   })
+  it('does not read text kept as written: inline code, images, bare links', () => {
+    const ed = start(
+      'Look at ![map](assets/x.png) and `code()` and https://example.com/a/very/long/path here.\n',
+    )
+    const [unit] = readingUnits(ed.state.doc)
+    expect(unit!.text).not.toMatch(/assets|code\(|example\.com|!\[/)
+    expect(unit!.text).toMatch(/^Look at\b.*\bhere\.$/)
+  })
   it('puts a hard break between words, and skips an empty paragraph', () => {
     const ed = start('one\\\ntwo\n\n \n')
     expect(readingUnits(ed.state.doc).map((u) => u.text)).toEqual(['one two'])

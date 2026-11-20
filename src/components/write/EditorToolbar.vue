@@ -107,7 +107,7 @@ const tableItems = () =>
         aria-label="Read aloud"
         :aria-pressed="reading !== 'idle'"
         :aria-keyshortcuts="isMac ? 'Meta+Alt+R' : 'Control+Alt+R'"
-        :title="`Read aloud (${readAloudLabel})`"
+        :title="`Read aloud from this paragraph (${readAloudLabel})`"
         :class="button"
         @click="toggleReading(editor)"
       >
