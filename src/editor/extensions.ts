@@ -16,6 +16,7 @@ import { SceneBreak } from './nodes/SceneBreak'
 import { Source } from './nodes/Source'
 import { TableRules, tableNodes } from './nodes/Table'
 import { Verbatim } from './nodes/Verbatim'
+import { Reading } from './reading'
 
 /**
  * What the manuscript can hold. Code and rules are left out of the kit: a code block or raw HTML
@@ -54,6 +55,7 @@ export const editorExtensions: AnyExtension[] = [
   LeadIn,
   Footnotes,
   TableRules,
+  Reading,
 ]
 
 /** The shape of a scene's text. Needs no screen, so the Markdown code and its tests run without one. */

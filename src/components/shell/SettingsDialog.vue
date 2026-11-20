@@ -5,11 +5,14 @@ import Dialog from '@/components/ui/Dialog.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import { storageBlocked } from '@/composables/usePersisted'
 import { useTheme, type ThemeChoice } from '@/composables/useTheme'
+import { useReadAloud } from '@/composables/useReadAloud'
 import { EDITOR_CHOICES, useEditorStore, type EditorSettings } from '@/stores/editor'
+import ReadAloudSettings from './ReadAloudSettings.vue'
 
 const open = defineModel<boolean>('open', { default: false })
 const { choice, setTheme } = useTheme()
 const editor = useEditorStore()
+const { available: canSpeak } = useReadAloud()
 const THEMES = [
   { value: 'light', label: 'Light', icon: 'sun' as const },
   { value: 'dark', label: 'Dark', icon: 'moon' as const },
@@ -66,5 +69,6 @@ const choose = (key: keyof EditorSettings, value: string | undefined) => {
         <Button variant="quiet" @click="editor.reset">Back to the defaults</Button>
       </div>
     </section>
+    <ReadAloudSettings v-if="canSpeak" />
   </Dialog>
 </template>

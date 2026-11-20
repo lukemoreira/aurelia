@@ -1,11 +1,21 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { EditorContent } from '@tiptap/vue-3'
-import { computed, getCurrentInstance, h, onMounted, ref, render, watch } from 'vue'
+import {
+  computed,
+  getCurrentInstance,
+  h,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  render,
+  watch,
+} from 'vue'
 import SuggestionInText from '@/components/assistant/SuggestionInText.vue'
 import { useLinkEnv } from '@/composables/useLinkEnv'
 import { useManuscriptEditor } from '@/composables/useManuscriptEditor'
 import { useProposals } from '@/composables/useProposals'
+import { useReadAloud } from '@/composables/useReadAloud'
 import { createLinks, focusFound, focusName, refreshLinks } from '@/editor/links'
 import { createSuggestions, setSuggestions } from '@/editor/suggestions'
 import { useEditorStore } from '@/stores/editor'
@@ -15,6 +25,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import EditorToolbar from './EditorToolbar.vue'
 import LinkCard from './LinkCard.vue'
 import LinkPicker from './LinkPicker.vue'
+import ReadAloudBar from './ReadAloudBar.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -88,6 +99,13 @@ const { editor, tick, pending } = useManuscriptEditor({
   }),
 })
 editor.on('blur', () => emit('blur'))
+
+// The scene on screen is the one the palette and the shortcut read aloud; leaving it stops the reading.
+const { attach, detach, current: reading } = useReadAloud()
+if (inScene) {
+  attach(editor)
+  onBeforeUnmount(() => detach(editor))
+}
 
 if (inScene) {
   const proposals = useProposals()
@@ -164,6 +182,7 @@ const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.t
   >
     <EditorContent :editor="editor" />
   </div>
+  <ReadAloudBar v-if="reading === editor" :editor="editor" />
   <Teleport v-if="showToolbar && toolbarTarget" :to="toolbarTarget">
     <EditorToolbar :editor="editor" :tick="tick" :compact="!layout.wide" />
   </Teleport>

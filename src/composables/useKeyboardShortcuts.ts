@@ -16,6 +16,9 @@ export const replaceLabel = isMac ? '⌘⇧H' : 'Ctrl+Shift+H'
 /** How the pin chord is written on this device. */
 export const pinLabel = isMac ? '⌥P' : 'Alt+P'
 
+/** How the read aloud chord is written on this device. */
+export const readAloudLabel = isMac ? '⌘⌥R' : 'Ctrl+Alt+R'
+
 export interface Shortcut {
   /** `KeyboardEvent.code`, so it works on any keyboard layout. */
   code: string

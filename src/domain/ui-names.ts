@@ -61,6 +61,9 @@ export type IconName =
   | 'download'
   | 'upload'
   | 'spark'
+  | 'volume'
+  | 'pause'
+  | 'stop'
 
 export type StatusKind = 'idea' | 'outline' | 'draft' | 'revised' | 'final'
 

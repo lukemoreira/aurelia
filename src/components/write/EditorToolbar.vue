@@ -4,7 +4,8 @@ import type { Editor } from '@tiptap/core'
 import { ToolbarButton, ToolbarRoot, ToolbarSeparator } from 'reka-ui'
 import Icon from '@/components/ui/Icon.vue'
 import Menu from '@/components/ui/Menu.vue'
-import { isMac, modLabel } from '@/composables/useKeyboardShortcuts'
+import { isMac, modLabel, readAloudLabel } from '@/composables/useKeyboardShortcuts'
+import { useReadAloud } from '@/composables/useReadAloud'
 import {
   TABLE_ACTIONS,
   TEXT_STYLES,
@@ -22,6 +23,8 @@ const props = defineProps<{
   /** The phone's bar along the bottom: 44 px targets and only the essentials. */
   compact?: boolean
 }>()
+
+const { available: canRead, status: reading, toggle: toggleReading } = useReadAloud()
 
 const button =
   'inline-flex size-[30px] shrink-0 items-center justify-center rounded-[7px] border-0 bg-transparent p-0 text-ink-2 outline-ink hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:text-ink-3 aria-pressed:bg-gold-soft aria-pressed:text-gold-ink pointer-coarse:size-11'
@@ -98,6 +101,18 @@ const tableItems = () =>
       </ToolbarButton>
       <!-- The link sits with the marks, before the lists. -->
       <EditorLinkButton v-if="g === 0" :editor="editor" :tick="tick" :class="button" />
+    </template>
+    <template v-if="canRead">
+      <ToolbarButton
+        aria-label="Read aloud"
+        :aria-pressed="reading !== 'idle'"
+        :aria-keyshortcuts="isMac ? 'Meta+Alt+R' : 'Control+Alt+R'"
+        :title="`Read aloud (${readAloudLabel})`"
+        :class="button"
+        @click="toggleReading(editor)"
+      >
+        <Icon name="volume" :size="16" />
+      </ToolbarButton>
     </template>
     <template v-if="inTable()">
       <ToolbarSeparator class="mx-1 h-[18px] w-px bg-line" />
