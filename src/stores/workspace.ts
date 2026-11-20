@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, watch } from 'vue'
-import { isString, usePersisted } from '@/composables/usePersisted'
+import { isRecordOfStrings, isString, usePersisted } from '@/composables/usePersisted'
 import { bookOutline, bookScenes, bookWords, sceneContext } from '@/domain/outline'
 import { validateWorkspaceData, type WorkspaceData } from '@/domain/workspace-data'
 import { buildEntries } from '@/index/palette-entries'
@@ -14,9 +14,6 @@ import type { SessionView, WorkspaceSession } from '@/storage/session'
 import { StorageError } from '@/storage/errors'
 import { WORKSPACE_FILE } from '@/storage/paths'
 import { saveWords } from '@/storage/status'
-
-const isRecordOfStrings = (v: unknown): v is Record<string, string> =>
-  typeof v === 'object' && v !== null && Object.values(v).every((x) => typeof x === 'string')
 
 /**
  * The loaded workspace and what is selected in it. A real workspace comes from a storage

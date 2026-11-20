@@ -35,14 +35,14 @@ export const dayBefore = (day: string) => {
 export function parseCount(raw: string): number | undefined {
   const text = raw.trim()
   if (!text) return 0
-  const n = Number(text.replace(/[,\s]/g, ''))
-  return Number.isInteger(n) && n >= 0 ? n : undefined
+  const digits = text.replace(/[,\s]/g, '')
+  return /^\d+$/.test(digits) ? Number(digits) : undefined
 }
 
-/** The recorded days that hold a start, oldest first. */
-const recordedDays = (log: WritingLog) =>
+/** The recorded days that hold a start, oldest first, none later than today (a clock set ahead, another time zone). */
+const recordedDays = (log: WritingLog, today: string) =>
   Object.keys(log.days)
-    .filter((d) => Object.keys(log.days[d]!.start).length > 0)
+    .filter((d) => d <= today && Object.keys(log.days[d]!.start).length > 0)
     .sort()
 
 function wordsIn(log: WritingLog, recorded: string[], day: string, now: Totals): number {
@@ -60,12 +60,12 @@ function wordsIn(log: WritingLog, recorded: string[], day: string, now: Totals):
 }
 
 /** Words written on a day, across books. A book that is gone, or was first seen later, adds nothing. Never below 0. */
-export const wordsOn = (log: WritingLog, day: string, now: Totals) =>
-  wordsIn(log, recordedDays(log), day, now)
+export const wordsOn = (log: WritingLog, day: string, now: Totals, today: string) =>
+  wordsIn(log, recordedDays(log, today), day, now)
 
 /** Days in a row the goal was met (or, with no goal, something was written), back from today. Today counts once met. */
 export function daysInARow(log: WritingLog, today: string, now: Totals): number {
-  const recorded = recordedDays(log)
+  const recorded = recordedDays(log, today)
   const met = (day: string) => {
     const goal = log.days[day]?.goal ?? 0
     const words = wordsIn(log, recorded, day, now)

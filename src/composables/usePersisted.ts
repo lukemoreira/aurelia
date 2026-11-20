@@ -51,3 +51,6 @@ export const isStringArray = (v: unknown): v is string[] =>
 export const uniqueStrings = (v: string[]): string[] => Array.from(new Set(v))
 
 export const isString = (v: unknown): v is string => typeof v === 'string'
+
+export const isRecordOfStrings = (v: unknown): v is Record<string, string> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) && Object.values(v).every(isString)

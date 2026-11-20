@@ -1,15 +1,15 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import Field from '@/components/ui/Field.vue'
 import Input from '@/components/ui/Input.vue'
 import ProgressBar from '@/components/ui/ProgressBar.vue'
 import { useItemDetails } from '@/composables/useItemDetails'
-import type { useWritingLog } from '@/composables/useWritingLog'
+import type { WritingLogState } from '@/composables/useWritingLog'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 /** What the status bar's words chip opens: today, the days in a row, the book, and the two goals. */
-const props = defineProps<{ goals: ReturnType<typeof useWritingLog> }>()
+const props = defineProps<{ goals: WritingLogState }>()
 const ws = useWorkspaceStore()
 const book = useItemDetails('book', () => ws.bookId ?? undefined)
 const fmt = (n: number) => n.toLocaleString('en-US')
@@ -20,6 +20,11 @@ watch(
   (g) => (daily.value = g ? String(g) : ''),
   { immediate: true },
 )
+// Closing the popover (Escape, a click outside) keeps what was typed.
+onBeforeUnmount(() => {
+  void props.goals.setDailyGoal(daily.value)
+  void book.saveGoal()
+})
 const heading = 'text-[11px] font-semibold uppercase tracking-[.08em] text-ink-3'
 </script>
 

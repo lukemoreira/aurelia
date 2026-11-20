@@ -23,6 +23,7 @@ import { useFocusMode } from '@/composables/useFocusMode'
 import { MAIN_CONTENT_ID, panelAttr } from '@/composables/useFocusMain'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import { useSessionWatch } from '@/composables/useSessionWatch'
+import { useWritingLog } from '@/composables/useWritingLog'
 import { entryKey } from '@/index/palette-entries'
 import { useLayoutStore } from '@/stores/layout'
 import { useShortcutsStore } from '@/stores/shortcuts'
@@ -43,6 +44,8 @@ const shortcuts = useShortcutsStore()
 const route = useRoute()
 
 const addChange = useAddChange()
+// Words today and the goals: here, not in the status bar, so they keep counting in focus mode.
+const goals = useWritingLog()
 useSessionWatch()
 useBackup()
 useFocusMode()
@@ -126,7 +129,7 @@ watch(
       </div>
     </div>
 
-    <StatusBar v-if="!layout.focus" />
+    <StatusBar v-if="!layout.focus" :goals="goals" />
     <!-- The one control left in focus mode on a wide screen: always there, off to the side of the text. -->
     <Button
       v-else-if="layout.wide"
