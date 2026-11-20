@@ -4,11 +4,13 @@ import type { Editor } from '@tiptap/core'
 import { computed, ref, watch } from 'vue'
 import IconButton from '@/components/ui/IconButton.vue'
 import { useReadAloud } from '@/composables/useReadAloud'
+import { useEditsStore } from '@/stores/edits'
 import { useLayoutStore } from '@/stores/layout'
 
 const props = defineProps<{ editor: Editor }>()
 const { status, current, pause, resume, stop } = useReadAloud()
 const layout = useLayoutStore()
+const edits = useEditsStore()
 const group = ref<HTMLElement | null>(null)
 const active = computed(() => current.value === props.editor)
 const paused = computed(() => status.value === 'paused')
@@ -41,7 +43,11 @@ watch(
     role="group"
     aria-label="Reading aloud"
     class="fixed left-1/2 z-30 flex -translate-x-1/2 items-center gap-1 rounded-card border border-line bg-surface p-1 pl-3 font-ui text-[13px] text-ink shadow-card"
-    :style="layout.wide ? { bottom: '3rem' } : { top: 'calc(env(safe-area-inset-top) + 4.25rem)' }"
+    :style="
+      layout.wide
+        ? { bottom: edits.toast ? '6.5rem' : '3rem' }
+        : { top: 'calc(env(safe-area-inset-top) + 4.25rem)' }
+    "
     @mousedown.prevent
   >
     <span class="pr-1 font-medium">{{ paused ? 'Paused' : 'Reading aloud' }}</span>
