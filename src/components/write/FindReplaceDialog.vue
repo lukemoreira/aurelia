@@ -47,11 +47,21 @@ const scenes = (n: number) => `${n} ${n === 1 ? 'scene' : 'scenes'}`
       </div>
       <div class="flex flex-wrap gap-x-5">
         <Checkbox v-model="f.matchCase.value" label="Match case" />
-        <Checkbox v-model="f.wholeWords.value" label="Whole words only" />
+        <Checkbox
+          v-model="f.wholeWords.value"
+          label="Whole words only"
+          :disabled="!f.wordsApply.value"
+        />
       </div>
+      <p v-if="!f.wordsApply.value" class="m-0 -mt-3 text-xs text-ink-3">
+        Whole words do not apply to Chinese, Japanese or Thai, which are written without spaces.
+      </p>
+      <p v-if="f.noWord.value" class="m-0 text-ink-2">
+        Type a word to find: what you look for needs a letter or a number.
+      </p>
 
       <section
-        v-if="f.find.value.trim()"
+        v-else-if="f.find.value.trim()"
         aria-labelledby="replace-places"
         class="flex flex-col gap-2"
       >
@@ -127,7 +137,7 @@ const scenes = (n: number) => `${n} ${n === 1 ? 'scene' : 'scenes'}`
       <Button
         variant="primary"
         :loading="f.busy.value"
-        :disabled="!f.count.value"
+        :disabled="!f.count.value || f.pending.value"
         @click="f.apply()"
         >Replace {{ places(f.count.value) }}</Button
       >

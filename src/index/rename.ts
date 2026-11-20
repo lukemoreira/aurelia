@@ -160,7 +160,7 @@ export function planRename(
         start,
         end,
         old: text,
-        next: inLink ? form.to : escapeMarkdown(form.to),
+        next: inLink ? form.to : escapeMarkdown(form.to, atLineStart(doc.body, start)),
         ...(doc.scope.book ? { bookId: doc.scope.book } : {}),
         ...around(doc.body, start, end),
         ...(uncertain ? { uncertain } : {}),
@@ -220,8 +220,17 @@ const sees = (
   home: { universe: string; book?: string },
 ) => doc.universe === home.universe && (!home.book || doc.book === home.book)
 
-/** Backslash-escape what Markdown would read in a name written into plain text. */
-export const escapeMarkdown = (name: string) => name.replace(/[\\`*_~<>[\]|]/g, '\\$&')
+/** Backslash-escape what Markdown would read in a name written into plain text; at a line's start, what would make it a heading or a list too. */
+export function escapeMarkdown(name: string, lineStart = false): string {
+  const out = name.replace(/[\\`*_~<>[\]|]/g, '\\$&').replace(/&(?=#?\w+;)/g, '\\&')
+  return lineStart
+    ? out.replace(/^(#{1,6}|[-+])(?=\s|$)/, '\\$1').replace(/^(\d{1,9})([.)])(?=\s|$)/, '$1\\$2')
+    : out
+}
+
+/** `at` is the first thing on its line (up to three spaces in), where `#`, `-` or `1.` would start a block. */
+export const atLineStart = (text: string, at: number) =>
+  /^[ \t]{0,3}$/.test(text.slice(text.lastIndexOf('\n', at - 1) + 1, at))
 
 /** Where the file keeps text as written: raw HTML, a fence or an indented code block, a link definition. A table's cells and a footnote's words are text like any other. */
 export function keptAsWritten(body: string): Range[] {

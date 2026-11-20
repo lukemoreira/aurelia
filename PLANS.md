@@ -826,4 +826,9 @@ backup — ADR-0009.)
   version, a "Before replace" snapshot of the book (in History), a copy of each file, a compare before
   each write, a stop that says how far it got, and one Undo in the toast ("Replaced 12 places in 5
   scenes."). Also: an indented code block and a link definition are now kept as written by Rename
-  everywhere too.
+  everywhere too. Review fixes: Find matches the text as it reads (an escaped `a\*b`, never a `*` mark)
+  and needs a letter or digit; the list is frozen while open (found again after typing pauses, or after a
+  refused run, which says the ticks were reset); a Markdown link's target and title and a reference
+  label are never changed, by either feature; a replacement at a line's start cannot make a heading or a
+  list, nor an entity; whole words go through `don't` but not `’s`, and do not apply to Chinese,
+  Japanese or Thai.

@@ -237,6 +237,23 @@ describe('renaming Elena', () => {
     expect(named('He|len', '[[Elena]]').places).toEqual([])
   })
 
+  it('never rewrites a Markdown link’s target and title, nor a reference link’s label', () => {
+    expect(
+      changed(['Elena read [the notes](notes/elena.md "Elena") and [the list][elena].\n']),
+    ).toEqual(['Helena read [the notes](notes/elena.md "Elena") and [the list][elena].\n'])
+  })
+
+  it('never makes a line a heading or a list: a new name that would is written escaped', () => {
+    const forms = proposeForms('Elena', '- Elena', [])
+    const p = planRename(
+      after(['Line\nElena here.\n']),
+      id('chr', 1),
+      { title: 'Elena', aliases: [] },
+      forms,
+    )
+    expect(rewrites(p, certainPlaces(p)).map((r) => r.after)).toEqual(['Line\n\\- Elena here.\n'])
+  })
+
   it('writes only the ticked places and refuses a text that has changed since', () => {
     const p = plan(['Elena ran. Elena hid.'])
     const [first, second] = p.places
