@@ -71,7 +71,7 @@ export function proposeForms(
 
 const CONTEXT = 36
 /** The words around a place, trimmed to whole words, on one line. */
-function around(text: string, start: number, end: number) {
+export function around(text: string, start: number, end: number) {
   const clean = (s: string) => s.replace(/\s+/g, ' ')
   let before = clean(text.slice(Math.max(0, start - CONTEXT), start))
   let after = clean(text.slice(end, end + CONTEXT))
@@ -221,11 +221,11 @@ const sees = (
 ) => doc.universe === home.universe && (!home.book || doc.book === home.book)
 
 /** Backslash-escape what Markdown would read in a name written into plain text. */
-const escapeMarkdown = (name: string) => name.replace(/[\\`*_~<>[\]|]/g, '\\$&')
+export const escapeMarkdown = (name: string) => name.replace(/[\\`*_~<>[\]|]/g, '\\$&')
 
-/** Where the file keeps text as written: raw HTML, a fence, a link definition. A table's cells and a footnote's words are text like any other. */
-function keptAsWritten(body: string): Range[] {
-  if (!/[<|`~]|\[\^/.test(body)) return []
+/** Where the file keeps text as written: raw HTML, a fence or an indented code block, a link definition. A table's cells and a footnote's words are text like any other. */
+export function keptAsWritten(body: string): Range[] {
+  if (!/[<|`~]|\[\^|\]:|^(?: {4}|\t)/m.test(body)) return []
   const { blocks, exact } = parseMarkdown(body)
   if (!exact) return []
   const out: Range[] = []
@@ -233,6 +233,17 @@ function keptAsWritten(body: string): Range[] {
   for (const b of blocks) {
     if (b.json.type === 'rawBlock') out.push([at, at + b.src.length])
     at += b.src.length
+  }
+  return out
+}
+
+/** Places by where they are, in reading order. */
+export function groupPlaces(places: RenamePlace[]) {
+  const out: { where: string; places: RenamePlace[] }[] = []
+  for (const p of places) {
+    const last = out.at(-1)
+    if (last?.where === p.where) last.places.push(p)
+    else out.push({ where: p.where, places: [p] })
   }
   return out
 }

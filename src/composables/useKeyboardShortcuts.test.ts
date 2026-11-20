@@ -26,6 +26,12 @@ describe('matchShortcut on a Mac', () => {
     expect(mac(key({ code: 'Backslash', metaKey: true }))).toBe(nav)
     expect(mac(key({ code: 'Backslash', metaKey: true, altKey: true }))).toBe(inspector)
   })
+
+  it('takes a shifted chord only when it asks for Shift: ⌘⇧H, never ⌘H', () => {
+    const replace: Shortcut = { code: 'KeyH', shift: true, run: () => {} }
+    expect(mac(key({ code: 'KeyH', metaKey: true, shiftKey: true }), [replace])).toBe(replace)
+    expect(mac(key({ code: 'KeyH', metaKey: true }), [replace])).toBeUndefined()
+  })
 })
 
 describe('matchShortcut elsewhere', () => {

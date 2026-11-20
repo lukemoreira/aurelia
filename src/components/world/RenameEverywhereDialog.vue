@@ -1,30 +1,20 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import Dialog from '@/components/ui/Dialog.vue'
 import Input from '@/components/ui/Input.vue'
 import SegmentedControl from '@/components/ui/SegmentedControl.vue'
 import { useRenameEverywhere } from '@/composables/useRenameEverywhere'
+import { useShowMore } from '@/composables/useShowMore'
 
 /** Rename everywhere (ADR-0010 §6): after a record is renamed, change its name in the text too. */
 const r = useRenameEverywhere()
 
-/** Long books have thousands of places: show the first, and more when asked. */
-const STEP = 150
-const limit = ref(STEP)
-watch(
+const { visible, hasMore, more } = useShowMore(
+  () => r.groups.value,
   () => [r.open.value, r.filter.value],
-  () => (limit.value = STEP),
 )
-const visible = computed(() => {
-  let left = limit.value
-  return r.groups.value
-    .map((g) => ({ where: g.where, places: g.places.slice(0, Math.max(0, left)) }))
-    .map((g) => ((left -= g.places.length), g))
-    .filter((g) => g.places.length)
-})
-const shownCount = computed(() => r.groups.value.reduce((n, g) => n + g.places.length, 0))
 const places = (n: number) => `${n} ${n === 1 ? 'place' : 'places'}`
 const filters = computed(() => [
   { value: 'all', label: `All ${r.total.value}` },
@@ -146,8 +136,8 @@ const filters = computed(() => [
               </li>
             </ul>
           </div>
-          <div v-if="shownCount > limit" class="p-2 text-center">
-            <Button size="sm" @click="limit += STEP">Show more</Button>
+          <div v-if="hasMore" class="p-2 text-center">
+            <Button size="sm" @click="more">Show more</Button>
           </div>
         </div>
         <p class="m-0 text-xs text-ink-3">

@@ -10,8 +10,8 @@ import { SNAPSHOTS_DIR, classify, snapshotFilePath, snapshotManifestPath } from 
 import type { StorageAdapter } from './adapter'
 import type { WorkspaceSession } from './session'
 
-/** Why a snapshot was made. `before-restore` is the one a restore takes first; `before-assistant` the one Accept of a suggestion takes (ADR-0015). */
-export type SnapshotReason = 'manual' | 'before-restore' | 'before-assistant'
+/** Why a snapshot was made. `before-restore` is the one a restore takes first; `before-assistant` the one Accept of a suggestion takes (ADR-0015); `before-replace` the one find and replace takes. */
+export type SnapshotReason = 'manual' | 'before-restore' | 'before-assistant' | 'before-replace'
 
 /** A path of a book's file inside the workspace: under that book's folder, no `..`, no leading slash. */
 const inBook = (path: string, universe: string, book: string) =>

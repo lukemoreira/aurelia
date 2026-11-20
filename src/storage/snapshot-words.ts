@@ -9,6 +9,7 @@ const quoted = (titles: string[]) => titles.map((t) => `“${t}”`).join(', ')
 const REASON_NAMES: Record<string, string> = {
   'before-restore': 'Before restore',
   'before-assistant': 'Before a suggestion',
+  'before-replace': 'Before replace',
 }
 
 /** The line a snapshot is listed by: the author's name for it, else why it was made. */
