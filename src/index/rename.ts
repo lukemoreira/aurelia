@@ -228,9 +228,11 @@ export function escapeMarkdown(name: string, lineStart = false): string {
     : out
 }
 
-/** `at` is the first thing on its line (up to three spaces in), where `#`, `-` or `1.` would start a block. */
+/** `at` is the first thing on its line or in a list item or quote on it (`- `, `1. `, `> `), where `#`, `-` or `1.` would start a block. */
 export const atLineStart = (text: string, at: number) =>
-  /^[ \t]{0,3}$/.test(text.slice(text.lastIndexOf('\n', at - 1) + 1, at))
+  /^[ \t]{0,3}(?:(?:[-+*]|\d{1,9}[.)])[ \t]+|>[ \t]*)*$/.test(
+    text.slice(text.lastIndexOf('\n', at - 1) + 1, at),
+  )
 
 /** Where the file keeps text as written: raw HTML, a fence or an indented code block, a link definition. A table's cells and a footnote's words are text like any other. */
 export function keptAsWritten(body: string): Range[] {

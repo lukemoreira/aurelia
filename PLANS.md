@@ -831,7 +831,10 @@ backup — ADR-0009.)
   refused run, which says the ticks were reset); a Markdown link's target and title and a reference
   label are never changed, by either feature; a replacement at a line's start cannot make a heading or a
   list, nor an entity; whole words go through `don't` but not `’s`, and do not apply to Chinese,
-  Japanese or Thai.
+  Japanese or Thai. Second review: Find also matches punctuation the editor escaped at a line's start
+  (`1984\.`, `\- Hello`, `\# Chapter`) and text right after an escaped backslash (`C:\\Elena`); a
+  replacement cannot start a heading or a list inside a list item or a quote; an escaped `\](` in plain
+  text is not a link target (Rename everywhere too); whole words match `Elena'll`, `’d`, `'ve`, `'re`, `'m`.
 - 2026-11-20 — Word goals and days in a row (branch `feat/word-goals`): one daily goal for the workspace
   and a goal for each book (`book.json` `targets.words`, set on the Book tab's "Word goal" field or in the
   popover). `.aurelia/writing-log.json` (schemaVersion 1, unknown keys kept) holds `dailyGoal` and, for each
@@ -849,7 +852,10 @@ backup — ADR-0009.)
   keystroke); starts are taken inside the session's turn, so an import or a restore is not counted as writing;
   the log is kept in the shell, so focus mode and midnight still count; recorded days later than today are
   ignored; goals read digits only ("90.000", "1e5" are refused); a typed goal is kept when the popover closes;
-  the toast fires only when typing takes the words past the goal, once a day per workspace.
+  the toast fires only when typing takes the words past the goal, once a day per workspace. Second review: a
+  reconnected folder reads the log again and writes to it again (a write that failed while it was away left the
+  goals in memory for the rest of the visit); the toast also needs words typed here, so a restored version, a
+  sync or an outside change never fires it.
 - 2026-11-20 — Read aloud (branch `feat/read-aloud`; owner: "the app reads the open scene aloud, so the author
   hears clumsy lines"): the browser's `speechSynthesis`, no package. Only voices with `localService` are listed
   or used (a network voice, like Chrome's "Google …" ones, sends the text away), and every utterance sets its
@@ -867,4 +873,6 @@ backup — ADR-0009.)
   after a cancel, so the next reading was silent); text kept as written (inline code, images, bare links) is not
   spoken; the voice list is read again when reading starts; Esc that a dialog or the palette handled does not stop
   it; the control returns focus to the text when reading ends under it, and its status line is a live region that
-  stays on the page; the tooltip and the palette say "from this paragraph".
+  stays on the page; the tooltip and the palette say "from this paragraph". Second review: a link with a title and
+  a reference link (also kept as written) say their words, never the address; only inline code, images, HTML
+  tags and links that show just an address stay silent.

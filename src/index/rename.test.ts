@@ -254,6 +254,24 @@ describe('renaming Elena', () => {
     expect(rewrites(p, certainPlaces(p)).map((r) => r.after)).toEqual(['Line\n\\- Elena here.\n'])
   })
 
+  it('nor a heading or a list inside a list item or a quote', () => {
+    const forms = proposeForms('Elena', '# Elena', [])
+    const p = planRename(
+      after(['- Elena here.\n', '> Elena there.\n']),
+      id('chr', 1),
+      { title: 'Elena', aliases: [] },
+      forms,
+    )
+    expect(rewrites(p, certainPlaces(p)).map((r) => r.after)).toEqual([
+      '- \\# Elena here.\n',
+      '> \\# Elena there.\n',
+    ])
+  })
+
+  it('changes a name after an escaped bracket: `\\](` in plain text is not a link', () => {
+    expect(changed(['\\[sic\\](see Elena) Elena.\n'])).toEqual(['\\[sic\\](see Helena) Helena.\n'])
+  })
+
   it('writes only the ticked places and refuses a text that has changed since', () => {
     const p = plan(['Elena ran. Elena hid.'])
     const [first, second] = p.places

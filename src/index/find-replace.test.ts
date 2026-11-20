@@ -121,8 +121,17 @@ describe('find and replace: the text as it reads, not its Markdown', () => {
     expect(replaced('a\\_b and a_b', '_b', 'Q')).toBe('aQ and aQ')
     expect(replaced('snake_case and _snake_', 'snake_case', 'x')).toBe('x and _snake_')
     expect(replaced('a * b, a \\[b\\]', 'a [b]', 'x')).toBe('a * b, x')
-    // Never from inside another escape.
-    expect(replaced('\\\\n or n', 'n', 'm', { ...OFF, wholeWords: true })).toBe('\\\\n or m')
+    // Never from inside another escape (an odd number of backslashes before it).
+    expect(replaced('\\\\\\n or n', 'n', 'm', { ...OFF, wholeWords: true })).toBe('\\\\\\n or m')
+    // Right after an escaped backslash is text like any other.
+    expect(replaced('C:\\\\Users\\\\Elena', 'Elena', 'Marco')).toBe('C:\\\\Users\\\\Marco')
+  })
+
+  it('finds text the editor escaped at a line’s start', () => {
+    expect(replaced('1984\\. That', '1984. That', 'Then')).toBe('Then')
+    expect(replaced('\\- Hello', '- Hello', 'Bye')).toBe('Bye')
+    expect(replaced('\\# Chapter', '# Chapter', 'Part')).toBe('Part')
+    expect(replaced('a-b and a\\-b', 'a-b', 'c')).toBe('c and c')
   })
 
   it('never makes a line a heading or a list, nor an entity', () => {
@@ -132,6 +141,19 @@ describe('find and replace: the text as it reads, not its Markdown', () => {
     expect(replaced('Elena here', 'Elena', '# x', asTyped)).toBe('\\# x here')
     expect(replaced('Then Elena', 'Elena', '- x', asTyped)).toBe('Then - x')
     expect(replaced('Elena', 'Elena', '&copy;', asTyped)).toBe('\\&copy;')
+  })
+
+  it('never makes a heading or a list inside a list item or a quote', () => {
+    const asTyped = { ...OFF, matchCase: true }
+    expect(replaced('- Elena here', 'Elena', '# x', asTyped)).toBe('- \\# x here')
+    expect(replaced('> Elena', 'Elena', '- x', asTyped)).toBe('> \\- x')
+    expect(replaced('1. > Elena', 'Elena', '2) x', asTyped)).toBe('1. > 2\\) x')
+  })
+
+  it('finds a match after an escaped `\\](`: plain text, not a link', () => {
+    expect(replaced('\\[sic\\](see Marco) Marco', 'Marco', 'Elena')).toBe(
+      '\\[sic\\](see Elena) Elena',
+    )
   })
 
   it('never changes a Markdown link’s target or title, nor a reference link’s label', () => {
@@ -146,6 +168,9 @@ describe('find and replace: the text as it reads, not its Markdown', () => {
     expect(replaced("don't don’t don", 'don', 'Ron', o)).toBe("don't don’t Ron")
     expect(replaced("Don's car", 'don', 'Ron', o)).toBe("Ron's car")
     expect(replaced("don't", 't', 'x', o)).toBe("don't")
+    expect(replaced("Elena'll Elena’d Elena've Elena're Elena'm Elena'x", 'elena', 'Ana', o)).toBe(
+      "Ana'll Ana’d Ana've Ana're Ana'm Elena'x",
+    )
   })
 
   it('whole words do not apply to a script written without spaces', () => {

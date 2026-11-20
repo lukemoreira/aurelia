@@ -65,6 +65,12 @@ Last one.
     expect(unit!.text).not.toMatch(/assets|code\(|example\.com|!\[/)
     expect(unit!.text).toMatch(/^Look at\b.*\bhere\.$/)
   })
+  it('reads the words of a link with a title and of a reference link, never the address', () => {
+    const ed = start(
+      'See [the map](maps/x.md "Map") and [the list][l] and [notes] and <https://example.com> here.\n\n[l]: https://example.com/l\n[notes]: https://example.com/n\n',
+    )
+    expect(readingUnits(ed.state.doc)[0]!.text).toBe('See the map and the list and notes and here.')
+  })
   it('puts a hard break between words, and skips an empty paragraph', () => {
     const ed = start('one\\\ntwo\n\n \n')
     expect(readingUnits(ed.state.doc).map((u) => u.text)).toEqual(['one two'])

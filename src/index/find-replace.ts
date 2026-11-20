@@ -54,14 +54,20 @@ const SOURCE: Record<string, string> = {
   '|': '\\\\?\\|',
   '>': '\\\\?>',
 }
-const sourceOf = (c: string) => SOURCE[c] ?? c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** Any other ASCII punctuation may be escaped too, as the editor does at a line's start (`1984\.`, `\- Hello`, `\#`). */
+const sourceOf = (c: string) => {
+  const plain = c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return SOURCE[c] ?? (/[!-/:-@[-`{-~]/.test(c) ? `\\\\?${plain}` : plain)
+}
 
 /** The pattern for what the author typed: plain text, never a regular expression, and never inside another escape. */
 export function findPattern(find: string, o: FindOptions): RegExp | undefined {
   if (!hasWord(find)) return undefined
-  const core = `(?<!\\\\)${[...find].map(sourceOf).join('')}`
-  // A word goes on through an apostrophe (`don't`), except a trailing `'s` (`cat's`).
-  const whole = `(?<!${WORD})(?<!${WORD}['’])${core}(?!${WORD})(?!['’](?![sS](?!${WORD}))${WORD})`
+  // Not right after an odd number of backslashes (inside an escape); after an escaped one (`C:\\x`) is fine.
+  const core = `(?<!(?<!\\\\)(?:\\\\\\\\)*\\\\)${[...find].map(sourceOf).join('')}`
+  // A word goes on through an apostrophe (`don't`), except a trailing `'s` or a contraction (`Elena'll`).
+  const ending = `(?:[sSdDmM]|[lL]{2}|[vVrR][eE])(?!${WORD})`
+  const whole = `(?<!${WORD})(?<!${WORD}['’])${core}(?!${WORD})(?!['’](?!${ending})${WORD})`
   return new RegExp(o.wholeWords && wordsApply(find) ? whole : core, o.matchCase ? 'gu' : 'giu')
 }
 
