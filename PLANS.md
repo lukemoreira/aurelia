@@ -855,11 +855,16 @@ backup — ADR-0009.)
   or used (a network voice, like Chrome's "Google …" ones, sends the text away), and every utterance sets its
   voice, because one with none speaks with the browser's default, which may be a network one. With no local
   voice it says so and reads nothing; where `speechSynthesis` does not exist the toolbar button, the palette
-  entry and the settings are not drawn. It reads from the paragraph with the caret (or the selection's start) to
-  the end of the scene, one utterance per paragraph, all queued at once, as a reader sees it: a link says its
+  entry and the settings are not drawn. It reads from the paragraph with the caret
+  (the whole paragraph, or the selection's first) to the end of the scene, one utterance per paragraph, all queued at once, as a reader sees it: a link says its
   words (never an ID or a target), no Markdown marks, and footnote markers, notes, tables and code are left out.
   The paragraph being read is a `reading-now` decoration (`src/editor/reading.ts`) scrolled gently into view:
   the document is not touched, so the scene is not edited and nothing saves. A small control shows Pause or
   Resume and Stop. Esc, typing, leaving the scene and closing the page stop it. Settings, per device: the voice
   (default a local voice for the browser's language, since a book has no language yet) and the speed, 0.8 to
   1.5. ⌘⌥R / Ctrl+Alt+R and the palette's "Read this scene aloud" start and stop it.
+  Review fixes: a reading that was paused is resumed after a stop and before the next start (Chrome stays paused
+  after a cancel, so the next reading was silent); text kept as written (inline code, images, bare links) is not
+  spoken; the voice list is read again when reading starts; Esc that a dialog or the palette handled does not stop
+  it; the control returns focus to the text when reading ends under it, and its status line is a live region that
+  stays on the page; the tooltip and the palette say "from this paragraph".

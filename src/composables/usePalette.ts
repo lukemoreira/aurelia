@@ -342,7 +342,7 @@ export function usePalette() {
               id: 'action:read-aloud',
               title:
                 readAloud.status.value === 'idle' ? 'Read this scene aloud' : 'Stop reading aloud',
-              sub: 'Listen',
+              sub: 'Listen · from this paragraph',
               icon: 'volume' as const,
               hint: readAloudLabel,
               run: () => readAloud.toggle(),

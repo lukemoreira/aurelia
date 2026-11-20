@@ -101,7 +101,7 @@ const { editor, tick, pending } = useManuscriptEditor({
 editor.on('blur', () => emit('blur'))
 
 // The scene on screen is the one the palette and the shortcut read aloud; leaving it stops the reading.
-const { attach, detach, current: reading } = useReadAloud()
+const { attach, detach } = useReadAloud()
 if (inScene) {
   attach(editor)
   onBeforeUnmount(() => detach(editor))
@@ -182,7 +182,7 @@ const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.t
   >
     <EditorContent :editor="editor" />
   </div>
-  <ReadAloudBar v-if="reading === editor" :editor="editor" />
+  <ReadAloudBar :editor="editor" />
   <Teleport v-if="showToolbar && toolbarTarget" :to="toolbarTarget">
     <EditorToolbar :editor="editor" :tick="tick" :compact="!layout.wide" />
   </Teleport>

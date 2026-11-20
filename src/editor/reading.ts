@@ -43,7 +43,9 @@ export function readingUnits(doc: PmNode): ReadUnit[] {
     if (!node.isTextblock) return true
     let raw = ''
     node.forEach((child) => {
-      if (child.isText) raw += child.text
+      // Inline code, images, bare links and HTML spans are kept as written (the verbatim mark): not words to say.
+      if (child.isText)
+        raw += child.marks.some((m) => m.type.name === 'verbatim') ? ' ' : child.text
       else if (child.type.name === 'hardBreak') raw += ' '
     })
     const text = spokenText(raw)

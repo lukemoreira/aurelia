@@ -89,6 +89,8 @@ export function createReadAloud() {
     current.value = null
     status.value = 'idle'
     window.speechSynthesis.cancel()
+    // A browser that was paused stays paused after a cancel: the next reading would be silent.
+    window.speechSynthesis.resume()
     if (editor && !editor.isDestroyed) markReading(editor.view, null)
   }
 
@@ -96,6 +98,7 @@ export function createReadAloud() {
   function start(editor: Editor | null = attached.value) {
     if (!available || !editor || editor.isDestroyed) return
     stop()
+    refresh() // voices may not have announced themselves yet
     const toast = (text: string) => (useEditsStore().toast = { text, error: true })
     const chosen = pickVoice(voices.value, voice.value, preferredLanguages())
     if (!chosen) return toast(NO_VOICE)
@@ -121,7 +124,18 @@ export function createReadAloud() {
     // Typing (any change of the text), leaving the scene, Esc and closing the page all stop it.
     const onChange = ({ transaction }: { transaction: { docChanged: boolean } }) =>
       transaction.docChanged && stop()
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && stop()
+    // Esc that closes the palette, a dialog or a menu is theirs, not ours. ProseMirror marks every Esc typed in
+    // the text as handled, so in the text `defaultPrevented` says nothing.
+    const onKey = (e: KeyboardEvent) => {
+      const inText = e.target instanceof Element && !!e.target.closest('[contenteditable]')
+      const handled = e.defaultPrevented && !inText
+      if (
+        e.key === 'Escape' &&
+        !handled &&
+        !document.querySelector('[role="dialog"], [role="menu"], [role="listbox"]')
+      )
+        stop()
+    }
     editor.on('transaction', onChange)
     editor.on('destroy', stop)
     window.addEventListener('keydown', onKey)
@@ -136,6 +150,7 @@ export function createReadAloud() {
     current.value = editor
     status.value = 'reading'
     markReading(editor.view, rest[0]!)
+    window.speechSynthesis.resume()
     for (const u of queued) window.speechSynthesis.speak(u)
   }
 
