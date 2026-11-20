@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import WordGoal from '@/components/goals/WordGoal.vue'
 import Icon from '@/components/ui/Icon.vue'
 import Popover from '@/components/ui/Popover.vue'
 import StorageDetails from '@/components/workspace/StorageDetails.vue'
@@ -92,6 +93,7 @@ const popoverOpen = computed({
     <span
       ><b class="font-medium text-ink-2">{{ fmt(ws.words.session) }}</b> this session</span
     >
+    <WordGoal />
     <span class="flex-1" />
     <span v-if="where">{{ where }}</span>
     <!-- Always in the page, so a change of its text is read out. Only what needs the author's eye is put in it. -->

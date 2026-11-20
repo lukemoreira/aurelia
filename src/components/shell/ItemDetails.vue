@@ -89,6 +89,15 @@ const text = [
         @change="d.saveTarget()"
       />
     </Field>
+    <Field v-if="has('goal')" label="Word goal">
+      <Input
+        v-model="d.draft.goal"
+        inputmode="numeric"
+        :disabled="d.readOnly.value"
+        autocomplete="off"
+        @change="d.saveGoal()"
+      />
+    </Field>
     <Field v-if="has('arcs')" :label="kind === 'scene' ? 'Arcs advanced' : 'Arcs'">
       <ArcPicker
         v-model="d.arcs.value"

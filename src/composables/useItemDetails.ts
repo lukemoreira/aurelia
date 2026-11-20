@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { arcsFor } from '@/domain/plan'
 import { STATUS_LABELS } from '@/domain/ui-names'
 import { checkTitle } from '@/domain/titles'
+import { parseCount } from '@/domain/writing-log'
 import { wordsFor } from '@/storage/errors'
 import { renameItem, setDetails } from '@/storage/outline-actions'
 import { setBookMode } from '@/storage/story-actions'
@@ -19,7 +20,7 @@ export const DETAIL_FIELDS: Record<DetailsKind, string[]> = {
   scene: ['pov', 'location', 'objective', 'conflict', 'outcome', 'target', 'arcs'],
   chapter: ['objective', 'target', 'arcs'],
   part: [],
-  book: [],
+  book: ['goal'],
 }
 
 type TextKey = 'summary' | 'objective' | 'conflict' | 'outcome'
@@ -35,6 +36,7 @@ interface Bag {
   conflict?: string
   outcome?: string
   target?: number
+  targets?: { words?: number }
   arcs: string[]
   mode?: string
   ending?: boolean
@@ -59,6 +61,7 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     conflict: '',
     outcome: '',
     target: '',
+    goal: '',
   })
 
   /** The item as the files say now. */
@@ -73,9 +76,17 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     return found && { ...found, arcs: found.arcs ?? [] }
   })
 
-  const FIELDS = ['title', ...TEXT_KEYS, 'target'] as const
+  const FIELDS = ['title', ...TEXT_KEYS, 'target', 'goal'] as const
   const storedOf = (k: (typeof FIELDS)[number]) =>
-    k === 'target' ? (item.value?.target ? String(item.value.target) : '') : (item.value?.[k] ?? '')
+    k === 'target'
+      ? item.value?.target
+        ? String(item.value.target)
+        : ''
+      : k === 'goal'
+        ? item.value?.targets?.words
+          ? String(item.value.targets.words)
+          : ''
+        : (item.value?.[k] ?? '')
   /** What each draft last matched in the files. */
   const seen = reactive<Record<string, string>>({})
   const reset = () => {
@@ -132,14 +143,23 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     })
   const saveText = (key: TextKey) => set(key, draft[key].trim() ? draft[key] : undefined)
   const saveTarget = () => {
-    const raw = draft.target.trim()
-    if (!raw) return set('target', undefined)
-    const n = Number(raw.replace(/[,\s]/g, ''))
-    if (!Number.isInteger(n) || n < 0) {
+    const n = parseCount(draft.target)
+    if (n === undefined) {
       error.value = 'The word target is a whole number, like 1800.'
       return Promise.resolve()
     }
     return set('target', n || undefined)
+  }
+  /** The book's word goal is `targets.words` in book.json; the other targets there stay as they are. */
+  const saveGoal = () => {
+    const n = parseCount(draft.goal)
+    if (n === undefined) {
+      error.value = 'The word goal is a whole number, like 90000.'
+      return Promise.resolve()
+    }
+    const next = { ...item.value?.targets, words: n || undefined }
+    if (!n) delete next.words
+    return set('targets', Object.keys(next).length ? next : undefined)
   }
 
   const status = computed({
@@ -210,6 +230,7 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     saveTitle,
     saveText,
     saveTarget,
+    saveGoal,
     status,
     statusOptions,
     pov: pov.model,

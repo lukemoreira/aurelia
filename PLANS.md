@@ -832,3 +832,15 @@ backup — ADR-0009.)
   label are never changed, by either feature; a replacement at a line's start cannot make a heading or a
   list, nor an entity; whole words go through `don't` but not `’s`, and do not apply to Chinese,
   Japanese or Thai.
+- 2026-11-20 — Word goals and days in a row (branch `feat/word-goals`): one daily goal for the workspace
+  and a goal for each book (`book.json` `targets.words`, set on the Book tab's "Word goal" field or in the
+  popover). `.aurelia/writing-log.json` (schemaVersion 1, unknown keys kept) holds `dailyGoal` and, for each
+  local date, that day's `goal` and each book's `{ words, at }` when first seen that day. Words today = books'
+  words now less today's starts; a past day runs to the next recorded day's starts; a book first seen today
+  (new or imported) starts at its total, so an import is not writing; never below 0. Days in a row count back
+  from today (today once its goal is met), each day against the goal it was recorded with, no goal = any words.
+  Written only when a start is recorded or the goal changes, through `writeDerived` on the disk's own text, so
+  two devices merge to the earliest `at` per day and book; a newer or unreadable file is never written (goals
+  then work for the visit and the popover says why). The status bar shows "320 / 500 words today"; it opens
+  today's bar, the streak, the book's bar and the two fields; palette "Set word goals…"; one toast a day
+  ("You reached today's goal."), never when opening the app. No notifications.
