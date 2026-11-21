@@ -210,6 +210,12 @@ scene**. This replaces the 2026-11-18 rule that Rename everywhere never renames 
   **guess**: ticked, with "Probably Elena Vasquez: this scene names Elena Vasquez, not Elena
   Moreau." ("this note" in a record's notes). If it names only another owner, it stays unticked:
   "Uncertain — this scene names Elena Moreau." If it names both or neither, it stays unticked with
-  the shared wording. A guess inside a title in quotes is uncertain, as any name there is. The
+  the shared wording. A record's notes name their own record; a name kept as written (raw HTML,
+  a fence) names no one. There is no guess for an ordinary word at the start of a sentence ("it
+  may be an ordinary word"), for a name the author set to `ask`, or inside a title in quotes.
+  The index is built after the rename, so a short form the new title now shares with another
+  character still names that character here. A place whose new name is another record's name
+  is never ticked ("Uncertain — Rook is also another record’s name"), and an unshared short form
+  that is an ordinary word says "it may be an ordinary word", not that the author asked. The
   dialog's filter "To check" lists the uncertain places and the guesses; "Tick all" ticks the
   certain places and the guesses.

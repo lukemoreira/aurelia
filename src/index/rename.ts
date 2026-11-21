@@ -12,6 +12,7 @@ import {
   nameRoles,
   shortForms,
   skipZones,
+  startsSentence,
   type NameForm,
 } from './names'
 import { fold } from './palette-search'
@@ -164,7 +165,10 @@ export function planRename(
     index.targetOf(recordId)?.recordType === 'character'
       ? shortForms(oldNames.title).filter((t) => !off.has(fold(t)))
       : []
-  const matchers = new Map<string, ReturnType<typeof buildMatcher>>()
+  const matchers = new Map<
+    string,
+    { matcher: ReturnType<typeof buildMatcher>; asked: Set<string>; taken: Set<string> }
+  >()
   const places: RenamePlace[] = []
   const counts = new Map<string, number>()
   const bodies = new Map<string, string>()
@@ -176,20 +180,35 @@ export function planRename(
     if (home && !sees(doc.scope, home)) continue
     const raw = keptAsWritten(doc.body)
     const key = `${doc.scope.universe}|${doc.scope.book ?? ''}`
-    let matcher = matchers.get(key)
-    if (!matcher) {
-      const others = index.formsFor(doc.scope).filter((f) => f.recordId !== recordId)
+    let names = matchers.get(key)
+    if (!names) {
+      // The index is built after the rename: a short form the new title shares is asked there,
+      // but here it is the other's alone (the matcher still finds a name two records share).
+      const others = index
+        .formsFor(doc.scope)
+        .filter((f) => f.recordId !== recordId)
+        .map((f) =>
+          f.derived && f.mode === 'ask' && !isCommonWord(f.text)
+            ? { ...f, mode: 'auto' as const }
+            : f,
+        )
+      const explicit = [...others.filter((f) => !f.derived), ...old]
       // A short form that is any record's title or alias is left to that name.
-      const taken = new Set(
-        [...others.filter((f) => !f.derived), ...old]
-          .filter((f) => f.mode !== 'never')
-          .map((f) => f.text.trim()),
-      )
+      const taken = new Set(explicit.filter((f) => f.mode !== 'never').map((f) => f.text.trim()))
       const derived = short
         .filter((t) => !taken.has(t))
         .map((text): NameForm => ({ recordId, text, mode: isCommonWord(text) ? 'ask' : 'auto' }))
-      matchers.set(key, (matcher = buildMatcher([...others, ...old, ...derived])))
+      names = {
+        matcher: buildMatcher([...others, ...old, ...derived]),
+        // Names the author asked to be asked about: never guessed, always asked.
+        asked: new Set(explicit.filter((f) => f.mode === 'ask').map((f) => f.text.trim())),
+        // Another record's names: a place renamed to one of them is never ticked.
+        taken: new Set(others.filter((f) => f.mode !== 'never').map((f) => f.text.trim())),
+      }
+      matchers.set(key, names)
     }
+    const { matcher, asked } = names
+    const kept = (at: number) => raw.some(([a, b]) => at >= a && at < b)
     const found: RenamePlace[] = []
     const add = (
       start: number,
@@ -199,13 +218,15 @@ export function planRename(
       guess?: string,
     ) => {
       // Raw HTML, fences, link definitions: kept as written, never rewritten.
-      if (raw.some(([a, b]) => start >= a && start < b)) return
+      if (kept(start)) return
       const text = doc.body.slice(start, end)
       const form = changing.get(fold(text))
       counts.set(fold(text), (counts.get(fold(text)) ?? 0) + 1)
       if (!form || form.to === text) return
       // A name Markdown would read (`*`, `_`, `[`…) is written escaped in text; inside a link it cannot be.
       if (inLink && /[[\]|\\]/.test(form.to)) return
+      if (names.taken.has(form.to.trim()))
+        uncertain ??= `Uncertain — ${form.to.trim()} is also another record’s name`
       found.push({
         key: `${doc.id}:${start}`,
         docId: doc.id,
@@ -224,11 +245,13 @@ export function planRename(
     const links = parseLinks(doc.body)
     const mentions = findNames(doc.body, matcher, skipZones(doc.body, links))
     // The records the file names for certain: an unshared name, or a link (this record also by an old name).
-    const named = new Set<string>()
+    // A record's notes name their own record. Nothing kept as written names anyone.
+    const named = new Set<string>(doc.kind === 'record' ? [doc.id] : [])
     for (const m of mentions)
-      if (m.status === 'tagged' && !doc.ignore.has(ignoreKey(doc.body, m)))
+      if (m.status === 'tagged' && !kept(m.start) && !doc.ignore.has(ignoreKey(doc.body, m)))
         named.add(m.recordIds[0]!)
     for (const l of links) {
+      if (kept(l.start)) continue
       const r = l.id !== undefined ? undefined : index.resolveName(l.target, doc.scope)
       if (l.id !== undefined) named.add(l.id)
       else if (r?.status === 'ok') named.add(r.target.id)
@@ -273,19 +296,23 @@ export function planRename(
       if (answered && m.status === 'suggest') continue
       if (m.reason === 'shared') {
         const s = shared(m)
-        const quoted = s.guess && insideTitleQuote(doc.body, m.start)
-        add(
-          m.start,
-          m.end,
-          false,
-          quoted ? 'Uncertain — inside a title in quotes' : s.uncertain,
-          s.guess,
-        )
+        const why =
+          isCommonWord(m.text) && startsSentence(doc.body, m.start)
+            ? REASON['sentence-start']
+            : !s.guess
+              ? s.uncertain
+              : insideTitleQuote(doc.body, m.start)
+                ? 'Uncertain — inside a title in quotes'
+                : asked.has(m.text)
+                  ? REASON.shared
+                  : undefined
+        add(m.start, m.end, false, why, s.guess)
         continue
       }
       const why =
         m.status === 'suggest'
-          ? REASON[m.reason!]
+          ? // A short form that is an ordinary word is asked, though the author never asked.
+            REASON[m.reason === 'ask' && !asked.has(m.text) ? 'sentence-start' : m.reason!]
           : answered
             ? `Uncertain — you said an earlier “${m.text}” is not a name`
             : insideTitleQuote(doc.body, m.start)

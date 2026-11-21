@@ -428,4 +428,79 @@ describe('renaming a character found by its short forms', () => {
     const p = rename('Helena Vasquez', ['Elena Vasquez sang “Elena of the Tides”.'], [MOREAU])
     expect(p.places.at(-1)).toMatchObject({ uncertain: 'Uncertain — inside a title in quotes' })
   })
+
+  /** What each place becomes, and why it is not ticked (or the guess that ticks it). */
+  const says = (p: ReturnType<typeof rename>) =>
+    p.places.map((x) => [x.old, x.next, x.uncertain ?? x.guess ?? 'ticked'])
+
+  it('never guesses an ordinary word at the start of a sentence', () => {
+    const will = rename(
+      'Bill Turner',
+      ['Will Turner sailed. "Will you come?" asked Jack.'],
+      [{ n: 2, title: 'Will Smith' }],
+      { title: 'Will Turner', aliases: [] },
+    )
+    expect(says(will).at(-1)).toEqual(['Will', 'Bill', 'Uncertain — it may be an ordinary word'])
+    const rose = rename(
+      'Rosa Tyler',
+      ['Rose Tyler walked. Rose bushes lined the path.'],
+      [{ n: 2, title: 'Rose Hart' }],
+      { title: 'Rose Tyler', aliases: [] },
+    )
+    expect(says(rose).at(-1)).toEqual(['Rose', 'Rosa', 'Uncertain — it may be an ordinary word'])
+  })
+
+  it('never guesses a name the author asked to be asked about', () => {
+    const p = rename(
+      'Helena Vasquez',
+      ['Elena Vasquez came. Elena sat.'],
+      [{ n: 2, title: 'Marta Hart', aliases: [{ text: 'Elena' }] }],
+      { title: 'Elena Vasquez', aliases: [{ text: 'Elena', match: 'ask' }] },
+    )
+    expect(says(p).at(-1)).toEqual(['Elena', 'Helena', 'Uncertain — another record has this name'])
+  })
+
+  it('reads a record’s own notes as naming that record: the other’s notes are not a guess, the renamed one’s are', () => {
+    const theirs = rename(
+      'Helena Vasquez',
+      [],
+      [{ ...MOREAU, body: 'Her cousin is Elena Vasquez. Elena hates boats.' }],
+    )
+    expect(says(theirs).at(-1)).toEqual([
+      'Elena',
+      'Helena',
+      'Uncertain — another record has this name',
+    ])
+    const index = new WorkspaceIndex()
+    index.sync(fixture([], [{ n: 1, title: 'Helena Vasquez', body: 'Elena sails.' }, MOREAU]))
+    const ours = planRename(
+      index,
+      id('chr', 1),
+      VASQUEZ,
+      proposeForms(VASQUEZ.title, 'Helena Vasquez', [], true),
+    )
+    expect(ours.places.map((x) => x.guess)).toEqual([
+      'Probably Elena Vasquez: this note names Elena Vasquez, not Elena Moreau.',
+    ])
+  })
+
+  it('counts the other character’s short form as naming them, though the new title shares it', () => {
+    const p = rename('Helena Moreau', ['Moreau ran. Elena Vasquez came. Elena sat.'], [MOREAU])
+    expect(says(p).at(-1)).toEqual(['Elena', 'Helena', 'Uncertain — another record has this name'])
+  })
+
+  it('never ticks a place whose new name is another record’s name', () => {
+    const p = rename('Rook Vasquez', ['Elena sat.'], [{ n: 3, type: 'place', title: 'Rook' }])
+    expect(says(p)).toEqual([['Elena', 'Rook', 'Uncertain — Rook is also another record’s name']])
+  })
+
+  it('never counts a name kept as written as naming a record', () => {
+    const p = rename('Helena Vasquez', ['<div>Elena Vasquez</div>\n\nElena sat.\n'], [MOREAU])
+    expect(says(p)).toEqual([['Elena', 'Helena', 'Uncertain — another record has this name']])
+  })
+
+  it('says an unshared short form may be an ordinary word, never that the author asked', () => {
+    const p = rename('Rosa Tyler', ['They met Rose.'], [], { title: 'Rose Tyler', aliases: [] })
+    expect(says(p)).toEqual([['Rose', 'Rosa', 'Uncertain — it may be an ordinary word']])
+  })
 })
