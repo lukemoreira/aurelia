@@ -107,7 +107,7 @@ describe('the Rename everywhere dialog', () => {
     await ws.session!.flush()
     await flushPromises()
     const t = dom().textContent!
-    expect(t).toContain('Changed 2 places. These 1 place were left as they are.')
+    expect(t).toContain('Changed 2 places. 1 place was left as it is.')
     expect(dom().querySelector('[aria-label="Places left as they are"]')!.textContent).toContain(
       'inside a title in quotes',
     )

@@ -32,8 +32,12 @@ const filters = computed(() => [
     <!-- After the change: what was left as it is, listed again, so nothing is forgotten. -->
     <div v-if="r.result.value" class="flex flex-col gap-3">
       <p class="m-0 text-ink">
-        Changed {{ places(r.result.value.changed) }}. These {{ places(r.result.value.left.length) }}
-        were left as they are.
+        Changed {{ places(r.result.value.changed) }}.
+        {{
+          r.result.value.left.length === 1
+            ? '1 place was left as it is.'
+            : `These ${places(r.result.value.left.length)} were left as they are.`
+        }}
       </p>
       <div
         role="region"
