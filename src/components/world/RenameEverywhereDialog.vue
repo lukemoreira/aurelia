@@ -18,7 +18,7 @@ const { visible, hasMore, more } = useShowMore(
 const places = (n: number) => `${n} ${n === 1 ? 'place' : 'places'}`
 const filters = computed(() => [
   { value: 'all', label: `All ${r.total.value}` },
-  { value: 'uncertain', label: `Uncertain ${r.uncertain.value.length}` },
+  { value: 'uncertain', label: `To check ${r.toCheck.value.length}` },
 ])
 </script>
 
@@ -55,6 +55,7 @@ const filters = computed(() => [
             <span v-if="p.uncertain" class="block text-xs font-medium text-warn">{{
               p.uncertain
             }}</span>
+            <span v-else-if="p.guess" class="block text-xs text-ink-2">{{ p.guess }}</span>
           </li>
         </ul>
       </div>
@@ -104,7 +105,7 @@ const filters = computed(() => [
           tabindex="0"
           class="max-h-[38vh] relative overflow-auto rounded-control border border-line bg-canvas"
         >
-          <p v-if="!visible.length" class="m-0 p-3 text-ink-2">Nothing is uncertain.</p>
+          <p v-if="!visible.length" class="m-0 p-3 text-ink-2">Nothing to check.</p>
           <div v-for="g in visible" :key="g.where">
             <h4
               class="sticky top-0 m-0 border-b border-line bg-chrome px-3 py-1.5 text-[11.5px] font-semibold text-ink-2"
@@ -131,6 +132,9 @@ const filters = computed(() => [
                     <span v-if="p.uncertain" class="mt-0.5 block text-xs font-medium text-warn">{{
                       p.uncertain
                     }}</span>
+                    <span v-else-if="p.guess" class="mt-0.5 block text-xs text-ink-2">{{
+                      p.guess
+                    }}</span>
                   </span>
                 </label>
               </li>
@@ -141,7 +145,8 @@ const filters = computed(() => [
           </div>
         </div>
         <p class="m-0 text-xs text-ink-3">
-          Uncertain places are not ticked. Places you leave unticked stay as they are.
+          Uncertain places are not ticked; a guess is ticked for you to check. Places you leave
+          unticked stay as they are.
           <button
             type="button"
             class="rounded-sm text-ink-2 underline underline-offset-2 hover:text-ink"

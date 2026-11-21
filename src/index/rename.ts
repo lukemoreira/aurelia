@@ -4,7 +4,16 @@
 import type { Alias } from '@/domain/schema/record'
 import { parseMarkdown } from '@/editor/markdown/parse'
 import { parseLinks, type Range } from './links'
-import { buildMatcher, findNames, ignoreKey, skipZones, type NameForm } from './names'
+import {
+  buildMatcher,
+  findNames,
+  ignoreKey,
+  isCommonWord,
+  nameRoles,
+  shortForms,
+  skipZones,
+  type NameForm,
+} from './names'
 import { fold } from './palette-search'
 import type { WorkspaceIndex } from './workspace-index'
 
@@ -32,6 +41,8 @@ export interface RenamePlace {
   after: string
   /** Why the place is not ticked by itself, in the author's words. */
   uncertain?: string
+  /** A shared name the file around it points to this record: ticked, with why, for the author to check. */
+  guess?: string
 }
 
 export interface RenamePlan {
@@ -45,27 +56,43 @@ export interface RenamePlan {
  * What each way of writing a record's name becomes when its title changes. Words that changed
  * one for one carry through ("Elena Vasquez" → "Helena Vasquez" makes "Elena" "Helena"); a form
  * that holds none of them is kept ("Lena", "Vasquez"). When the title gains or loses words, only
- * the title itself changes: the author edits the rest.
+ * the title itself changes: the author edits the rest. A character's short forms are forms too
+ * (ADR-0010, 2026-11-20), and a name word follows its role: the old first name becomes the new
+ * first name ("Elena Vasquez" → "Helena Marie Vasquez" makes "Elena" "Helena").
  */
 export function proposeForms(
   oldTitle: string,
   newTitle: string,
   aliases: readonly Alias[],
+  character = false,
 ): RenameForm[] {
   const words = (t: string) => t.trim().split(/\s+/)
   const [from, to] = [words(oldTitle), words(newTitle)]
   const map = new Map<string, string>()
   if (from.length === to.length) from.forEach((w, i) => w !== to[i] && map.set(w, to[i]!))
+  const role = new Map<string, string>()
+  if (character) {
+    const [a, b] = [nameRoles(oldTitle), nameRoles(newTitle)]
+    const one = (x: (string | undefined)[], y: (string | undefined)[]) => {
+      const [p, q] = [x.filter(Boolean), y.filter(Boolean)]
+      if (p.length === 1 && q.length === 1 && !role.has(p[0]!)) role.set(p[0]!, q[0]!)
+    }
+    one(a.nicknames, b.nicknames)
+    one([a.first], [b.first])
+    one([a.last], [b.last])
+  }
   const carry = (form: string) =>
+    role.get(form) ??
     words(form)
       .map((w) => map.get(w) ?? w)
       .join(' ')
   const forms: RenameForm[] = [{ from: oldTitle.trim(), to: newTitle.trim() }]
-  for (const a of aliases) {
-    const text = a.text.trim()
+  const add = (text: string) => {
     if (text && text !== oldTitle.trim() && !forms.some((f) => f.from === text))
       forms.push({ from: text, to: carry(text) })
   }
+  for (const a of aliases) add(a.text.trim())
+  if (character) shortForms(oldTitle).forEach(add)
   return forms
 }
 
@@ -101,6 +128,10 @@ function insideTitleQuote(text: string, start: number): boolean {
   return words.length <= 8 && words.every((w) => w.length <= 3 || /^\p{Lu}/u.test(w))
 }
 
+/** One record's title, or the titles of several: "Elena Moreau", "Elena Moreau or Elena Marsh". */
+const titles = (index: Pick<WorkspaceIndex, 'targetOf'>, ids: string[], join: string) =>
+  ids.map((id) => index.targetOf(id)?.title ?? 'another record').join(join)
+
 const REASON = {
   shared: 'Uncertain — another record has this name',
   ask: 'Uncertain — you asked to be asked about this name',
@@ -112,10 +143,12 @@ const REASON = {
  * when the author started (its names, not the new ones: the plan is made after the title is
  * saved, and the text still says the old name). Explicit links count: `[[Elena Vasquez]]` changes
  * its name, `[[id:chr_…|Elena]]` its label and never its ID. Plain-text names follow ADR-0010: a
- * tagged name is ticked, a suggestion or a title in quotes is not.
+ * tagged name is ticked, a suggestion or a title in quotes is not. A character's short forms
+ * ("Elena" of "Elena Vasquez") are read too, by the rules the index reads them by; a short form
+ * another character shares is a guess where the file names this record and not the other.
  */
 export function planRename(
-  index: Pick<WorkspaceIndex, 'documents' | 'formsFor' | 'resolveName' | 'scope'>,
+  index: Pick<WorkspaceIndex, 'documents' | 'formsFor' | 'resolveName' | 'scope' | 'targetOf'>,
   recordId: string,
   oldNames: { title: string; aliases: readonly Alias[] },
   forms: RenameForm[],
@@ -125,6 +158,12 @@ export function planRename(
     { recordId, text: oldNames.title, mode: 'auto' },
     ...oldNames.aliases.map((a): NameForm => ({ recordId, text: a.text, mode: a.match ?? 'auto' })),
   ]
+  // The old title's short forms (ADR-0010, 2026-11-20): never one this record said never to.
+  const off = new Set(oldNames.aliases.filter((a) => a.match === 'never').map((a) => fold(a.text)))
+  const short =
+    index.targetOf(recordId)?.recordType === 'character'
+      ? shortForms(oldNames.title).filter((t) => !off.has(fold(t)))
+      : []
   const matchers = new Map<string, ReturnType<typeof buildMatcher>>()
   const places: RenamePlace[] = []
   const counts = new Map<string, number>()
@@ -140,10 +179,25 @@ export function planRename(
     let matcher = matchers.get(key)
     if (!matcher) {
       const others = index.formsFor(doc.scope).filter((f) => f.recordId !== recordId)
-      matchers.set(key, (matcher = buildMatcher([...others, ...old])))
+      // A short form that is any record's title or alias is left to that name.
+      const taken = new Set(
+        [...others.filter((f) => !f.derived), ...old]
+          .filter((f) => f.mode !== 'never')
+          .map((f) => f.text.trim()),
+      )
+      const derived = short
+        .filter((t) => !taken.has(t))
+        .map((text): NameForm => ({ recordId, text, mode: isCommonWord(text) ? 'ask' : 'auto' }))
+      matchers.set(key, (matcher = buildMatcher([...others, ...old, ...derived])))
     }
     const found: RenamePlace[] = []
-    const add = (start: number, end: number, inLink: boolean, uncertain?: string) => {
+    const add = (
+      start: number,
+      end: number,
+      inLink: boolean,
+      uncertain?: string,
+      guess?: string,
+    ) => {
       // Raw HTML, fences, link definitions: kept as written, never rewritten.
       if (raw.some(([a, b]) => start >= a && start < b)) return
       const text = doc.body.slice(start, end)
@@ -163,11 +217,38 @@ export function planRename(
         next: inLink ? form.to : escapeMarkdown(form.to, atLineStart(doc.body, start)),
         ...(doc.scope.book ? { bookId: doc.scope.book } : {}),
         ...around(doc.body, start, end),
-        ...(uncertain ? { uncertain } : {}),
+        ...(uncertain ? { uncertain } : guess ? { guess } : {}),
       })
     }
 
     const links = parseLinks(doc.body)
+    const mentions = findNames(doc.body, matcher, skipZones(doc.body, links))
+    // The records the file names for certain: an unshared name, or a link (this record also by an old name).
+    const named = new Set<string>()
+    for (const m of mentions)
+      if (m.status === 'tagged' && !doc.ignore.has(ignoreKey(doc.body, m)))
+        named.add(m.recordIds[0]!)
+    for (const l of links) {
+      const r = l.id !== undefined ? undefined : index.resolveName(l.target, doc.scope)
+      if (l.id !== undefined) named.add(l.id)
+      else if (r?.status === 'ok') named.add(r.target.id)
+      else if (r?.status === 'missing' && old.some((f) => fold(f.text) === fold(l.target)))
+        named.add(recordId)
+    }
+    const here = doc.kind === 'scene' ? 'this scene' : 'this note'
+    /** A shared name: a guess where the file names this record and none of the others. */
+    const shared = (m: (typeof mentions)[number]) => {
+      const rest = m.recordIds.filter((r) => r !== recordId)
+      const elsewhere = rest.filter((r) => named.has(r))
+      if (named.has(recordId) && !elsewhere.length)
+        return {
+          guess: `Probably ${oldNames.title}: ${here} names ${oldNames.title}, not ${titles(index, rest, ' or ')}.`,
+        }
+      if (!named.has(recordId) && elsewhere.length)
+        return { uncertain: `Uncertain — ${here} names ${titles(index, elsewhere, ' and ')}.` }
+      return { uncertain: REASON.shared }
+    }
+
     for (const l of links) {
       if (l.id !== undefined) {
         if (l.id !== recordId) continue
@@ -184,12 +265,24 @@ export function planRename(
       }
     }
 
-    for (const m of findNames(doc.body, matcher, skipZones(doc.body, links))) {
+    for (const m of mentions) {
       if (!m.recordIds.includes(recordId)) continue
       const answered = doc.ignore.has(ignoreKey(doc.body, m))
       // "Not a name" answered a question; a place that was a question stays out of the list. A real
       // name that now carries that answer's number is not counted as certain.
       if (answered && m.status === 'suggest') continue
+      if (m.reason === 'shared') {
+        const s = shared(m)
+        const quoted = s.guess && insideTitleQuote(doc.body, m.start)
+        add(
+          m.start,
+          m.end,
+          false,
+          quoted ? 'Uncertain — inside a title in quotes' : s.uncertain,
+          s.guess,
+        )
+        continue
+      }
       const why =
         m.status === 'suggest'
           ? REASON[m.reason!]
@@ -259,7 +352,7 @@ export function groupPlaces(places: RenamePlace[]) {
   return out
 }
 
-/** Places ticked by default: every one that is certain. */
+/** Places ticked by default: every one that is certain, and every guess. */
 export const certainPlaces = (plan: RenamePlan) =>
   new Set(plan.places.filter((p) => !p.uncertain).map((p) => p.key))
 

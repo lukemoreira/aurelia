@@ -9,6 +9,7 @@ import {
   renamedAliases,
   rewrites,
 } from './rename'
+import type { Alias } from '@/domain/schema/record'
 import { WorkspaceIndex } from './workspace-index'
 
 const OLD = { title: 'Elena Vasquez', aliases: [{ text: 'Elena' }, { text: 'Lena' }] }
@@ -94,7 +95,7 @@ describe('renaming Elena', () => {
     const body = [
       'They sang “Elena of the Tides” until dawn.',
       '“Where is Elena?” he asked, and Elena answered.',
-      'Corin swam.',
+      'Nobody swam.',
     ].join('\n\n')
     const p = plan([body], [{ n: 5, title: 'Corin', aliases: [{ text: 'Elena' }] }])
     // "Elena" is now also Corin's alias: every plain "Elena" is a question, and the title one is too.
@@ -281,29 +282,150 @@ describe('renaming Elena', () => {
 })
 
 describe('renaming a character found by its short forms', () => {
-  it('changes only the title and the typed names, never a short form of the title', () => {
+  const VASQUEZ = { title: 'Elena Vasquez', aliases: [] }
+  /** Elena Vasquez (chr 1, renamed to `to`), and whatever else is given. */
+  const world = (
+    to: string,
+    scenes: string[],
+    more: Parameters<typeof fixture>[1] = [],
+    aliases: Alias[] = [],
+  ) => {
     const index = new WorkspaceIndex()
-    const body = '“Archie” Archibald Collins came. Archie ran, Collins hid.'
-    index.sync(fixture([{ n: 1, body }], [{ n: 1, title: 'Archibald Collinson' }]))
-    const p = planRename(
-      index,
-      id('chr', 1),
-      { title: '“Archie” Archibald Collins', aliases: [] },
-      [{ from: '“Archie” Archibald Collins', to: 'Archibald Collinson' }],
-    )
-    expect(p.places).toEqual([])
-    const typed = new WorkspaceIndex()
-    typed.sync(
+    index.sync(
       fixture(
-        [{ n: 1, body: 'Archibald Collins came. Collins hid.' }],
-        [{ n: 1, title: 'Archibald Collinson' }],
+        scenes.map((body, i) => ({ n: i + 1, body })),
+        [{ n: 1, title: to, aliases }, ...more],
       ),
     )
-    const q = planRename(typed, id('chr', 1), { title: 'Archibald Collins', aliases: [] }, [
-      { from: 'Archibald Collins', to: 'Archibald Collinson' },
+    return index
+  }
+  const rename = (
+    to: string,
+    scenes: string[],
+    more: Parameters<typeof fixture>[1] = [],
+    old: { title: string; aliases: Alias[] } = VASQUEZ,
+  ) =>
+    planRename(
+      world(to, scenes, more, old.aliases),
+      id('chr', 1),
+      old,
+      proposeForms(old.title, to, old.aliases, true),
+    )
+  const MOREAU = { n: 2, title: 'Elena Moreau' }
+
+  it('proposes the short forms too, each paired with the new title’s word of its role', () => {
+    expect(proposeForms('Elena Vasquez', 'Helena Vasquez', [], true)).toEqual([
+      { from: 'Elena Vasquez', to: 'Helena Vasquez' },
+      { from: 'Elena', to: 'Helena' },
+      { from: 'Vasquez', to: 'Vasquez' },
     ])
-    expect(q.places.map((x) => [x.old, x.next])).toEqual([
-      ['Archibald Collins', 'Archibald Collinson'],
+    expect(proposeForms('Elena Vasquez', 'Helena Marie Vasquez', [], true)).toEqual([
+      { from: 'Elena Vasquez', to: 'Helena Marie Vasquez' },
+      { from: 'Elena', to: 'Helena' },
+      { from: 'Vasquez', to: 'Vasquez' },
     ])
+    expect(proposeForms('Thomas “Tommy” Kent', 'Thomas “Tom” Kentworth', [], true)).toEqual([
+      { from: 'Thomas “Tommy” Kent', to: 'Thomas “Tom” Kentworth' },
+      { from: 'Tommy', to: 'Tom' },
+      { from: 'Thomas', to: 'Thomas' },
+      { from: 'Kent', to: 'Kentworth' },
+    ])
+    // Not a character: no short forms. A typed name is listed once.
+    expect(proposeForms('Elena Vasquez', 'Helena Vasquez', [{ text: 'Elena' }])).toHaveLength(2)
+    expect(proposeForms('Elena Vasquez', 'Helena Vasquez', [{ text: 'Elena' }], true)).toEqual([
+      { from: 'Elena Vasquez', to: 'Helena Vasquez' },
+      { from: 'Elena', to: 'Helena' },
+      { from: 'Vasquez', to: 'Vasquez' },
+    ])
+  })
+
+  it('renames a plain first name, a last name and a nickname', () => {
+    const p = rename('Thomas “Tom” Kentworth', ['Tommy waved. Kent hid. Thomas sang.'], [], {
+      title: 'Thomas “Tommy” Kent',
+      aliases: [],
+    })
+    expect(p.places.map((x) => [x.old, x.next, x.uncertain ?? ''])).toEqual([
+      ['Tommy', 'Tom', ''],
+      ['Kent', 'Kentworth', ''],
+    ])
+    const q = rename('Helena Marie Vasquez', ['Elena ran. Vasquez hid.'])
+    expect(q.places.map((x) => [x.old, x.next])).toEqual([['Elena', 'Helena']])
+  })
+
+  it('never reads a short form that is another record’s title, nor one this record said never to', () => {
+    const taken = rename(
+      'Helena Vasquez',
+      ['Elena ran.'],
+      [{ n: 3, type: 'place', title: 'Elena' }],
+    )
+    expect(taken.places).toEqual([])
+    const off = rename('Helena Vasquez', ['Elena ran.'], [], {
+      title: 'Elena Vasquez',
+      aliases: [{ text: 'Elena', match: 'never' }],
+    })
+    expect(off.places).toEqual([])
+  })
+
+  it('gives a record that is not a character no short forms', () => {
+    const index = new WorkspaceIndex()
+    index.sync(
+      fixture([{ n: 1, body: 'Elena ran.' }], [{ n: 1, type: 'place', title: 'Helena Vasquez' }]),
+    )
+    const p = planRename(index, id('plc', 1), VASQUEZ, [
+      { from: 'Elena Vasquez', to: 'Helena Vasquez' },
+      { from: 'Elena', to: 'Helena' },
+    ])
+    expect(p.places).toEqual([])
+  })
+
+  it('guesses a shared first name by the scene: ticked where it names only this record', () => {
+    const p = rename('Helena Vasquez', ['Elena Vasquez came in. Elena sat.'], [MOREAU])
+    expect(p.places.map((x) => [x.old, x.next, x.uncertain ?? '', x.guess ?? ''])).toEqual([
+      ['Elena Vasquez', 'Helena Vasquez', '', ''],
+      [
+        'Elena',
+        'Helena',
+        '',
+        'Probably Elena Vasquez: this scene names Elena Vasquez, not Elena Moreau.',
+      ],
+    ])
+    expect(certainPlaces(p).size).toBe(2)
+  })
+
+  it('leaves it unticked where the scene names only the other, both, or neither', () => {
+    const p = rename(
+      'Helena Vasquez',
+      [
+        'Elena Moreau came in. Elena sat.',
+        'Elena Moreau and Elena Vasquez came in. Elena sat.',
+        'Elena sat.',
+      ],
+      [MOREAU],
+    )
+    const plain = p.places.filter((x) => x.old === 'Elena')
+    expect(plain.map((x) => [x.uncertain, x.guess])).toEqual([
+      ['Uncertain — this scene names Elena Moreau.', undefined],
+      ['Uncertain — another record has this name', undefined],
+      ['Uncertain — another record has this name', undefined],
+    ])
+    expect([...certainPlaces(p)].filter((k) => plain.some((x) => x.key === k))).toEqual([])
+  })
+
+  it('counts a link to this record, by ID or by its old title, as naming it; and says “this note” in a note', () => {
+    const p = rename(
+      'Helena Vasquez',
+      ['See [[id:chr_0000000001|her]]. Elena sat.', 'See [[Elena Vasquez]]. Elena sat.'],
+      [MOREAU, { n: 8, type: 'note', title: 'Plan', body: 'Vasquez leaves. Elena waves.' }],
+    )
+    expect(p.places.filter((x) => x.old === 'Elena').map((x) => x.guess)).toEqual([
+      'Probably Elena Vasquez: this scene names Elena Vasquez, not Elena Moreau.',
+      'Probably Elena Vasquez: this scene names Elena Vasquez, not Elena Moreau.',
+      'Probably Elena Vasquez: this note names Elena Vasquez, not Elena Moreau.',
+    ])
+  })
+
+  it('never guesses inside a title in quotes', () => {
+    const p = rename('Helena Vasquez', ['Elena Vasquez sang “Elena of the Tides”.'], [MOREAU])
+    expect(p.places.at(-1)).toMatchObject({ uncertain: 'Uncertain — inside a title in quotes' })
   })
 })

@@ -59,10 +59,18 @@ const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv'])
  * nothing after "of" is ("Arthur of Camelot" is Arthur). A one-word title gives nothing.
  */
 export function shortForms(title: string): string[] {
-  const out = new Set<string>()
+  const r = nameRoles(title)
+  return [...new Set([...r.nicknames, r.first, r.last].filter((f): f is string => !!f))]
+}
+
+/**
+ * The short forms of a title by role: the nicknames in quotes, the first name and the last name.
+ * One name word left after a rank is the last name ("Major Dempsey"). Rename everywhere pairs the
+ * old title's roles with the new one's (ADR-0010, 2026-11-20).
+ */
+export function nameRoles(title: string): { nicknames: string[]; first?: string; last?: string } {
   const quoted =
     /["“”]([^"“”]+)["“”]|(?<![\p{L}\p{M}\p{N}])['‘]([\p{L}\p{M}]+)['’](?![\p{L}\p{M}\p{N}])/gu
-  for (const m of title.matchAll(quoted)) out.add((m[1] ?? m[2]!).trim())
   const words = title
     .replace(quoted, ' ')
     .replace(/\([^)]*\)/g, ' ')
@@ -76,10 +84,15 @@ export function shortForms(title: string): string[] {
   // A rank is stripped at the front, a suffix at the end: "King" in "Martin Luther King Jr." is a surname.
   while (notAlone(name[0])) name.shift()
   while (SUFFIXES.has(name.at(-1)?.toLowerCase() ?? '')) name.pop()
-  if (name.length) out.add(name[0]!)
-  if (name.length && !notAlone(name.at(-1))) out.add(name.at(-1)!) // a surname that is also a rank is no short form
-  out.delete(title.trim())
-  return [...out].filter((f) => [...f].length > 1 && !NOT_ALONE.has(f.toLowerCase()))
+  const keep = (f?: string) =>
+    f && f !== title.trim() && [...f].length > 1 && !notAlone(f) ? f : undefined
+  const nicknames = [...title.matchAll(quoted)].map((m) => keep((m[1] ?? m[2]!).trim()))
+  return {
+    nicknames: [...new Set(nicknames.filter((f): f is string => !!f))],
+    ...(name.length > 1 && keep(name[0]) ? { first: name[0] } : {}),
+    // a surname that is also a rank is no short form
+    ...(keep(name.at(-1)) ? { last: name.at(-1) } : {}),
+  }
 }
 
 /** The names to look for, grouped by exact text so two records with one name are known. */
