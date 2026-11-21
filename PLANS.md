@@ -886,3 +886,7 @@ backup — ADR-0009.)
   note names only this record (a certain mention or a link); it stays unticked, naming the other, where the file
   names only the other, and with the shared wording where it names both or neither. The dialog's "Uncertain"
   filter is now "To check" (uncertain places and guesses), and the guess note is shown in a calm tone.
+  Reviews (four rounds): never a guess for an ordinary word ("Will", "Rose"), a name set to ask, or inside kept
+  text; a record's own notes name it; a place whose new name is another record's name (a title, an alias, or a
+  short form the new title does not give) is unticked with a warning, except a link's label; "1 place was left
+  as it is" replaces "These 1 place were".
