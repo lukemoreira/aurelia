@@ -215,8 +215,9 @@ scene**. This replaces the 2026-11-18 rule that Rename everywhere never renames 
   at a sentence start it says "it may be an ordinary word"), for a name the author set to `ask`,
   or inside a title in quotes. The index is built after the rename, so a short form the new
   title now shares with another character still names that character here. A place whose new
-  name is another record's title or typed alias (not one of its short forms) is never ticked
-  ("Uncertain — Rook is also another record’s name"), except a link's label, which never changes
+  name is another record's name is never ticked ("Uncertain — Rook is also another record’s
+  name"): its title, a typed alias, or a short form the new title does not also give (one it
+  does give is shared after the rename, not the other's), except a link's label, which never changes
   what the link points to. An unshared short form that is an ordinary word says "it may be an
   ordinary word", not that the author asked. The common-words list gained river, hunter, sky,
   storm, pierce and sterling. The
