@@ -531,6 +531,17 @@ describe('renaming a character found by its short forms', () => {
     ])
   })
 
+  it('warns when a form is changed to another character’s short form the new title does not give', () => {
+    const forms = proposeForms('Elena Vasquez', 'Helena Vasquez', [], true).map((f) =>
+      f.from === 'Vasquez' ? { ...f, to: 'Bright' } : f,
+    )
+    const index = world('Helena Vasquez', ['Vasquez ran.'], [{ n: 2, title: 'Jack Bright' }], [])
+    const p = planRename(index, id('chr', 1), VASQUEZ, forms)
+    expect(says(p)).toEqual([
+      ['Vasquez', 'Bright', 'Uncertain — Bright is also another record’s name'],
+    ])
+  })
+
   it('never unticks a link’s label for the new name: the link decides what it points to', () => {
     const p = rename(
       'Rook Vasquez',

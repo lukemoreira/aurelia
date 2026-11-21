@@ -161,10 +161,11 @@ export function planRename(
   ]
   // The old title's short forms (ADR-0010, 2026-11-20): never one this record said never to.
   const off = new Set(oldNames.aliases.filter((a) => a.match === 'never').map((a) => fold(a.text)))
-  const short =
-    index.targetOf(recordId)?.recordType === 'character'
-      ? shortForms(oldNames.title).filter((t) => !off.has(fold(t)))
-      : []
+  const target = index.targetOf(recordId)
+  const character = target?.recordType === 'character'
+  const short = character ? shortForms(oldNames.title).filter((t) => !off.has(fold(t))) : []
+  // The new title's own short forms: another character's same one is shared after the rename, not theirs.
+  const fresh = new Set(character ? shortForms(target.title) : [])
   const matchers = new Map<
     string,
     { matcher: ReturnType<typeof buildMatcher>; asked: Set<string>; taken: Set<string> }
@@ -204,7 +205,9 @@ export function planRename(
         asked: new Set(explicit.filter((f) => f.mode === 'ask').map((f) => f.text.trim())),
         // Another record's names: a place renamed to one of them is never ticked.
         taken: new Set(
-          others.filter((f) => !f.derived && f.mode !== 'never').map((f) => f.text.trim()),
+          others
+            .filter((f) => f.mode !== 'never' && !(f.derived && fresh.has(f.text.trim())))
+            .map((f) => f.text.trim()),
         ),
       }
       matchers.set(key, names)
