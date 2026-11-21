@@ -542,6 +542,14 @@ describe('renaming a character found by its short forms', () => {
     ])
   })
 
+  it('warns when the new short form is turned off here and another character has it', () => {
+    const old = { title: 'Elena Vasquez', aliases: [{ text: 'Helena', match: 'never' as const }] }
+    const p = rename('Helena Vasquez', ['Elena sat.'], [{ n: 2, title: 'Helena Bright' }], old)
+    expect(says(p)).toEqual([
+      ['Elena', 'Helena', 'Uncertain — Helena is also another record’s name'],
+    ])
+  })
+
   it('never unticks a link’s label for the new name: the link decides what it points to', () => {
     const p = rename(
       'Rook Vasquez',

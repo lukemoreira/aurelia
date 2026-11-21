@@ -165,7 +165,7 @@ export function planRename(
   const character = target?.recordType === 'character'
   const short = character ? shortForms(oldNames.title).filter((t) => !off.has(fold(t))) : []
   // The new title's own short forms: another character's same one is shared after the rename, not theirs.
-  const fresh = new Set(character ? shortForms(target.title) : [])
+  const fresh = new Set(character ? shortForms(target.title).filter((t) => !off.has(fold(t))) : [])
   const matchers = new Map<
     string,
     { matcher: ReturnType<typeof buildMatcher>; asked: Set<string>; taken: Set<string> }
