@@ -83,10 +83,15 @@ export function useRenameEverywhere() {
   /** The name dialog is gone: look for the old name in the text, and ask only if it is there. */
   function begin(o: RenameOffer) {
     edits.renameOffer = null
-    const title = ws.data?.records.find((r) => r.meta.id === o.recordId)?.meta.title
-    if (!title || title === o.before.title) return
+    const meta = ws.data?.records.find((r) => r.meta.id === o.recordId)?.meta
+    if (!meta?.title || meta.title === o.before.title) return
     offer.value = o
-    forms.value = proposeForms(o.before.title, title, o.before.aliases)
+    forms.value = proposeForms(
+      o.before.title,
+      meta.title,
+      o.before.aliases,
+      meta.type === 'character',
+    )
     filter.value = 'all'
     error.value = ''
     result.value = null
@@ -112,7 +117,9 @@ export function useRenameEverywhere() {
 
   const places = computed(() => plan.value?.places ?? [])
   const uncertain = computed(() => places.value.filter((p) => p.uncertain))
-  const shown = computed(() => (filter.value === 'uncertain' ? uncertain.value : places.value))
+  /** The places the author should look at: the uncertain ones, and the guesses ticked for them. */
+  const toCheck = computed(() => places.value.filter((p) => p.uncertain || p.guess))
+  const shown = computed(() => (filter.value === 'uncertain' ? toCheck.value : places.value))
   /** Places by where they are, in reading order. */
   const groups = computed(() => groupPlaces(shown.value))
   /** "2 books · 31 scenes · 3 notes": how widely the old name is written. */
@@ -139,7 +146,7 @@ export function useRenameEverywhere() {
     if (!next.delete(key)) next.add(key)
     ticked.value = next
   }
-  /** "Tick all" ticks the certain places only: an uncertain one is always the author's own choice. */
+  /** "Tick all" ticks the certain places and the guesses: an uncertain one is always the author's own choice. */
   const tickAll = (on: boolean) =>
     (ticked.value = on && plan.value ? certainPlaces(plan.value) : new Set())
 
@@ -196,6 +203,7 @@ export function useRenameEverywhere() {
     oldTitle,
     newTitle,
     uncertain,
+    toCheck,
     groups,
     count,
     total: computed(() => places.value.length),

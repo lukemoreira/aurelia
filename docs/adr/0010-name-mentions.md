@@ -175,7 +175,7 @@ Archibald, Tommy for Tommy Kent." Chosen: automatic.
     then the title renamed to it) is ignored, so it never silences the title. A `never` alias is
     not a name a `[[link]]` resolves by.
 - **Find new names** does not offer them: every word of a known name was already left out.
-- **Rename everywhere** is unchanged: it renames the title and the typed aliases only, never a
+- *Replaced by the amendment of 2026-11-20:* **Rename everywhere** is unchanged: it renames the title and the typed aliases only, never a
   short form (the next title gives its own). Accepted as designed: renaming `Archibald Collins` to
   `Archibald Smith` leaves the plain "Collins" mentions as written, untagged, or tagged to another
   character with that last name.
@@ -183,3 +183,33 @@ Archibald, Tommy for Tommy Kent." Chosen: automatic.
   form is asked about in any book that sees the record); "Stop finding Archie" adds
   the alias `{ text: "Archie", match: never }` through the sheet's alias writer, so the answer is in
   the record's file and every device and the MCP server agree.
+
+## Amendment (2026-11-20): rename everywhere renames short forms too
+
+Owner: "I want to be able to rename characters by renaming all instances, also dealing with
+characters with the same first name." For a name two characters share, the owner chose: **Guess by
+scene**. This replaces the 2026-11-18 rule that Rename everywhere never renames a short form.
+
+- **Short forms are forms.** For a character, the short forms of its OLD title are found and
+  offered like the typed names (`planRename` in `src/index/rename.ts`), by the index's rules: one
+  that is any record's title or (non-`never`) alias is left to that name; one this record turned
+  off with a `never` alias is not read; one another character also has is shared, so asked; an
+  ordinary word is asked. They are not stored as aliases. Other record types get none.
+- **What one becomes is paired by role** (`proposeForms`, with `nameRoles` beside `shortForms` in
+  `src/index/names.ts`): the old first name becomes the new first name, the last the last, a
+  nickname the nickname, when each side has exactly one of that role. One word left after a rank is
+  the last name. Without a partner the word-for-word map is used, and without that the form is kept.
+  `Elena Vasquez` → `Helena Marie Vasquez` makes "Elena" "Helena" and keeps "Vasquez". Every form
+  is shown in the dialog and stays editable. For a character, a typed alias that is one of these
+  words is paired the same way.
+- **Guess by scene.** A place that is uncertain only because the name is shared is judged by the
+  file it is in (a scene, or a record's notes). The file *names* a record when it has a certain
+  mention of it (a tagged name only that record owns: its title, an unshared alias or short form)
+  or a link that resolves to it (for the renamed record, also a link by an old name, which may now
+  read as missing). If the file names this record and none of the other owners, the place is a
+  **guess**: ticked, with "Probably Elena Vasquez: this scene names Elena Vasquez, not Elena
+  Moreau." ("this note" in a record's notes). If it names only another owner, it stays unticked:
+  "Uncertain — this scene names Elena Moreau." If it names both or neither, it stays unticked with
+  the shared wording. A guess inside a title in quotes is uncertain, as any name there is. The
+  dialog's filter "To check" lists the uncertain places and the guesses; "Tick all" ticks the
+  certain places and the guesses.

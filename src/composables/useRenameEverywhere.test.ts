@@ -69,6 +69,7 @@ describe('Rename everywhere', () => {
       { from: 'Elena Vasquez', to: 'Helena Vasquez' },
       { from: 'Elena', to: 'Helena' },
       { from: 'Lena', to: 'Lena' },
+      { from: 'Vasquez', to: 'Vasquez' },
     ])
     expect(t.rename.total.value).toBe(3)
     expect(t.rename.uncertain.value.map((p) => p.uncertain)).toEqual([
@@ -178,6 +179,33 @@ describe('Rename everywhere', () => {
     expect(t.rename.count.value).toBe(2)
     expect(t.rename.uncertain.value).toHaveLength(1)
     expect(t.rename.reach.value).toBe('1 book · 2 scenes')
+  })
+
+  it('ticks a guess by the scene by default and with "Tick all", and lists it under "To check"', async () => {
+    const t = await setup(['Elena Vasquez came. Elena sat.\n', 'Elena Moreau came. Elena sat.\n'])
+    const s = t.ws.session!
+    await s.setFields(t.elena, { aliases: [] })
+    await addRecord(s, {
+      type: 'character',
+      title: 'Elena Moreau',
+      universeId: s.data.universes[0]!.id,
+    })
+    await s.flush()
+    await t.renameTo('Helena Vasquez')
+    const places = t.rename.plan.value!.places
+    const guess = places.find((p) => p.guess)!
+    expect(guess.guess).toBe(
+      'Probably Elena Vasquez: this scene names Elena Vasquez, not Elena Moreau.',
+    )
+    const other = places.find((p) => p.uncertain)!
+    expect(other.uncertain).toBe('Uncertain — this scene names Elena Moreau.')
+    expect(t.rename.ticked.value.has(guess.key)).toBe(true)
+    expect(t.rename.ticked.value.has(other.key)).toBe(false)
+    t.rename.tickAll(false)
+    t.rename.tickAll(true)
+    expect(t.rename.ticked.value.has(guess.key)).toBe(true)
+    expect(t.rename.ticked.value.has(other.key)).toBe(false)
+    expect(t.rename.toCheck.value.map((p) => p.key)).toEqual([guess.key, other.key])
   })
 
   it('lists the places left as they are, after the change, and says only what is true of the old texts', async () => {

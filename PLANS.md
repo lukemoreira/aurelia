@@ -878,3 +878,11 @@ backup — ADR-0009.)
   tags and links that show just an address stay silent. Third review: such a link's words are said without their
   Markdown marks, every link in kept text that runs together is read, and the read-aloud bar rises above a toast.
   The link skip zones of Find and Rename everywhere now treat `\\](` (an escaped backslash) as a real link.
+- 2026-11-20 — Rename everywhere renames short forms (branch `feat/rename-short-forms`; owner: "I want to be able
+  to rename characters by renaming all instances, also dealing with characters with the same first name", chosen:
+  guess by scene). ADR-0010 amendment 2026-11-20. A character's old short forms ("Elena", "Vasquez") are found by
+  the index's rules and offered as forms, each paired by role with the new title (first to first, last to last,
+  nickname to nickname; else word for word; else kept). A shared short form is a guess, ticked, where the scene or
+  note names only this record (a certain mention or a link); it stays unticked, naming the other, where the file
+  names only the other, and with the shared wording where it names both or neither. The dialog's "Uncertain"
+  filter is now "To check" (uncertain places and guesses), and the guess note is shown in a calm tone.
