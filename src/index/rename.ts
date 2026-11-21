@@ -203,7 +203,9 @@ export function planRename(
         // Names the author asked to be asked about: never guessed, always asked.
         asked: new Set(explicit.filter((f) => f.mode === 'ask').map((f) => f.text.trim())),
         // Another record's names: a place renamed to one of them is never ticked.
-        taken: new Set(others.filter((f) => f.mode !== 'never').map((f) => f.text.trim())),
+        taken: new Set(
+          others.filter((f) => !f.derived && f.mode !== 'never').map((f) => f.text.trim()),
+        ),
       }
       matchers.set(key, names)
     }
@@ -213,7 +215,7 @@ export function planRename(
     const add = (
       start: number,
       end: number,
-      inLink: boolean,
+      inLink: false | 'target' | 'label',
       uncertain?: string,
       guess?: string,
     ) => {
@@ -225,7 +227,8 @@ export function planRename(
       if (!form || form.to === text) return
       // A name Markdown would read (`*`, `_`, `[`…) is written escaped in text; inside a link it cannot be.
       if (inLink && /[[\]|\\]/.test(form.to)) return
-      if (names.taken.has(form.to.trim()))
+      // A link's label never changes what the link points to.
+      if (inLink !== 'label' && names.taken.has(form.to.trim()))
         uncertain ??= `Uncertain — ${form.to.trim()} is also another record’s name`
       found.push({
         key: `${doc.id}:${start}`,
@@ -280,11 +283,11 @@ export function planRename(
         const ours = (r.status === 'ok' && r.target.id === recordId) || r.status === 'missing'
         if (!ours || !changing.has(fold(l.target))) continue
         if (r.status === 'missing' && !old.some((f) => fold(f.text) === fold(l.target))) continue
-        add(l.targetAt[0], l.targetAt[1], true)
+        add(l.targetAt[0], l.targetAt[1], 'target')
       }
       if (l.labelAt && l.label?.trim()) {
         const lead = l.label.length - l.label.trimStart().length
-        add(l.labelAt[0] + lead, l.labelAt[0] + lead + l.label.trim().length, true)
+        add(l.labelAt[0] + lead, l.labelAt[0] + lead + l.label.trim().length, 'label')
       }
     }
 
@@ -303,7 +306,8 @@ export function planRename(
               ? s.uncertain
               : insideTitleQuote(doc.body, m.start)
                 ? 'Uncertain — inside a title in quotes'
-                : asked.has(m.text)
+                : // An ordinary word, or a name the author asked about, is never guessed.
+                  isCommonWord(m.text) || asked.has(m.text)
                   ? REASON.shared
                   : undefined
         add(m.start, m.end, false, why, s.guess)

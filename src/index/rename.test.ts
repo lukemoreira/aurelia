@@ -503,4 +503,48 @@ describe('renaming a character found by its short forms', () => {
     const p = rename('Rosa Tyler', ['They met Rose.'], [], { title: 'Rose Tyler', aliases: [] })
     expect(says(p)).toEqual([['Rose', 'Rosa', 'Uncertain — it may be an ordinary word']])
   })
+
+  it('never guesses a shared ordinary word, wherever it stands', () => {
+    const p = rename(
+      'Bill Turner',
+      ['Will Turner paused — Will you come?'],
+      [{ n: 2, title: 'Will Smith' }],
+      { title: 'Will Turner', aliases: [] },
+    )
+    expect(says(p).at(-1)).toEqual(['Will', 'Bill', 'Uncertain — another record has this name'])
+  })
+
+  it('warns of a new name that is another record’s title or alias, never of another’s short form', () => {
+    const bright = rename(
+      'Helena Vasquez',
+      ['Elena Vasquez came. Elena sat.'],
+      [{ n: 2, title: 'Helena Bright' }],
+    )
+    expect(says(bright).at(-1)).toEqual(['Elena', 'Helena', 'ticked'])
+    const alias = rename(
+      'Helena Vasquez',
+      ['Elena sat.'],
+      [{ n: 2, title: 'Marta Hart', aliases: [{ text: 'Helena' }] }],
+    )
+    expect(says(alias)).toEqual([
+      ['Elena', 'Helena', 'Uncertain — Helena is also another record’s name'],
+    ])
+  })
+
+  it('never unticks a link’s label for the new name: the link decides what it points to', () => {
+    const p = rename(
+      'Rook Vasquez',
+      ['See [[id:chr_0000000001|Elena]].'],
+      [{ n: 3, type: 'place', title: 'Rook' }],
+    )
+    expect(says(p)).toEqual([['Elena', 'Rook', 'ticked']])
+  })
+
+  it('asks about a name that is also a common word at the start of a sentence', () => {
+    const p = rename('Rivka Song', ['River Song came. River banks flooded.'], [], {
+      title: 'River Song',
+      aliases: [],
+    })
+    expect(says(p).at(-1)).toEqual(['River', 'Rivka', 'Uncertain — it may be an ordinary word'])
+  })
 })

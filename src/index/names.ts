@@ -34,7 +34,7 @@ const LEADING_WORD = /^[\p{L}\p{M}\p{N}]+/u
 
 /** Names that are also ordinary words: at the start of a sentence the author is asked ("Will you…"). */
 const COMMON_WORDS = new Set(
-  'will mark grace rose hope may bill art faith joy pat rob ray sue dawn summer autumn june april frank jack bob rich bell wren sage ash brook lane drew chase miles page grant rush young little long white black brown green grey gray hill wood stone old big man'.split(
+  'will mark grace rose hope may bill art faith joy pat rob ray sue dawn summer autumn june april frank jack bob rich bell wren sage ash brook lane drew chase miles page grant rush young little long white black brown green grey gray hill wood stone old big man river hunter sky storm pierce sterling'.split(
     ' ',
   ),
 )
