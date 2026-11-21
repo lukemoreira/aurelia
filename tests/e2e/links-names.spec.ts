@@ -392,9 +392,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await boxes.nth(1).uncheck() // “Elena’s hand”
     await dialog.getByRole('button', { name: `Change ${total - 1} places` }).click()
     // The place left alone is listed again, so nothing is forgotten.
-    await expect(dialog).toContainText(
-      `Changed ${total - 1} places. These 1 place were left as they are.`,
-    )
+    await expect(dialog).toContainText(`Changed ${total - 1} places. 1 place was left as it is.`)
     await expect(dialog.getByRole('region', { name: 'Places left as they are' })).toContainText(
       'Elena’s',
     )

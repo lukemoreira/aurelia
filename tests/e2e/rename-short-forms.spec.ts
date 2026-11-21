@@ -96,7 +96,7 @@ test('a first name two characters share is renamed where the scene names only th
   expect(await seriousViolations(page)).toEqual([])
 
   await dialog.getByRole('button', { name: 'Change 2 places' }).click()
-  await expect(dialog).toContainText('Changed 2 places. These 1 place were left as they are.')
+  await expect(dialog).toContainText('Changed 2 places. 1 place was left as it is.')
   await dialog.getByRole('button', { name: 'Done' }).click()
   await expect(dialog).toBeHidden()
 
