@@ -2,6 +2,11 @@
 import { reactive, shallowRef, watch, type Ref } from 'vue'
 import type { Proposal } from '@/domain/proposals'
 
+/** Suggestions the author accepted or dismissed (from any card or popup): their going is the author's own doing. */
+const decided = new Set<string>()
+/** For tests: forget who decided what. */
+export const resetDecided = () => decided.clear()
+
 /**
  * Suggestions the author is editing are never taken off screen with their text: one that disappears from
  * `all` meanwhile (replaced by a revision, cleared on another device) is held, shown as gone, until the
@@ -10,8 +15,6 @@ import type { Proposal } from '@/domain/proposals'
 export function useHeldDrafts(all: Ref<readonly Proposal[]>) {
   /** Suggestions whose card holds the author's unsaved text. */
   const dirty = reactive(new Set<string>())
-  /** Suggestions the author accepted or dismissed here: their going is the author's own doing. */
-  const decided = new Set<string>()
   const held = shallowRef<Proposal[]>([])
   const listed = (id: string) => all.value.some((p) => p.id === id)
 

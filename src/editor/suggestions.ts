@@ -5,7 +5,7 @@
 // the flow (no size of its own), so the text, its spacing and the caret are exactly as without it.
 import { Extension } from '@tiptap/core'
 import type { Node as PmNode } from '@tiptap/pm/model'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view'
 import { icons } from '@/components/ui/icons'
 
@@ -49,7 +49,7 @@ export function placeSuggestions(doc: PmNode, items: readonly InTextSuggestion[]
           from: hit.from,
           to: hit.to,
           text,
-          leaf: !!doc.nodeAt(hit.from)?.isLeaf,
+          inside: !!doc.nodeAt(hit.from)?.isTextblock,
         },
       ]
     })
@@ -67,10 +67,10 @@ const chipWords = (item: InTextSuggestion) =>
   item.outOfDate ? 'Suggestion · out of date' : 'Suggestion'
 
 /**
- * A framed paragraph's button (in a span drawn on the frame), or the scene's (in a row at its end). Plain
- * DOM: it needs nothing but the click. Only a suggestion's first button is a Tab stop.
+ * One suggestion's button. Plain DOM: it needs nothing but the click. Only a suggestion's first button is a
+ * Tab stop.
  */
-function chip(
+function button(
   item: InTextSuggestion,
   change: number | null,
   text: string,
@@ -78,9 +78,6 @@ function chip(
   open: (id: string, change: number, pos: number | null) => void,
   pos: number | null,
 ) {
-  const row = document.createElement(change === null ? 'div' : 'span')
-  row.className = change === null ? 'suggestion-chip-row' : 'suggestion-chip-anchor'
-  row.contentEditable = 'false'
   const b = document.createElement('button')
   b.type = 'button'
   b.className = `suggestion-chip${item.outOfDate ? ' is-stale' : ''}`
@@ -98,7 +95,30 @@ function chip(
     b.focus() // some browsers do not focus a button on click: the popup gives focus back to it
     open(item.id, change ?? 0, pos)
   })
-  row.append(b)
+  return b
+}
+
+interface Chip {
+  item: InTextSuggestion
+  change: number | null
+  text: string
+  first: boolean
+}
+
+/**
+ * A paragraph's anchor (a span drawn on its frame) holding the buttons of every suggestion that frames it,
+ * side by side; or the scene's row at its end (one suggestion's button).
+ */
+function chips(
+  list: Chip[],
+  open: (id: string, change: number, pos: number | null) => void,
+  pos: number | null,
+) {
+  const end = pos === null
+  const row = document.createElement(end ? 'div' : 'span')
+  row.className = end ? 'suggestion-chip-row' : 'suggestion-chip-anchor'
+  row.contentEditable = 'false'
+  row.append(...list.map((c) => button(c.item, c.change, c.text, c.first, open, pos)))
   return row
 }
 
@@ -107,19 +127,13 @@ function chip(
  * and where that paragraph starts in the document (null for the scene's own button).
  */
 export function createSuggestions(open: (id: string, change: number, pos: number | null) => void) {
-  // A paragraph's button goes inside it, before its first character (`side: -1`: typed text lands after
-  // it); a block with no inside (a scene break) has it just before. Only events on the button are its own.
-  const widget = (
-    item: InTextSuggestion,
-    at: number,
-    change: number | null,
-    text: string,
-    first: boolean,
-    pos: number | null,
-  ): Decoration =>
-    Decoration.widget(at, () => chip(item, change, text, first, open, pos), {
-      key: `${item.id}:${change ?? 'end'}:${item.outOfDate}:${first}`,
-      side: change === null ? 1 : -1,
+  // A paragraph's buttons go inside it, before its first character (`side: -1`: typed text lands after
+  // them); a block with no text of its own (a scene break, a table, a list) has them just before it, outside
+  // anything that clips. Only events on a button are its own.
+  const widget = (list: Chip[], at: number, pos: number | null, side: number): Decoration =>
+    Decoration.widget(at, () => chips(list, open, pos), {
+      key: `${at}:${list.map((c) => `${c.item.id}:${c.change ?? 'end'}:${c.item.outOfDate}:${c.first}`).join('|')}`,
+      side,
       ignoreSelection: true,
       stopEvent: (e) => !!(e.target as Element | null)?.closest?.('.suggestion-chip'),
     })
@@ -132,19 +146,29 @@ export function createSuggestions(open: (id: string, change: number, pos: number
         props: {
           decorations(state) {
             const placed = placeSuggestions(state.doc, key.getState(state) ?? [])
-            return DecorationSet.create(
-              state.doc,
-              placed.flatMap(({ item, marks, end }) =>
-                marks.length
-                  ? marks.flatMap((m, i) => [
-                      Decoration.node(m.from, m.to, {
-                        class: `suggestion-target${item.outOfDate ? ' is-stale' : ''}`,
-                      }),
-                      widget(item, m.leaf ? m.from : m.from + 1, m.change, m.text, i === 0, m.from),
-                    ])
-                  : [widget(item, end, null, '', true, null)],
-              ),
+            const byBlock = new Map<number, { inside: boolean; chips: Chip[] }>()
+            const ends: Decoration[] = []
+            const nodes: Decoration[] = []
+            for (const { item, marks, end } of placed) {
+              if (!marks.length) {
+                ends.push(widget([{ item, change: null, text: '', first: true }], end, null, 1))
+                continue
+              }
+              marks.forEach((m, i) => {
+                nodes.push(
+                  Decoration.node(m.from, m.to, {
+                    class: `suggestion-target${item.outOfDate ? ' is-stale' : ''}`,
+                  }),
+                )
+                const at = byBlock.get(m.from) ?? { inside: m.inside, chips: [] }
+                at.chips.push({ item, change: m.change, text: m.text, first: i === 0 })
+                byBlock.set(m.from, at)
+              })
+            }
+            const anchors = [...byBlock].map(([from, b]) =>
+              widget(b.chips, b.inside ? from + 1 : from, from, -1),
             )
+            return DecorationSet.create(state.doc, [...nodes, ...anchors, ...ends])
           },
         },
       }),
@@ -155,3 +179,9 @@ export function createSuggestions(open: (id: string, change: number, pos: number
 /** Show these suggestions in the text (not an edit, not something to undo). */
 export const setSuggestions = (view: EditorView, items: InTextSuggestion[]) =>
   view.dispatch(view.state.tr.setMeta(key, items).setMeta('addToHistory', false))
+
+/** Where the caret goes back to for the block at `pos` (null: the scene's end): the nearest place text can be. */
+export const caretNear = (doc: PmNode, pos: number | null) =>
+  TextSelection.near(
+    doc.resolve(pos === null ? doc.content.size : Math.min(pos + 1, doc.content.size)),
+  )

@@ -270,9 +270,16 @@ describe('the author’s own text for a suggestion', () => {
       changes[1],
     ])
   })
-  it('keeps the author’s indentation: only blank lines before and spaces after go', () => {
-    expect(authorChanges(changes, ['\n  Eins,\n    zwei.  \n', ''])![0]!.after).toBe(
+  it('keeps the indentation the suggestion itself had: only blank lines before and spaces after go', () => {
+    const indented = [{ ...changes[0]!, after: '  Uno.' }, changes[1]!]
+    expect(authorChanges(indented, ['\n  Eins,\n    zwei.  \n', ''])![0]!.after).toBe(
       '  Eins,\n    zwei.',
+    )
+  })
+  it('drops a first-line indent the suggestion did not have (it would make a code block)', () => {
+    expect(authorChanges(changes, ['\t\tEins.\n', ''])![0]!.after).toBe('Eins.')
+    expect(authorChanges(changes, ['      Eins,\n    zwei.', ''])![0]!.after).toBe(
+      'Eins,\n    zwei.',
     )
   })
   it('refuses a missing text, and an empty one where the suggestion did not remove the block', () => {

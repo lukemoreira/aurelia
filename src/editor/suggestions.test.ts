@@ -3,18 +3,18 @@ import { Editor } from '@tiptap/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { editorExtensions } from './extensions'
 import { bodyToDoc } from './markdown/body'
-import { createSuggestions, setSuggestions, type InTextSuggestion } from './suggestions'
+import { caretNear, createSuggestions, setSuggestions, type InTextSuggestion } from './suggestions'
 
 let editor: Editor | undefined
 afterEach(() => editor?.destroy())
 
 const BODY =
   'Tomas came down to the quay at dusk.\n\nThe clerk counted the crates.\n\nThe clerk counted the crates.'
-function start(items: InTextSuggestion[]) {
+function start(items: InTextSuggestion[], body = BODY) {
   const open = vi.fn()
   editor = new Editor({
     extensions: [...editorExtensions, createSuggestions(open)],
-    content: bodyToDoc(BODY),
+    content: bodyToDoc(body),
   })
   setSuggestions(editor.view, items)
   return { open, dom: editor.view.dom as HTMLElement }
@@ -147,5 +147,52 @@ describe('suggestions in the text', () => {
     const p = editor!.view.dom.firstElementChild!
     expect(p.firstElementChild!.classList.contains('suggestion-chip-anchor')).toBe(true)
     expect(p.textContent).toBe('SuggestionThen Tomas came down to the quay at dusk. Late.')
+  })
+
+  it('puts the buttons of two suggestions that frame one paragraph side by side in one anchor', () => {
+    const { dom } = start([
+      {
+        id: 'prp_aaaaaaaaaa',
+        outOfDate: false,
+        anchors: [anchor(0, 'Tomas came down to the quay at dusk.')],
+      },
+      {
+        id: 'prp_bbbbbbbbbb',
+        outOfDate: false,
+        anchors: [anchor(0, 'Tomas came down to the quay at dusk.')],
+      },
+    ])
+    const anchors = dom.querySelectorAll('.suggestion-chip-anchor')
+    expect(anchors).toHaveLength(1)
+    const chips = [...anchors[0]!.querySelectorAll<HTMLButtonElement>('button.suggestion-chip')]
+    expect(chips.map((c) => c.dataset.suggestion)).toEqual(['prp_aaaaaaaaaa', 'prp_bbbbbbbbbb'])
+    // Still one Tab stop per suggestion.
+    expect(chips.map((c) => c.tabIndex)).toEqual([0, 0])
+  })
+
+  it('puts the button of a table or a list just before the block, outside anything that clips', () => {
+    const body = 'Intro.\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n- one\n- two\n'
+    const { dom } = start(
+      [
+        {
+          id: 'prp_aaaaaaaaaa',
+          outOfDate: false,
+          anchors: [anchor(0, '| a | b |\n| - | - |\n| 1 | 2 |'), anchor(1, '- one\n- two')],
+        },
+      ],
+      body,
+    )
+    const anchors = [...dom.querySelectorAll('.suggestion-chip-anchor')]
+    expect(anchors).toHaveLength(2)
+    for (const a of anchors) expect(a.parentElement).toBe(dom)
+  })
+
+  it('finds a place for the caret near any block, text or not', () => {
+    start([], 'Intro.\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n- one\n- two\n\n***\n')
+    const doc = editor!.state.doc
+    doc.forEach((node, offset) => {
+      expect(caretNear(doc, offset).$from.parent.inlineContent, node.type.name).toBe(true)
+    })
+    expect(caretNear(doc, null).from).toBeLessThanOrEqual(doc.content.size)
   })
 })

@@ -227,8 +227,11 @@ export function authorChanges(
   if (texts.length !== changes.length) return null
   const out: ProposalChange[] = []
   for (const [i, c] of changes.entries()) {
-    // The author's indentation stays; only the blank lines before and the spaces after go.
-    const after = (texts[i] ?? '').replace(/^(?:[ \t]*\r?\n)+/, '').replace(/\s+$/, '')
+    // Blank lines before and spaces after go. So does the first line's indentation unless the suggestion's
+    // own text had it (a stray tab or four spaces would make the paragraph a code block).
+    let after = (texts[i] ?? '').replace(/^(?:[ \t]*\r?\n)+/, '').replace(/\s+$/, '')
+    const indent = /^[ \t]+/.exec(after)?.[0]
+    if (indent && !c.after.startsWith(indent)) after = after.slice(indent.length)
     if (!after.trim() && c.after !== '') return null
     out.push({ ...c, after })
   }

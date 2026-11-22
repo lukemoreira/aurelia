@@ -553,6 +553,8 @@
   position: absolute;
   right: 0.5rem;
   z-index: 1;
+  display: flex;
+  gap: 4px;
   margin-top: -4px;
   transform: translateY(-50%);
   text-indent: 0;

@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick, shallowRef } from 'vue'
 import type { Proposal } from '@/domain/proposals'
-import { useHeldDrafts } from './useHeldDrafts'
+import { resetDecided, useHeldDrafts } from './useHeldDrafts'
 
+beforeEach(resetDecided)
 const p = (id: string) => ({ id }) as Proposal
 
 describe('suggestions the author is editing', () => {
@@ -36,5 +37,17 @@ describe('suggestions the author is editing', () => {
     })
     await nextTick()
     expect(e.held.value).toEqual([])
+  })
+
+  it('are not held when the author decided them in another place (the popup, not this inbox)', async () => {
+    const all = shallowRef<Proposal[]>([p('prp_a')])
+    const inbox = useHeldDrafts(all)
+    const popup = useHeldDrafts(all)
+    inbox.setDirty('prp_a', true)
+    await popup.decide('prp_a', async () => {
+      all.value = []
+    })
+    await nextTick()
+    expect(inbox.held.value).toEqual([])
   })
 })

@@ -9,7 +9,7 @@ import { useProposals } from '@/composables/useProposals'
 import { useReadAloud } from '@/composables/useReadAloud'
 import { isNoOp } from '@/domain/proposals'
 import { createLinks, focusFound, focusName, refreshLinks } from '@/editor/links'
-import { createSuggestions, setSuggestions } from '@/editor/suggestions'
+import { caretNear, createSuggestions, setSuggestions } from '@/editor/suggestions'
 import { useEditorStore } from '@/stores/editor'
 import { useLayoutStore } from '@/stores/layout'
 import { useReviewStore } from '@/stores/review'
@@ -130,8 +130,8 @@ function refocus(at: { id: string; change: number; pos: number | null }) {
     `button.suggestion-chip[data-suggestion="${at.id}"][data-change="${at.change}"]`,
   )
   if (again) return again.focus()
-  const end = editor.state.doc.content.size
-  editor.commands.focus(at.pos === null ? end : Math.min(at.pos + 1, end))
+  const sel = caretNear(editor.state.doc, at.pos)
+  editor.chain().setTextSelection({ from: sel.from, to: sel.to }).focus().run()
 }
 
 // A name, a title or an answer changed outside the editor: draw the text again.
