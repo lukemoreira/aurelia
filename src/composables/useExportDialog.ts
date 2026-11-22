@@ -178,11 +178,18 @@ export function useExportDialog() {
       const profile = copyOf(draft)
       // The writers load when they are first needed: most sessions never export.
       const { exportBook, printBook } = await import('@/export')
+      const { readCover } = await import('@/export/cover')
+      // The book's cover art, when it has one that can be read: an export without it is the same export.
+      const adapter = ws.session?.adapter
+      const cover =
+        (profile.format === 'epub' || profile.format === 'pdf') && adapter
+          ? await readCover(data, bookId, (path) => adapter.readBytes(path))
+          : undefined
       if (profile.format === 'pdf') {
-        layout.print = printBook(data, bookId, profile)
+        layout.print = printBook(data, bookId, profile, cover)
         layout.exportOpen = false
       } else {
-        const file = exportBook(data, bookId, profile)
+        const file = exportBook(data, bookId, profile, cover)
         saveBlob(file.blob, file.filename)
         layout.exportOpen = false
         edits.toast = {

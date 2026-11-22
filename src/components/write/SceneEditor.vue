@@ -1,23 +1,15 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { EditorContent } from '@tiptap/vue-3'
-import {
-  computed,
-  getCurrentInstance,
-  h,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  render,
-  watch,
-} from 'vue'
-import SuggestionInText from '@/components/assistant/SuggestionInText.vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import SuggestionDialog from '@/components/assistant/SuggestionDialog.vue'
 import { useLinkEnv } from '@/composables/useLinkEnv'
 import { useManuscriptEditor } from '@/composables/useManuscriptEditor'
 import { useProposals } from '@/composables/useProposals'
 import { useReadAloud } from '@/composables/useReadAloud'
+import { isNoOp } from '@/domain/proposals'
 import { createLinks, focusFound, focusName, refreshLinks } from '@/editor/links'
-import { createSuggestions, setSuggestions } from '@/editor/suggestions'
+import { caretNear, createSuggestions, setSuggestions } from '@/editor/suggestions'
 import { useEditorStore } from '@/stores/editor'
 import { useLayoutStore } from '@/stores/layout'
 import { useReviewStore } from '@/stores/review'
@@ -67,14 +59,9 @@ const link = useLinkEnv(() => props.docId, { names: props.names })
 const card = ref<InstanceType<typeof LinkCard> | null>(null)
 link.onCardFocus(() => card.value?.focus() ?? false)
 
-// The assistant's suggestions for this scene, drawn in the text as cards (a scene only, not a record's notes).
-const app = getCurrentInstance()!.appContext
-const mountSuggestion = (el: HTMLElement, id: string) => {
-  const vnode = h(SuggestionInText, { id })
-  vnode.appContext = app
-  render(vnode, el)
-  return () => render(null, el)
-}
+// The assistant's suggestions for this scene: a frame and a button on each paragraph they change, opening
+// the suggestion in a popup (a scene only, not a record's notes).
+const suggestion = ref<{ id: string; change: number; pos: number | null } | null>(null)
 const inScene = props.docId && props.variant === 'scene'
 
 // Named "Scene text" and by the scene's own title (it points at itself for the first part).
@@ -86,7 +73,9 @@ const { editor, tick, pending } = useManuscriptEditor({
   onEdit: (body) => emit('edit', body),
   extensions: [
     ...(props.docId ? [createLinks(link.env)] : []),
-    ...(inScene ? [createSuggestions(mountSuggestion)] : []),
+    ...(inScene
+      ? [createSuggestions((id, change, pos) => (suggestion.value = { id, change, pos }))]
+      : []),
   ],
   attributes: () => ({
     id: props.inputId,
@@ -115,15 +104,34 @@ if (inScene) {
       JSON.stringify(
         proposals.forScene(props.docId!).map((p) => ({
           id: p.id,
+          outOfDate: proposals.outOfDate.value.has(p.id),
+          // Only the paragraphs it really changes get a frame.
           anchors:
             p.kind === 'edit'
-              ? p.changes.filter((c) => c.block !== 'end').map((c) => c.before)
+              ? p.changes.flatMap((c, change) =>
+                  c.block === 'end' || isNoOp(c)
+                    ? []
+                    : [{ change, before: c.before, occurrence: c.occurrence, copies: c.copies }],
+                )
               : [],
         })),
       ),
     (items) => setSuggestions(editor.view, JSON.parse(items)),
     { immediate: true },
   )
+}
+
+/**
+ * The popup closed and the button that opened it is gone (accepted, dismissed): its paragraph's button
+ * again when it was only drawn anew, else the text, at the paragraph that was changed.
+ */
+function refocus(at: { id: string; change: number; pos: number | null }) {
+  const again = editor.view.dom.querySelector<HTMLElement>(
+    `button.suggestion-chip[data-suggestion="${at.id}"][data-change="${at.change}"]`,
+  )
+  if (again) return again.focus()
+  const sel = caretNear(editor.state.doc, at.pos)
+  editor.chain().setTextSelection({ from: sel.from, to: sel.to }).focus().run()
 }
 
 // A name, a title or an answer changed outside the editor: draw the text again.
@@ -195,5 +203,11 @@ const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.t
     @close="link.closeCard()"
   />
   <LinkPicker v-if="link.picker.value" :picker="link.picker.value" />
+  <SuggestionDialog
+    v-if="inScene"
+    :target="suggestion"
+    @close="suggestion = null"
+    @refocus="refocus"
+  />
   <span role="status" class="sr-only">{{ link.announcement.value }}</span>
 </template>

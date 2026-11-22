@@ -3,9 +3,10 @@ import { watch, type Ref } from 'vue'
 
 /**
  * Remember what had focus when `open` turns true and give it back when the layer closes.
- * Reka only restores focus to its own trigger; a layer opened from code needs this.
+ * Reka only restores focus to its own trigger; a layer opened from code needs this. When what had
+ * focus is gone meanwhile (the layer's own action removed it), `fallback` chooses where focus goes.
  */
-export function useReturnFocus(open: Ref<boolean>) {
+export function useReturnFocus(open: Ref<boolean>, fallback?: () => void) {
   let previous: HTMLElement | null = null
   watch(
     open,
@@ -16,7 +17,8 @@ export function useReturnFocus(open: Ref<boolean>) {
   )
   return (event: Event) => {
     event.preventDefault()
-    previous?.focus()
+    if (previous?.isConnected) previous.focus()
+    else fallback?.()
     previous = null
   }
 }

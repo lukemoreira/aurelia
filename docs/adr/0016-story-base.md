@@ -3,14 +3,18 @@
 - Status: accepted (owner, 2026-11-18: "an AI guided start. Objectives, history outline, main narrative,
   these things that serve to ground the lore").
 - Builds on [ADR-0015](0015-assistant-on-your-server.md). Every safety rule of ADR-0008 and ADR-0015 stays.
+- Amended 2026-11-21: genre, subject area, audience, planned volumes, intentions and notes added as sections, at the owner's request.
 
 ## Decision
 
 ### The story base is part of the book, and works without Claude
 
-- One per book, in `book.json` under `storyBase`: `objectives` (audience, genre, tone, length, themes),
-  `world` (the world and its history, in outline) and `narrative` (premise, main arc, the direction of the
-  ending), each plain text. It is a key of the book's own file, not a new file kind: it syncs, backs up,
+- One per book, in `book.json` under `storyBase`, each section plain text, in this order (`BASE_SECTIONS`):
+  `genre`, `subject` (subject area), `audience` and `volumes` (planned volumes, text: "3, maybe 4" is fine, never
+  parsed) — these four are **short**, one-line fields (`short: true`) — then `intentions` (why the author writes the
+  book), `objectives` (tone, length, themes), `world` (the world and its history, in outline), `narrative`
+  (premise, main arc, the direction of the ending) and `notes` (the author's own, anything else to keep in
+  mind). A book stored with only the first three original keys reads exactly as before. It is a key of the book's own file, not a new file kind: it syncs, backs up,
   snapshots and conflicts exactly as `book.json` already does (ADR-0012, ADR-0013). The field is optional
   and unknown keys inside it are kept, so no migration and no new `schemaVersion`. Every write starts from
   the stored object and changes only its own sections, so a key a later version adds, or a section that is
@@ -34,20 +38,21 @@
 - "Set up the story base with the assistant": in the Assistant tab before the first message (with a line
   saying the book has no story base yet, when it has none) and on the Book tab once the assistant can read
   the book. It sends one fixed message from the author; the system prompt says how it goes: read what the
-  author already wrote, then ask **one short question per reply** — objectives, then world and history,
-  then narrative, then characters — and propose each area as it is done.
+  author already wrote, then ask **one short question per reply** — the basics (genre, subject area, audience, planned volumes, intentions), then
+  objectives (tone, length, themes), then world and history, then narrative, then characters — and propose each
+  area as it is done. Notes are the author's own: the assistant reads them and proposes them only when asked.
 - Each question is one `claude -p` run, as every question is (ADR-0015); the panel carries the
   conversation.
 
 ### Grounding
 
-- `get_story_base(bookId)`: the three sections and the main characters (id, name, their sheet's details),
+- `get_story_base(bookId)`: every section and the main characters (id, name, their sheet's details),
   fenced as untrusted data like every other story text. With no base it says so and lets Claude offer the
   guided start. The system prompt tells Claude to read it first on every question and keep to it.
 
 ### Everything is a proposal
 
-- `propose_story_base(bookId, objectives?, world?, narrative?)` writes a `base` proposal: each named
+- `propose_story_base(bookId, <any section>?)` (its fields come from `BASE_SECTIONS`) writes a `base` proposal: each named
   section with its text as Claude read it (`before`) and its new text (`after`). Accept is refused, and
   nothing changes, when any of those sections reads otherwise now; that also refuses a second Accept.
   When it replaces text the author had, Accept takes a **"Before a suggestion"** snapshot of the book first.

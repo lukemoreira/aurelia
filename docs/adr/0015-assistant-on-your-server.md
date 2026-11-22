@@ -109,14 +109,25 @@ CI test runs the real MCP server in plain Node.
   through the session (compare-and-write). A new scene is added at the end of its chapter; nothing is
   overwritten, so it takes no snapshot.
 - If the change is in but the proposal file cannot be removed, the author is told: "Accepted, but the suggestion
-  could not be cleared — reject it." A new scene that cannot be finished is moved to Recently deleted.
-- **Reject** removes the proposal file. **Ask for changes** sends the author's note (only the note: the
+  could not be cleared — dismiss it." A second Accept of it in the same session is refused ("Already
+  accepted — dismiss it."), edited or not. A new scene that cannot be finished is moved to Recently deleted.
+- **Dismiss** removes the proposal file. **Ask for changes** sends the author's note (only the note: the
   proposal is read back with `get_proposal`, as data); the revision names the proposal it `replaces`, and the
   app removes the old file once the new one is there, so the two show as one. `replaces` counts only for a
   proposal about the same thing (the same scene's text, or a new scene in the same chapter).
 - **No accept-all.** Each suggestion is a card with a word diff (removed words crossed out, added words
-  underlined, and said in words to a screen reader), in the Review inbox and inside the text on the writing
-  page (a frame on the paragraphs, the card after them; decorations only, the document is not touched).
+  underlined, and said in words to a screen reader), in the Review inbox and, on the writing page, in a
+  popup opened from a button on the framed text (decorations only, the document is not touched).
+- Amended 2026-11-21: in-text suggestions open in a popup from a button on the framed text; the author can
+  edit the suggested text before approving. Only the paragraphs a suggestion really changes are framed (a
+  change that reads exactly as the text does is dropped when it is proposed and not drawn; a change of spacing
+  alone, a line break or a paragraph split, is a change and its diff marks it), each with its own
+  button, all opening the same popup; an out-of-date one is framed in grey, only where the text still reads as
+  it saw it. Every kind says **Accept / Edit / Dismiss** (Edit for a scene edit only; "Accept my text" after
+  editing). **Accept with the author's text** goes through the same Accept path (snapshot, out-of-date
+  check, compare-and-write): only each change's new text is replaced, the anchors stay the proposal's, and a
+  paragraph can be left empty only where the suggestion itself removes it. The stored proposal file is never
+  rewritten.
 - Before each question the app saves and runs one sync round, so the assistant reads what the author sees;
   after the answer, another round brings the proposals in. `.aurelia/proposals/` syncs like any file (test).
 

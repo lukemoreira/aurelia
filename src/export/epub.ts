@@ -6,6 +6,7 @@
 import { encode } from '@/storage/hash'
 import { FIXED_ZIP_STAMP, zipFiles, type ZipFile } from '@/storage/zip'
 import type { ExportBook } from './book'
+import type { ExportCover } from './cover'
 import { EPUB_CSS, chapterHtml, esc, titlePageHtml } from './html'
 import type { ExportProfile } from './profile'
 
@@ -71,9 +72,27 @@ function epubFiles(book: ExportBook, profile: ExportProfile): ZipFile[] {
       html: titlePageHtml(book, { ...profile, titlePage: true }),
     })
 
+  // The cover: a page first in the spine, and the image itself (an AVIF is no EPUB core image type, and an SVG
+  // that loads anything from outside the book is no valid EPUB resource, so both are left out).
+  const cover =
+    book.cover && book.cover.ext !== 'avif' && !reachesOut(book.cover) ? book.cover : undefined
+  const coverFile = cover && `cover.${cover.ext}`
+  if (cover)
+    docs.unshift({
+      id: 'cover',
+      file: 'cover.xhtml',
+      title: book.title,
+      html: `<section epub:type="cover" style="text-align:center"><img src="${coverFile}" alt="${esc(`Cover of ${book.title}`)}" style="max-width:100%;max-height:100%"/></section>`,
+    })
+
   const manifest = [
     '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>',
     '<item id="css" href="style.css" media-type="text/css"/>',
+    ...(cover
+      ? [
+          `<item id="cover-image" href="${coverFile}" media-type="${cover.type}" properties="cover-image"/>`,
+        ]
+      : []),
     ...docs.map((d) => `<item id="${d.id}" href="${d.file}" media-type="application/xhtml+xml"/>`),
   ]
   const opf = `${HEAD}<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id" xml:lang="${esc(book.language)}">
@@ -82,7 +101,7 @@ function epubFiles(book: ExportBook, profile: ExportProfile): ZipFile[] {
 <dc:title>${esc(book.title)}</dc:title>
 <dc:language>${esc(book.language)}</dc:language>
 ${book.author ? `<dc:creator>${esc(book.author)}</dc:creator>\n` : ''}<meta property="dcterms:modified">${EPUB_MODIFIED}</meta>
-</metadata>
+${cover ? '<meta name="cover" content="cover-image"/>\n' : ''}</metadata>
 <manifest>
 ${manifest.join('\n')}
 </manifest>
@@ -110,8 +129,18 @@ ${docs.map((d) => `<itemref idref="${d.id}"/>`).join('\n')}
       page(d.title || book.title, book.language, d.html),
     ]),
   ]
-  return parts.map(([path, text]) => ({ path, data: encode(text) }))
+  return [
+    ...parts.map(([path, text]) => ({ path, data: encode(text) })),
+    ...(cover ? [{ path: `OEBPS/${coverFile}`, data: cover.bytes }] : []),
+  ]
 }
+
+/** An SVG that names a resource outside itself (`href`, `xlink:href` or `url(…)` to http(s) or `//`). */
+const reachesOut = (cover: ExportCover) =>
+  cover.ext === 'svg' &&
+  /(?:href\s*=\s*["']?|url\(\s*["']?)\s*(?:https?:)?\/\//i.test(
+    new TextDecoder().decode(cover.bytes),
+  )
 
 export const epubBlob = (book: ExportBook, profile: ExportProfile): Blob =>
   zipFiles(epubFiles(book, profile), FIXED_ZIP_STAMP, true)

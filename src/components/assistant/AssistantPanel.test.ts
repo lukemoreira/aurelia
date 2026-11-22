@@ -218,6 +218,35 @@ describe('the chat across a reload', () => {
     expect(after.text()).not.toContain('Who is Tomas?')
   })
 
+  it('tells a screen reader the reply once it is whole, not each piece as it streams in', async () => {
+    const w = await chatOnce('unused')
+    let finish!: () => void
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url) !== '/agent/ask') return json({ state: 'signed-in' })
+      const line = (o: object) => new TextEncoder().encode(`${JSON.stringify(o)}\n`)
+      const body = new ReadableStream({
+        start(c) {
+          c.enqueue(line({ t: 'text', text: 'Tomas is' }))
+          finish = () => {
+            c.enqueue(line({ t: 'text', text: 'a ferryman.' }))
+            c.enqueue(line({ t: 'end', ok: true }))
+            c.close()
+          }
+        },
+      })
+      return new Response(body, { headers: { 'Content-Type': 'application/x-ndjson' } })
+    })
+    const live = () => w.get('[data-testid="reply-announced"]')
+    const sent = useAssistant().send('Who is Tomas?')
+    await vi.waitFor(() => expect(w.text()).toContain('Tomas is'))
+    expect(live().text()).toBe('')
+    expect(w.findAll('[aria-live]')).toHaveLength(1) // the conversation itself is not announced
+    finish()
+    await sent
+    await flushPromises()
+    expect(live().text()).toBe('Tomas is\n\na ferryman.')
+  })
+
   it('restores an answer cut off by a reload as what arrived, marked as stopped', async () => {
     await chatOnce('unused')
     // The answer is still arriving when the page goes: the stream never ends here.

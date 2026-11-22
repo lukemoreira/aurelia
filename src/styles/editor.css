@@ -45,6 +45,7 @@
 }
 
 .manuscript .ProseMirror {
+  position: relative; /* where a suggestion's button on a scene break is drawn from */
   min-height: 40vh;
   outline: none;
   caret-color: var(--gold-ink);
@@ -534,15 +535,64 @@
   }
 }
 
-/* The assistant's suggestions in the text (ADR-0015): a frame on the paragraphs a suggestion would change,
-   and its card after them. Drawn only: the text itself is untouched until the author accepts. */
+/* The assistant's suggestions in the text (ADR-0015): a dashed frame on each paragraph a suggestion changes,
+   and a small button on the frame's top-right corner that opens the suggestion. Drawn only: the text itself is
+   untouched until the author accepts. The button is inside the framed block but out of the flow (it has no
+   size), so the paragraph spacing, the indent of the next one (`p + p`) and the text never move for it. One
+   that is out of date is drawn quietly, in grey. */
 .manuscript .ProseMirror > .suggestion-target {
-  outline: 2px dashed var(--gold-line);
+  position: relative;
+  outline: 2px dashed color-mix(in srgb, var(--gold-ink) 60%, transparent);
   outline-offset: 4px;
   border-radius: 2px;
 }
-.manuscript .ProseMirror > .suggestion-card {
+.manuscript .ProseMirror > .suggestion-target.is-stale {
+  outline: 1px dashed var(--ink-3);
+}
+.manuscript .ProseMirror .suggestion-chip-anchor {
+  position: absolute;
+  right: 0.5rem;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  margin-top: -4px;
+  transform: translateY(-50%);
+  text-indent: 0;
+  white-space: nowrap;
+  user-select: none;
+  cursor: auto;
+}
+.manuscript .ProseMirror > .suggestion-chip-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0.5rem 0 0.25rem;
   text-indent: 0;
   white-space: normal;
   cursor: auto;
+}
+.suggestion-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--gold-line);
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-ink);
+  font: 600 12px/1 var(--font-ui);
+  cursor: pointer;
+}
+.suggestion-chip:hover {
+  border-color: var(--gold-ink);
+}
+.suggestion-chip.is-stale {
+  background: var(--surface);
+  border-color: var(--line-2);
+  color: var(--ink-3);
+}
+@media (pointer: coarse) {
+  .suggestion-chip {
+    min-height: 32px;
+  }
 }

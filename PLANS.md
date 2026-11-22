@@ -890,3 +890,36 @@ backup — ADR-0009.)
   text; a record's own notes name it; a place whose new name is another record's name (a title, an alias, or a
   short form the new title does not give) is unticked with a warning, except a link's label; "1 place was left
   as it is" replaces "These 1 place were".
+- 2026-11-21 — Book details (branch `feat/book-details`; owner: "more details on each book: genre, audience, planned
+  volumes, intentions, notes", then subject area): added as sections of the story base (ADR-0016, amended), so
+  they reuse its save-on-leave and "changed on another device" check, snapshots, sync, `get_story_base` and
+  `propose_story_base` proposals. `BASE_SECTIONS` is now genre, subject area, audience, planned volumes (the
+  first four one-line, `short: true`), intentions, objectives, world and history, main narrative, notes;
+  `baseOf`, the proposal schema, the tool inputs and the Review card all read the list, so no key is spelled
+  twice. Old books with the three original keys read as before, unknown keys are kept. The book list shows
+  `storyBase.genre`, falling back to the old top-level `genre`. The guided start asks the basics first, then
+  objectives, world, narrative, characters; Notes are proposed only when the author asks.
+- 2026-11-21 — Suggestions open in a popup (branch `feat/book-details`; owner: "click a button, see what it is,
+  approve, change it manually then approve, or dismiss it", then: hide the box until clicked; some boxes show
+  no related change). The in-text card is gone: each paragraph a suggestion changes gets the dashed frame and
+  its own small "Suggestion" button (keyboard reachable, named after the paragraph's first words); every button
+  of one suggestion opens the same popup (`SuggestionDialog`, the Review inbox's `ProposalCard`), scrolled to
+  and marked on the change that was clicked. Edit turns each changed paragraph's new text into a text box;
+  "Approve my text" calls `acceptProposal(..., edited)`, the same path as Accept with only the `after` texts
+  replaced (anchors, snapshot, out-of-date check and compare-and-write unchanged; an emptied paragraph is
+  refused unless the suggestion removes it). The inbox card has the same Edit. Edits to a scene say Approve /
+  Dismiss; other kinds keep Accept / Reject. How a frame could show no visible change (found in the code, not seen in the owner's own files): `propose_edit` stored
+  a change whose new text equalled the old (and the editor framed any block reading like an anchor, and drew
+  the card only after the last framed block), so the frame had nothing to show. Now `propose_edit` drops such
+  changes (and refuses one with nothing left), the editor and the card skip them, and a block is framed only
+  where Accept would match it (the `occurrence`th of `copies`). Out-of-date suggestions: grey frame only where
+  text still matches, an "Out of date" button, Dismiss / Ask again only.
+- 2026-11-21 — Book website, logo and cover art; cover in EPUB and print (branch `feat/book-art`). Three optional keys of
+  `book.json` (no migration): `website` (text) and `logo`/`cover` (media IDs, like a record's `image`). The Book tab's
+  details have a Website field (a link only for an http/https address, a bare `example.com` is linked as https; never
+  `javascript:` or another scheme) and two pickers that reuse `RecordPortrait` (cover tall, logo small, Remove takes the
+  key away, a deleted image reads as none). EPUB: cover image, `cover-image` manifest item, EPUB 2 cover meta and a first
+  cover page; print view: the cover as the first page; no cover, or a cover that cannot be read, leaves both exactly as
+  before. DOCX and the Markdown bundle do not carry it. The assistant is unchanged (it does not propose these).
+  ADR-0003 and ADR-0014 each amended with one dated line.
+- 2026-11-21 — Review fixes: Accept / Edit / Dismiss everywhere, spacing-only changes shown, edits never lost, button on the frame (no layout), cover page numbers via `@page`.

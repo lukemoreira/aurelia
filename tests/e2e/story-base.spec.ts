@@ -53,13 +53,25 @@ test('the story base: written by hand, then a section and a main character sugge
   await expect(base).toContainText('No characters yet')
   // Not synced with the server: the assistant cannot read the book, so the guided start is not offered.
   await expect(base.getByRole('button', { name: /Set up the story base/ })).toHaveCount(0)
+  const genre = base.getByRole('textbox', { name: 'Genre' }) // a one-line field
+  // A number pad on a phone for the planned volumes only (text all the same: "3, maybe 4").
+  await expect(base.getByRole('textbox', { name: 'Planned volumes' })).toHaveAttribute(
+    'inputmode',
+    'numeric',
+  )
+  await expect(genre).not.toHaveAttribute('inputmode')
+  await genre.fill('Military history')
+  await genre.blur()
+  const subject = base.getByRole('textbox', { name: 'Subject area' })
+  await subject.fill('WWII naval warfare')
+  await subject.blur()
   const world = base.getByRole('textbox', { name: 'World and history' })
   await world.fill('An island.')
   await world.blur()
   const { path, bookId } = await bookFile(page)
   await expect
     .poll(async () => JSON.parse(await opfs.read(page, path)).storyBase)
-    .toEqual({ world: 'An island.' })
+    .toEqual({ genre: 'Military history', subject: 'WWII naval warfare', world: 'An island.' })
   const { violations } = await new AxeBuilder({ page })
     .include('[aria-label="Scene inspector"]')
     .analyze()
@@ -73,6 +85,7 @@ test('the story base: written by hand, then a section and a main character sugge
     sections: {
       world: { before: 'An island.', after: 'Two islands at war.' },
       objectives: { before: '', after: 'A mystery for adults.' },
+      volumes: { before: '', after: '3' },
     },
   })
   await suggest(page, {
@@ -87,8 +100,9 @@ test('the story base: written by hand, then a section and a main character sugge
   const card = page.locator('[data-proposal="prp_baseaaaaaa"]')
   await expect(card).toContainText('Story base of')
   await expect(card).toContainText('World and history')
-  // In the base's own order: objectives first.
-  await expect(card.locator('ins')).toContainText(['A mystery for adults.', 'Two islands'])
+  await expect(card).toContainText('Planned volumes')
+  // In the base's own order: planned volumes, objectives, then the world.
+  await expect(card.locator('ins')).toContainText(['3', 'A mystery for adults.', 'Two islands'])
   const person = page.locator('[data-proposal="prp_charaaaaaa"]')
   await expect(person).toContainText('New character: “Tomas Brandt”')
   await expect(person).toContainText('Protagonist')
@@ -107,6 +121,9 @@ test('the story base: written by hand, then a section and a main character sugge
   await expect(base.getByRole('textbox', { name: 'Objectives' })).toHaveValue(
     'A mystery for adults.',
   )
+  await expect(base.getByRole('textbox', { name: 'Planned volumes' })).toHaveValue('3')
+  // The genre typed by hand before the reload is still there.
+  await expect(base.getByRole('textbox', { name: 'Genre' })).toHaveValue('Military history')
   await expect(base).toContainText('Tomas Brandt · Protagonist')
   await page.screenshot({ path: 'test-results/m8-screenshots/story-base.png' })
   const files = await opfs.list(page)

@@ -5,7 +5,15 @@ import { outlineRig } from '../../tests/helpers/outline-rig'
 import { newId } from '@/domain/ids'
 import { proposalPath, type Proposal } from '@/domain/proposals'
 import { baseOf, type BaseSection } from '@/domain/story-base'
-import { OUT_OF_DATE, acceptProposal, stillApplies } from './proposal-actions'
+import {
+  ALREADY_ACCEPTED,
+  NEEDS_NEWER,
+  OUT_OF_DATE,
+  acceptProposal,
+  listProposals,
+  rejectProposal,
+  stillApplies,
+} from './proposal-actions'
 import { restoreBook } from './snapshot-restore'
 import { listSnapshots, readSnapshot } from './snapshots'
 import { CHANGED_ELSEWHERE, setBaseSection, storedBase } from './story-base-actions'
@@ -18,10 +26,14 @@ beforeEach(async () => {
 })
 
 const bookOf = (s: WorkspaceSession) => s.data.books[0]!
-const base = (s: WorkspaceSession) => baseOf(bookOf(s))
+/** The three original sections (the new ones read '' unless a test writes them). */
+const base = (s: WorkspaceSession) => {
+  const { objectives, world, narrative } = baseOf(bookOf(s))
+  return { objectives, world, narrative }
+}
 /** The author types a section, starting from what it reads now. */
 const type = (s: WorkspaceSession, key: BaseSection, text: string) =>
-  setBaseSection(s, bookOf(s).id, key, text, base(s)[key])
+  setBaseSection(s, bookOf(s).id, key, text, baseOf(bookOf(s))[key])
 
 async function write<P extends Proposal>(s: WorkspaceSession, p: P): Promise<P> {
   await s.adapter.write(proposalPath(p.id), JSON.stringify(p))
@@ -80,6 +92,22 @@ describe('the story base by hand', () => {
     await type(s, 'narrative', 'Tomas finds the ledger.')
     const again = await rig.open()
     expect(baseOf(again.data.books[0]).narrative).toBe('Tomas finds the ledger.')
+  })
+})
+
+describe('the book details sections', () => {
+  it('are saved as text in the story base beside the other sections, and read again from the files', async () => {
+    const s = rig.session
+    const path = s.pathOf(bookOf(s).id)!
+    await type(s, 'genre', 'Military history')
+    await type(s, 'volumes', '3, maybe 4')
+    await type(s, 'world', 'A port.')
+    expect(JSON.parse((await rig.adapter.read(path))!.text).storyBase).toEqual({
+      genre: 'Military history',
+      volumes: '3, maybe 4',
+      world: 'A port.',
+    })
+    expect(baseOf((await rig.open()).data.books[0]).volumes).toBe('3, maybe 4')
   })
 })
 
@@ -250,7 +278,7 @@ describe('Accept of a story-base suggestion', () => {
       if (path.includes('/proposals/')) throw new Error('disk said no')
     }
     expect((await acceptProposal(s, q)).cleared).toBe(false)
-    await expect(acceptProposal(s, q)).rejects.toThrow(OUT_OF_DATE)
+    await expect(acceptProposal(s, q)).rejects.toThrow(ALREADY_ACCEPTED)
     expect(base(s).narrative).toBe('An ending.')
   })
 })
@@ -290,10 +318,29 @@ describe('Accept of a character suggestion', () => {
     }
     expect((await acceptProposal(s, p)).cleared).toBe(false)
     const count = s.data.records.length
-    await expect(acceptProposal(s, p)).rejects.toThrow('already in this world')
+    await expect(acceptProposal(s, p)).rejects.toThrow(ALREADY_ACCEPTED)
     await expect(acceptProposal(s, await characterProposal(s, ' tomas  BRANDT '))).rejects.toThrow(
       'already in this world',
     )
     expect(s.data.records).toHaveLength(count)
+  })
+})
+
+describe('a story-base suggestion from a newer Aurelia', () => {
+  it('names a section this version does not know: it is listed, never applied, and can be dismissed', async () => {
+    const s = rig.session
+    const path = s.pathOf(bookOf(s).id)!
+    const was = (await rig.adapter.read(path))!.text
+    const p = await baseProposal(s, {
+      world: { before: '', after: 'A port.' },
+      mood: { before: '', after: 'Grim' },
+    })
+    const [listed] = (await listProposals(s.adapter)).proposals
+    expect(listed!.kind === 'base' && Object.keys(listed!.sections)).toEqual(['world', 'mood'])
+    expect(stillApplies(s, listed!)).toBe(false)
+    await expect(acceptProposal(s, listed!)).rejects.toThrow(NEEDS_NEWER)
+    expect((await rig.adapter.read(path))!.text).toBe(was) // nothing written, nothing deleted
+    await rejectProposal(s, p.id)
+    expect(await rig.adapter.read(proposalPath(p.id))).toBeNull()
   })
 })

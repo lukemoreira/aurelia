@@ -1,24 +1,29 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// The assistant's suggestions drawn in the text (ADR-0015): a frame on the paragraphs a suggestion would
-// change and, after them, a card with Accept / Reject / Ask for changes. Decorations only: the document is
-// never touched, and the card's own controls are outside the editable text.
+// The assistant's suggestions drawn in the text (ADR-0015): a dashed frame on each paragraph a suggestion
+// really changes and, on the frame's top-right corner, a small button that opens the suggestion in a popup.
+// Decorations only: the document is never touched. The button sits inside the framed paragraph, drawn out of
+// the flow (no size of its own), so the text, its spacing and the caret are exactly as without it.
 import { Extension } from '@tiptap/core'
 import type { Node as PmNode } from '@tiptap/pm/model'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view'
+import { icons } from '@/components/ui/icons'
 
 export interface InTextSuggestion {
   id: string
-  /** The paragraphs it changes, as their Markdown read (`before` of each change). */
-  anchors: string[]
+  /** Out of date: drawn quietly, and only on the paragraphs that still read as the suggestion saw them. */
+  outOfDate: boolean
+  /** The paragraphs it changes: each change's number in the proposal, its `before`, and which of the equal ones. */
+  anchors: { change: number; before: string; occurrence: number; copies: number }[]
 }
 
 const key = new PluginKey<InTextSuggestion[]>('aurelia-suggestions')
 
 /**
- * Where each suggestion goes: the top-level blocks whose Markdown reads as an anchor (in order, each
- * block used once), and the card after the last of them. One whose paragraphs are not found (it is out of
- * date, or it adds at the end, or it is a new scene) goes after the last block.
+ * Where each suggestion shows: a block for each anchor that still reads exactly as the suggestion saw it
+ * (the same match Accept makes: the `occurrence`th of the `copies` blocks that read so, and none when
+ * their number changed). A suggestion with no such block (it adds at the end, is a new scene, or is out of
+ * date everywhere) gets one button at the end of the scene.
  */
 export function placeSuggestions(doc: PmNode, items: readonly InTextSuggestion[]) {
   const blocks: { from: number; to: number; src: string }[] = []
@@ -31,19 +36,107 @@ export function placeSuggestions(doc: PmNode, items: readonly InTextSuggestion[]
   )
   return items.map((item) => {
     const used = new Set<number>()
-    const targets = item.anchors.flatMap((a) => {
-      const i = blocks.findIndex((b, k) => !used.has(k) && b.src && b.src === a.trim())
-      if (i < 0) return []
+    const marks = item.anchors.flatMap((a) => {
+      const text = a.before.trim()
+      const same = text ? blocks.filter((b) => b.src === text) : []
+      const hit = same.length === a.copies ? same[a.occurrence] : undefined
+      const i = hit ? blocks.indexOf(hit) : -1
+      if (!hit || used.has(i)) return []
       used.add(i)
-      return [blocks[i]!]
+      return [
+        {
+          change: a.change,
+          from: hit.from,
+          to: hit.to,
+          text,
+          inside: !!doc.nodeAt(hit.from)?.isTextblock,
+        },
+      ]
     })
-    const at = targets.length ? Math.max(...targets.map((t) => t.to)) : doc.content.size
-    return { item, targets, at }
+    return { item, marks, end: doc.content.size }
   })
 }
 
-/** `mount` puts the card into an element and returns how to take it out again. */
-export function createSuggestions(mount: (el: HTMLElement, id: string) => () => void) {
+const words = (text: string) => {
+  const w = text.split(/\s+/).filter(Boolean)
+  return w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : '')
+}
+
+/** What a suggestion's button says: the same words lead its accessible name. */
+const chipWords = (item: InTextSuggestion) =>
+  item.outOfDate ? 'Suggestion · out of date' : 'Suggestion'
+
+/**
+ * One suggestion's button. Plain DOM: it needs nothing but the click. Only a suggestion's first button is a
+ * Tab stop.
+ */
+function button(
+  item: InTextSuggestion,
+  change: number | null,
+  text: string,
+  first: boolean,
+  open: (id: string, change: number, pos: number | null) => void,
+  pos: number | null,
+) {
+  const b = document.createElement('button')
+  b.type = 'button'
+  b.className = `suggestion-chip${item.outOfDate ? ' is-stale' : ''}`
+  b.dataset.suggestion = item.id
+  if (change !== null) b.dataset.change = String(change)
+  if (!first) b.tabIndex = -1
+  const what = item.outOfDate ? 'Suggestion · out of date — show it' : 'Show the suggestion'
+  b.setAttribute(
+    'aria-label',
+    change === null ? `${what} for this scene` : `${what} for this paragraph: “${words(text)}”`,
+  )
+  b.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons.spark}"/></svg>`
+  b.append(chipWords(item))
+  b.addEventListener('click', () => {
+    b.focus() // some browsers do not focus a button on click: the popup gives focus back to it
+    open(item.id, change ?? 0, pos)
+  })
+  return b
+}
+
+interface Chip {
+  item: InTextSuggestion
+  change: number | null
+  text: string
+  first: boolean
+}
+
+/**
+ * A paragraph's anchor (a span drawn on its frame) holding the buttons of every suggestion that frames it,
+ * side by side; or the scene's row at its end (one suggestion's button).
+ */
+function chips(
+  list: Chip[],
+  open: (id: string, change: number, pos: number | null) => void,
+  pos: number | null,
+) {
+  const end = pos === null
+  const row = document.createElement(end ? 'div' : 'span')
+  row.className = end ? 'suggestion-chip-row' : 'suggestion-chip-anchor'
+  row.contentEditable = 'false'
+  row.append(...list.map((c) => button(c.item, c.change, c.text, c.first, open, pos)))
+  return row
+}
+
+/**
+ * `open` is called with the suggestion's id, the number of the change whose paragraph's button was used,
+ * and where that paragraph starts in the document (null for the scene's own button).
+ */
+export function createSuggestions(open: (id: string, change: number, pos: number | null) => void) {
+  // A paragraph's buttons go inside it, before its first character (`side: -1`: typed text lands after
+  // them); a block with no text of its own (a scene break, a table, a list) has them just before it, outside
+  // anything that clips. Only events on a button are its own.
+  const widget = (list: Chip[], at: number, pos: number | null, side: number): Decoration =>
+    Decoration.widget(at, () => chips(list, open, pos), {
+      key: `${at}:${list.map((c) => `${c.item.id}:${c.change ?? 'end'}:${c.item.outOfDate}:${c.first}`).join('|')}`,
+      side,
+      ignoreSelection: true,
+      stopEvent: (e) => !!(e.target as Element | null)?.closest?.('.suggestion-chip'),
+    })
   return Extension.create({
     name: 'suggestions',
     addProseMirrorPlugins: () => [
@@ -53,32 +146,29 @@ export function createSuggestions(mount: (el: HTMLElement, id: string) => () => 
         props: {
           decorations(state) {
             const placed = placeSuggestions(state.doc, key.getState(state) ?? [])
-            return DecorationSet.create(
-              state.doc,
-              placed.flatMap(({ item, targets, at }) => [
-                ...targets.map((t) =>
-                  Decoration.node(t.from, t.to, { class: 'suggestion-target' }),
-                ),
-                Decoration.widget(
-                  at,
-                  () => {
-                    const el = document.createElement('div')
-                    el.className = 'suggestion-card'
-                    el.contentEditable = 'false'
-                    const unmount = mount(el, item.id)
-                    ;(el as HTMLElement & { unmount?: () => void }).unmount = unmount
-                    return el
-                  },
-                  {
-                    key: item.id,
-                    side: 1,
-                    ignoreSelection: true,
-                    stopEvent: () => true,
-                    destroy: (node) => (node as HTMLElement & { unmount?: () => void }).unmount?.(),
-                  },
-                ),
-              ]),
+            const byBlock = new Map<number, { inside: boolean; chips: Chip[] }>()
+            const ends: Decoration[] = []
+            const nodes: Decoration[] = []
+            for (const { item, marks, end } of placed) {
+              if (!marks.length) {
+                ends.push(widget([{ item, change: null, text: '', first: true }], end, null, 1))
+                continue
+              }
+              marks.forEach((m, i) => {
+                nodes.push(
+                  Decoration.node(m.from, m.to, {
+                    class: `suggestion-target${item.outOfDate ? ' is-stale' : ''}`,
+                  }),
+                )
+                const at = byBlock.get(m.from) ?? { inside: m.inside, chips: [] }
+                at.chips.push({ item, change: m.change, text: m.text, first: i === 0 })
+                byBlock.set(m.from, at)
+              })
+            }
+            const anchors = [...byBlock].map(([from, b]) =>
+              widget(b.chips, b.inside ? from + 1 : from, from, -1),
             )
+            return DecorationSet.create(state.doc, [...nodes, ...anchors, ...ends])
           },
         },
       }),
@@ -89,3 +179,9 @@ export function createSuggestions(mount: (el: HTMLElement, id: string) => () => 
 /** Show these suggestions in the text (not an edit, not something to undo). */
 export const setSuggestions = (view: EditorView, items: InTextSuggestion[]) =>
   view.dispatch(view.state.tr.setMeta(key, items).setMeta('addToHistory', false))
+
+/** Where the caret goes back to for the block at `pos` (null: the scene's end): the nearest place text can be. */
+export const caretNear = (doc: PmNode, pos: number | null) =>
+  TextSelection.near(
+    doc.resolve(pos === null ? doc.content.size : Math.min(pos + 1, doc.content.size)),
+  )

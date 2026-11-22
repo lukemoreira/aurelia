@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import Field from '@/components/ui/Field.vue'
 import Icon from '@/components/ui/Icon.vue'
@@ -9,6 +9,7 @@ import { useAssistant } from '@/composables/useAssistant'
 import { useStoryBase } from '@/composables/useStoryBase'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
+import ChatMarkdown from './ChatMarkdown'
 import ConnectClaude from './ConnectClaude.vue'
 import ReviewInbox from './ReviewInbox.vue'
 
@@ -18,6 +19,11 @@ const layout = useLayoutStore()
 const base = useStoryBase()
 const ws = useWorkspaceStore()
 const message = ref('')
+/** What a screen reader is told: the assistant's reply once it is whole, never each piece as it arrives. */
+const finished = computed(() => {
+  const last = a.turns.value.at(-1)
+  return !a.busy.value && last?.role === 'assistant' ? last.text : ''
+})
 
 async function send() {
   const text = message.value
@@ -51,14 +57,16 @@ async function send() {
         </h3>
         <div v-if="ws.bookId && !a.turns.value.length" class="flex flex-col gap-1.5">
           <p v-if="base.empty.value" class="m-0 text-[12.5px] text-ink-2">
-            This book has no story base yet: its objectives, world and history, main narrative and
-            main characters. The assistant can set it up with you, one short question at a time.
+            This book has no story base yet: its genre, subject area, audience, intentions,
+            objectives, world and history, main narrative and main characters. The assistant can set
+            it up with you, one short question at a time.
           </p>
           <Button size="sm" :disabled="a.busy.value" @click="a.guidedStart()"
             ><Icon name="spark" :size="14" />Set up the story base with the assistant</Button
           >
         </div>
-        <ol class="m-0 flex list-none flex-col gap-3 p-0" aria-live="polite">
+        <p class="sr-only" aria-live="polite" data-testid="reply-announced">{{ finished }}</p>
+        <ol class="m-0 flex list-none flex-col gap-3 p-0">
           <li v-for="(t, i) in a.turns.value" :key="i" class="flex flex-col gap-1.5">
             <p
               v-if="t.role === 'author'"
@@ -75,9 +83,7 @@ async function send() {
                   <Icon name="check" :size="12" />{{ tool }}
                 </li>
               </ul>
-              <p v-if="t.text" class="m-0 whitespace-pre-wrap text-[13px] leading-relaxed">
-                {{ t.text }}
-              </p>
+              <ChatMarkdown v-if="t.text" :text="t.text" />
               <p v-if="t.error" role="alert" class="m-0 text-[12.5px] text-danger">{{ t.error }}</p>
               <p
                 v-if="a.busy.value && i === a.turns.value.length - 1 && !t.text"

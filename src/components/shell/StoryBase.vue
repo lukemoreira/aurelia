@@ -4,6 +4,7 @@ import Button from '@/components/ui/Button.vue'
 import Field from '@/components/ui/Field.vue'
 import { smallCapsHeading } from '@/components/ui/fieldStyles'
 import Icon from '@/components/ui/Icon.vue'
+import Input from '@/components/ui/Input.vue'
 import Textarea from '@/components/ui/Textarea.vue'
 import { useStoryBase } from '@/composables/useStoryBase'
 import { BASE_SECTIONS } from '@/domain/story-base'
@@ -22,7 +23,15 @@ const b = useStoryBase()
       ><Icon name="spark" :size="14" />Set up the story base with the assistant</Button
     >
     <Field v-for="s in BASE_SECTIONS" :key="s.key" :label="s.label" :description="s.hint">
+      <Input
+        v-if="s.short"
+        v-model="b.draft[s.key]"
+        :inputmode="s.key === 'volumes' ? 'numeric' : undefined"
+        :disabled="b.readOnly.value"
+        @change="b.save(s.key)"
+      />
       <Textarea
+        v-else
         v-model="b.draft[s.key]"
         rows="4"
         :disabled="b.readOnly.value"

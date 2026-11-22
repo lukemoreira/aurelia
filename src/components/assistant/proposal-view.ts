@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // What a suggestion's card shows: its heading, and its changes as word diffs, each with a label when
 // the suggestion touches several named things (story-base sections, a character's details).
-import type { Proposal } from '@/domain/proposals'
+import { isNoOp, needsNewerVersion, type Proposal } from '@/domain/proposals'
 import { RECORD_INFO } from '@/domain/record-types'
 import { BASE_SECTIONS } from '@/domain/story-base'
 import { diffWords, type DiffPart } from '@/domain/word-diff'
@@ -18,11 +18,13 @@ export function targetOf(p: Proposal): string {
 
 /** Why a suggestion can no longer be accepted, in words. */
 export const outOfDateWords = (p: Proposal) =>
-  p.kind === 'character'
-    ? 'Out of date: a character with this name is already in this world. Reject it.'
-    : p.kind === 'delete-record'
-      ? 'Out of date: this record was changed or deleted after this was suggested. Ask again, or reject it.'
-      : 'Out of date: the text changed after this was suggested. Ask again, or reject it.'
+  needsNewerVersion(p)
+    ? 'This suggestion needs a newer version of Aurelia. Reload the app.'
+    : p.kind === 'character'
+      ? 'Out of date: a character with this name is already in this world. Dismiss it.'
+      : p.kind === 'delete-record'
+        ? 'Out of date: this record was changed or deleted after this was suggested. Ask again, or dismiss it.'
+        : 'Out of date: the text changed after this was suggested. Ask again, or dismiss it.'
 
 const count = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
 
@@ -49,8 +51,12 @@ const FIELD_LABEL = new Map<string, string>(
   RECORD_INFO.character.fields.map((f) => [f.key, f.label]),
 )
 
-export function diffsOf(p: Proposal): { label?: string; parts: DiffPart[] }[] {
-  if (p.kind === 'edit') return p.changes.map((c) => ({ parts: diffWords(c.before, c.after) }))
+/** `change`: an edit's number of the change in the proposal (a change that changes nothing is not listed). */
+export function diffsOf(p: Proposal): { label?: string; change?: number; parts: DiffPart[] }[] {
+  if (p.kind === 'edit')
+    return p.changes.flatMap((c, change) =>
+      isNoOp(c) ? [] : [{ change, parts: diffWords(c.before, c.after) }],
+    )
   if (p.kind === 'scene') return [{ parts: diffWords('', p.text) }]
   if (p.kind === 'delete-record') return []
   if (p.kind === 'base')

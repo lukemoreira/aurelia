@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { anchorOf, mergeChanges, proposalSchema, recordFingerprint, sceneBlocks } from './proposals'
+import {
+  anchorOf,
+  authorChanges,
+  isNoOp,
+  mergeChanges,
+  proposalSchema,
+  recordFingerprint,
+  sceneBlocks,
+} from './proposals'
 
 const body = 'First paragraph.\n\nSecond *one*,\non two lines.\n\n\nThird.\n'
 const ids = () => sceneBlocks(body).map((b) => b.id)
@@ -233,5 +241,49 @@ describe('a suggested record delete', () => {
       recordFingerprint({ meta: { ...meta, role: 'Pilot' }, body: 'Notes.' } as never),
     ).not.toBe(fp)
     expect(recordFingerprint({ meta, body: 'Other notes.' } as never)).not.toBe(fp)
+  })
+})
+
+describe('a change that changes nothing', () => {
+  const c = (before: string, after: string, block = 'b0-1') => ({ block, before, after })
+  it('reads exactly as before; a change of spacing alone is a change; an addition at the end always is one', () => {
+    expect(isNoOp(c('One two.', 'One two.'))).toBe(true)
+    // A paragraph split, verse line breaks, a Markdown hard break: Accept writes them, so they are shown.
+    expect(isNoOp(c('One two.', 'One\n\ntwo.'))).toBe(false)
+    expect(isNoOp(c('One two.', 'One\ntwo.'))).toBe(false)
+    expect(isNoOp(c('One  \ntwo.', 'One\ntwo.'))).toBe(false)
+    expect(isNoOp(c('One two.', 'One too.'))).toBe(false)
+    expect(isNoOp(c('One two.', ''))).toBe(false)
+    expect(isNoOp(c('', 'One two.', 'end'))).toBe(false)
+    expect(isNoOp(c('', '', 'end'))).toBe(false)
+  })
+})
+
+describe('the author’s own text for a suggestion', () => {
+  const changes = [
+    { block: 'b0-1', before: 'One.', after: 'Uno.', occurrence: 0, copies: 1 },
+    { block: 'b1-2', before: 'Two.', after: '', occurrence: 0, copies: 1 },
+  ]
+  it('replaces only the after text and keeps the anchors', () => {
+    expect(authorChanges(changes, ['Eins.\n', ''])).toEqual([
+      { ...changes[0], after: 'Eins.' },
+      changes[1],
+    ])
+  })
+  it('keeps the indentation the suggestion itself had: only blank lines before and spaces after go', () => {
+    const indented = [{ ...changes[0]!, after: '  Uno.' }, changes[1]!]
+    expect(authorChanges(indented, ['\n  Eins,\n    zwei.  \n', ''])![0]!.after).toBe(
+      '  Eins,\n    zwei.',
+    )
+  })
+  it('drops a first-line indent the suggestion did not have (it would make a code block)', () => {
+    expect(authorChanges(changes, ['\t\tEins.\n', ''])![0]!.after).toBe('Eins.')
+    expect(authorChanges(changes, ['      Eins,\n    zwei.', ''])![0]!.after).toBe(
+      'Eins,\n    zwei.',
+    )
+  })
+  it('refuses a missing text, and an empty one where the suggestion did not remove the block', () => {
+    expect(authorChanges(changes, ['x'])).toBeNull()
+    expect(authorChanges(changes, ['  ', ''])).toBeNull()
   })
 })

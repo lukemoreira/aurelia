@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Proposal } from '@/domain/proposals'
 import type { Backlink } from '@/index/types'
-import { deleteWords, outOfDateWords, targetOf } from './proposal-view'
+import { deleteWords, diffsOf, outOfDateWords, targetOf } from './proposal-view'
 
 const common = {
   schemaVersion: 1 as const,
@@ -32,6 +32,22 @@ describe('why a suggestion is out of date', () => {
       sections: { world: { before: '', after: 'W' } },
     }
     expect(outOfDateWords(base)).toContain('the text changed after this was suggested')
+  })
+
+  it('shows a suggested new story-base section under its own label', () => {
+    expect(
+      diffsOf({
+        ...common,
+        kind: 'base',
+        bookId: 'bok_abcdefghjk',
+        bookTitle: 'B',
+        sections: {
+          subject: { before: '', after: 'Naval warfare' },
+          volumes: { before: '', after: '3' },
+          notes: { before: '', after: 'Check dates' },
+        },
+      }).map((d) => d.label),
+    ).toEqual(['Subject area', 'Planned volumes', 'Notes'])
   })
 })
 
@@ -63,5 +79,23 @@ describe('a suggested record delete', () => {
     )
     expect(deleteWords([], 1)).not.toContain('books')
     expect(deleteWords([], 3)).toContain('It is in the world of 3 books, so it leaves all of them.')
+  })
+})
+
+describe('an edit’s diffs', () => {
+  it('list only the changes that change something, numbered as in the proposal', () => {
+    const p = {
+      ...common,
+      kind: 'edit' as const,
+      sceneId: 'scn_x',
+      sceneTitle: 'S',
+      baseHash: 'x',
+      changes: [
+        { block: 'b0-1', before: 'Same words.', after: 'Same words.', occurrence: 0, copies: 1 },
+        { block: 'b2-3', before: 'One line.', after: 'One\nline.', occurrence: 0, copies: 1 },
+        { block: 'b1-2', before: 'Old words.', after: 'New words.', occurrence: 0, copies: 1 },
+      ],
+    } satisfies Proposal
+    expect(diffsOf(p).map((d) => d.change)).toEqual([1, 2]) // a line break alone is a change
   })
 })

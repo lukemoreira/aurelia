@@ -1,10 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { mergeBase, proposalSchema } from './proposals'
+import { mergeBase, needsNewerVersion, proposalSchema } from './proposals'
 import { bookSchema } from './schema/book'
-import { baseOf, sameName } from './story-base'
+import { BASE_SECTIONS, baseOf, sameName } from './story-base'
 
-const EMPTY = { objectives: '', world: '', narrative: '' }
+const EMPTY = {
+  genre: '',
+  subject: '',
+  audience: '',
+  volumes: '',
+  intentions: '',
+  objectives: '',
+  world: '',
+  narrative: '',
+  notes: '',
+}
 
 describe('the story base', () => {
   it('reads from book.json; a base written by hand into something else is left out, never a reason to refuse the book', () => {
@@ -35,6 +45,57 @@ describe('the story base', () => {
     expect(baseOf(bookSchema.parse({ ...book, storyBase: { world: null } }))).toEqual(EMPTY)
   })
 
+  it('reads the new sections, and an old book with only the three first keys reads as before', () => {
+    const book = { title: 'B', schemaVersion: 1, id: 'bok_abcdefghjk', mode: 'linear' }
+    const read = baseOf(
+      bookSchema.parse({
+        ...book,
+        storyBase: {
+          genre: 'Military history',
+          subject: 'WWII naval warfare',
+          volumes: '3, maybe 4',
+          notes: 'Check dates',
+          later: 1,
+        },
+      }),
+    )
+    expect(read).toEqual({
+      ...EMPTY,
+      genre: 'Military history',
+      subject: 'WWII naval warfare',
+      volumes: '3, maybe 4', // text, never parsed to a number
+      notes: 'Check dates',
+    })
+    expect(read).not.toHaveProperty('later') // an unknown key is kept in the file, not in the read
+    expect(
+      baseOf(bookSchema.parse({ ...book, storyBase: { world: 'W', narrative: 'N' } })),
+    ).toEqual({
+      ...EMPTY,
+      world: 'W',
+      narrative: 'N',
+    })
+  })
+
+  it('lists the sections in order, with the one-line ones flagged short', () => {
+    expect(BASE_SECTIONS.map((s) => s.key)).toEqual([
+      'genre',
+      'subject',
+      'audience',
+      'volumes',
+      'intentions',
+      'objectives',
+      'world',
+      'narrative',
+      'notes',
+    ])
+    expect(BASE_SECTIONS.filter((s) => s.short).map((s) => s.key)).toEqual([
+      'genre',
+      'subject',
+      'audience',
+      'volumes',
+    ])
+  })
+
   it('a name is the same whatever its case and spaces', () => {
     expect(sameName(' Tomas  Brandt', 'tomas brandt')).toBe(true)
     expect(sameName('Tomas', 'Tomasz')).toBe(false)
@@ -62,6 +123,45 @@ describe('mergeBase', () => {
 })
 
 describe('the proposal kinds', () => {
+  it('a story-base proposal for a new section is read and merged', () => {
+    const sections = { genre: { before: '', after: 'Fantasy' }, notes: { before: '', after: 'N' } }
+    const p = proposalSchema.parse({
+      schemaVersion: 1,
+      id: 'prp_abcdefghjk',
+      createdAt: '2026-11-18T00:00:00Z',
+      by: 'Claude',
+      why: 'w',
+      kind: 'base',
+      bookId: 'bok_abcdefghjk',
+      bookTitle: 'B',
+      sections,
+    })
+    expect(p.kind === 'base' && p.sections).toEqual(sections)
+    expect(mergeBase(EMPTY, sections)).toEqual({
+      ok: true,
+      base: { genre: 'Fantasy', notes: 'N' },
+      replaced: false,
+    })
+  })
+
+  it('a story-base proposal with a section this version does not know keeps it, and is never applied', () => {
+    const sections = { world: { before: '', after: 'W' }, mood: { before: '', after: 'Grim' } }
+    const p = proposalSchema.parse({
+      schemaVersion: 1,
+      id: 'prp_abcdefghjk',
+      createdAt: '2026-11-18T00:00:00Z',
+      by: 'Claude',
+      why: 'w',
+      kind: 'base',
+      bookId: 'bok_abcdefghjk',
+      bookTitle: 'B',
+      sections,
+    })
+    expect(p.kind === 'base' && p.sections).toEqual(sections) // not stripped to what this version knows
+    expect(needsNewerVersion(p)).toBe(true)
+    expect(mergeBase(EMPTY, sections as never)).toEqual({ ok: false })
+  })
+
   const common = {
     schemaVersion: 1,
     id: 'prp_abcdefghjk',

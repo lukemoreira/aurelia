@@ -3,6 +3,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import { arcsFor } from '@/domain/plan'
 import { STATUS_LABELS } from '@/domain/ui-names'
 import { checkTitle } from '@/domain/titles'
+import { bookImage, bookWebsite, type Book } from '@/domain/schema/book'
+import { websiteLink } from '@/domain/website'
 import { parseCount } from '@/domain/writing-log'
 import { wordsFor } from '@/storage/errors'
 import { renameItem, setDetails } from '@/storage/outline-actions'
@@ -20,7 +22,7 @@ export const DETAIL_FIELDS: Record<DetailsKind, string[]> = {
   scene: ['pov', 'location', 'objective', 'conflict', 'outcome', 'target', 'arcs'],
   chapter: ['objective', 'target', 'arcs'],
   part: [],
-  book: ['goal'],
+  book: ['goal', 'website', 'art'],
 }
 
 type TextKey = 'summary' | 'objective' | 'conflict' | 'outcome'
@@ -37,6 +39,9 @@ interface Bag {
   outcome?: string
   target?: number
   targets?: { words?: number }
+  website?: string
+  logo?: string
+  cover?: string
   arcs: string[]
   mode?: string
   ending?: boolean
@@ -62,6 +67,7 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     outcome: '',
     target: '',
     goal: '',
+    website: '',
   })
 
   /** The item as the files say now. */
@@ -73,10 +79,20 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     if (kind === 'scene') return scene && { arcs: [], ...scene }
     const list = { chapter: data.chapters, part: data.parts, book: data.books }[kind]
     const found = list.find((x) => x.id === id) as Omit<Bag, 'arcs'> & { arcs?: string[] }
-    return found && { ...found, arcs: found.arcs ?? [] }
+    if (!found) return undefined
+    const bag = { ...found, arcs: found.arcs ?? [] }
+    if (kind !== 'book') return bag
+    // A value of the wrong kind in book.json reads as none here, and stays in the file.
+    const book = found as unknown as Book
+    return {
+      ...bag,
+      website: bookWebsite(book),
+      logo: bookImage(book, 'logo'),
+      cover: bookImage(book, 'cover'),
+    }
   })
 
-  const FIELDS = ['title', ...TEXT_KEYS, 'target', 'goal'] as const
+  const FIELDS = ['title', ...TEXT_KEYS, 'target', 'goal', 'website'] as const
   const storedOf = (k: (typeof FIELDS)[number]) =>
     k === 'target'
       ? item.value?.target
@@ -162,6 +178,13 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     return set('targets', Object.keys(next).length ? next : undefined)
   }
 
+  /** The book's web address, as typed; empty takes it away. */
+  const saveWebsite = () => set('website', draft.website.trim() || undefined)
+  /** Where the saved address goes when followed: http(s) only (a bare domain gets https). */
+  const websiteHref = computed(() => websiteLink(item.value?.website))
+  /** The book's logo or cover art: an image of the gallery; `undefined` takes it away. */
+  const setArt = (key: 'logo' | 'cover', id: string | undefined) => set(key, id)
+
   const status = computed({
     get: () => item.value?.status ?? NONE,
     set: (v: string) => void set('status', v === NONE ? undefined : v),
@@ -231,6 +254,9 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     saveText,
     saveTarget,
     saveGoal,
+    saveWebsite,
+    websiteHref,
+    setArt,
     status,
     statusOptions,
     pov: pov.model,

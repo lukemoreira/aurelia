@@ -2,7 +2,7 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mergeChanges, proposalSchema, recordFingerprint } from '@/domain/proposals'
+import { mergeChanges, proposalSchema, recordFingerprint, sceneBlocks } from '@/domain/proposals'
 import { recordPath } from '@/storage/paths'
 import { storeAs } from '../src/mcp.ts'
 import { TOOLS, untrusted, type ToolContext } from '../src/tools.ts'
@@ -140,6 +140,44 @@ describe('the propose tools', () => {
     expect(write.mock.calls.every((c) => c[0].includes('/.aurelia/proposals/'))).toBe(true)
   })
 
+  it('propose_edit leaves out a block that already reads as proposed, and refuses a proposal with nothing left', async () => {
+    const ctx = await context()
+    const scene = ctx.ws.data.scenes[0]!
+    const blocks = (await run(ctx, 'get_scene', { sceneId: scene.meta.id })).data.match(
+      /b\d-[0-9a-f]{8}/g,
+    )!
+    const same = sceneBlocks(scene.body)
+    const none = await run(ctx, 'propose_edit', {
+      sceneId: scene.meta.id,
+      why: 'x',
+      // The block as it reads (only the spaces around it, which are trimmed): not a change.
+      changes: [{ block: blocks[0], text: `  ${same[0]!.text} ` }],
+    })
+    expect(none.error).toBe(true)
+    const dir = join(rig!.root, FOLDER, 'current/.aurelia/proposals')
+    expect(await readdir(dir).catch(() => [])).toEqual([])
+    const mixed = await run(ctx, 'propose_edit', {
+      sceneId: scene.meta.id,
+      why: 'x',
+      changes: [
+        { block: blocks[0], text: same[0]!.text },
+        { block: 'end', text: 'A new last line.' },
+      ],
+    })
+    expect(mixed.error).toBeUndefined()
+    const proposal = proposalSchema.parse(
+      JSON.parse(await readFile(join(dir, (await readdir(dir))[0]!), 'utf8')),
+    )
+    expect(proposal.kind === 'edit' && proposal.changes.map((c) => c.block)).toEqual(['end'])
+    // A paragraph split (spacing alone) is a change Accept writes: kept, so the author sees it.
+    const split = await run(ctx, 'propose_edit', {
+      sceneId: scene.meta.id,
+      why: 'x',
+      changes: [{ block: blocks[0], text: same[0]!.text.replace(' ', '\n\n') }],
+    })
+    expect(split.error).toBeUndefined()
+  })
+
   it('a second proposal under a taken name is refused by the store, never written over', async () => {
     const ctx = await context()
     const path = `${FOLDER}/current/.aurelia/proposals/prp_aaaaaaaaaa.json`
@@ -221,6 +259,8 @@ describe('the story base (ADR-0016)', () => {
     expect(read.data.match(/<\/story-data>/g)).toHaveLength(1) // the injection cannot close the fence
     expect(read.data).toContain('## World and history (world)\nA port city.')
     expect(read.data).toContain('## Objectives (objectives)\n(not written yet)')
+    for (const key of ['genre', 'subject', 'audience', 'volumes', 'intentions', 'notes'])
+      expect(read.data).toContain(`(${key})\n(not written yet)`)
     expect(read.data).toContain('- chr_abcdefghjk: Tomas Brandt — role: Protagonist')
     expect((await run(ctx, 'get_story_base', { bookId: 'bok_nope' })).error).toBe(true)
   })
@@ -238,6 +278,8 @@ describe('the story base (ADR-0016)', () => {
       why: 'From your answers.',
       objectives: ' A mystery for adults. ',
       world: 'Two islands.',
+      volumes: '3',
+      notes: 'Check dates',
     })
     expect(r.label).toBe(`Suggested the story base of “${book.title}”`)
     const [p] = await proposalsIn()
@@ -247,6 +289,8 @@ describe('the story base (ADR-0016)', () => {
       sections: {
         objectives: { before: '', after: 'A mystery for adults.' },
         world: { before: 'An island.', after: 'Two islands.' },
+        volumes: { before: '', after: '3' },
+        notes: { before: '', after: 'Check dates' },
       },
     })
     expect(p!.kind === 'base' && p!.sections.narrative).toBeUndefined()

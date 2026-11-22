@@ -85,6 +85,17 @@ describe('navigator tree', () => {
     expect(tree.standalone.value.map((n) => n.id)).not.toContain('bok_zzzzzzzzzy')
   })
 
+  it('shows the genre of the story base first, and the old top-level genre when there is none', () => {
+    const { ws } = open()
+    const winter = ws.data!.books.find((b) => b.title === 'The Long Winter of 1709')!
+    const metaOf = () => useNavigatorTree().standalone.value.map((n) => n.meta)
+    expect(metaOf()).toEqual(['history']) // the old field
+    winter.storyBase = { genre: 'Military history' }
+    expect(metaOf()).toEqual(['Military history'])
+    winter.storyBase = { genre: '  ' }
+    expect(metaOf()).toEqual(['history']) // an empty field falls back
+  })
+
   it('keeps the open scene’s book, part and chapter open, and remembers it', async () => {
     const { tree } = open()
     expect(tree.expanded.value).toHaveLength(3)

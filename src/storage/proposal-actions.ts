@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // The Review inbox's work (ADR-0008, ADR-0015): read the assistant's proposals, and the author's Accept
-// and Reject. Accept is the only way a proposal reaches the manuscript: a snapshot first, then an
+// and Dismiss. Accept is the only way a proposal reaches the manuscript: a snapshot first, then an
 // ordinary compare-and-write edit through the session.
 import {
   PROPOSALS_DIR,
+  authorChanges,
   mergeBase,
   mergeChanges,
+  needsNewerVersion,
   proposalPath,
   proposalSchema,
   recordFingerprint,
@@ -23,6 +25,10 @@ import { writeSnapshot } from './snapshots'
 import { storedBase, writeBase } from './story-base-actions'
 
 export const OUT_OF_DATE = 'The text changed after this was suggested — ask again.'
+export const EDIT_REFUSED =
+  'A paragraph can only be left empty when the suggestion removes it. Write the text, or dismiss the suggestion.'
+export const NEEDS_NEWER = 'This suggestion needs a newer version of Aurelia. Reload the app.'
+export const ALREADY_ACCEPTED = 'Already accepted — dismiss it.'
 export const RECORD_CHANGED =
   'This record was changed or deleted after this was suggested, so it was left as it is.'
 
@@ -105,6 +111,7 @@ export function stillApplies(s: WorkspaceSession, p: Proposal): boolean {
     return !!universe && !hasCharacter(s, universe, p.name)
   }
   if (p.kind === 'base') {
+    if (needsNewerVersion(p)) return false
     const book = s.data.books.find((b) => b.id === p.bookId)
     return !!book && mergeBase(baseOf(book), p.sections).ok
   }
@@ -121,7 +128,7 @@ const hasCharacter = (s: WorkspaceSession, universe: string, name: string) =>
 /** `id`: the scene, book or record it changed or made. `cleared`: false when the change is in but the suggestion's file could not be removed. */
 export type Accepted = { id: string; snapshot?: string; cleared: boolean }
 
-export const NOT_CLEARED = 'Accepted, but the suggestion could not be cleared — reject it.'
+export const NOT_CLEARED = 'Accepted, but the suggestion could not be cleared — dismiss it.'
 
 /** Remove the suggestion once its change is in; a failure is said, never taken for "nothing changed". */
 const clear = (s: WorkspaceSession, id: string) =>
@@ -130,7 +137,7 @@ const clear = (s: WorkspaceSession, id: string) =>
     () => false,
   )
 
-/** Reject: the proposal file goes; nothing else changes. */
+/** Dismiss: the proposal file goes; nothing else changes. */
 export const rejectProposal = (s: WorkspaceSession, id: string) =>
   s.adapter.remove(proposalPath(id))
 
@@ -142,8 +149,37 @@ export const rejectProposal = (s: WorkspaceSession, id: string) =>
  * the author had; a new character is a new record, so nothing to snapshot. A record delete moves it to
  * Recently deleted (it can come back from there), and only while it is still the record that was read.
  * The proposal file goes once the change is in.
+ *
+ * `edited` (an edit only): the author's own text for each change, in order, in place of the assistant's.
+ * Everything else is the same path: the anchors stay the proposal's, so an out-of-date suggestion is
+ * refused just the same, and the snapshot and the compare-and-write are the same.
+ *
+ * A suggestion whose change went in but whose file could not be cleared is refused from then on in this
+ * session: an edited Accept, or one whose new text no longer reads as the assistant's, would apply again.
  */
-export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<Accepted> {
+export async function acceptProposal(
+  s: WorkspaceSession,
+  p: Proposal,
+  edited?: readonly string[],
+): Promise<Accepted> {
+  const done = acceptedHere.get(s) ?? new Set<string>()
+  acceptedHere.set(s, done)
+  if (done.has(p.id)) throw new StorageError('other', ALREADY_ACCEPTED)
+  const accepted = await applyProposal(s, p, edited)
+  if (!accepted.cleared) done.add(p.id)
+  return accepted
+}
+
+/** The suggestions this session accepted and could not clear. */
+const acceptedHere = new WeakMap<WorkspaceSession, Set<string>>()
+
+async function applyProposal(
+  s: WorkspaceSession,
+  p: Proposal,
+  edited?: readonly string[],
+): Promise<Accepted> {
+  if (edited && p.kind !== 'edit')
+    throw new StorageError('other', 'Only a suggested edit to a scene can be changed first.')
   if (p.kind === 'scene') {
     if (!s.data.chapters.some((c) => c.id === p.chapterId))
       throw new StorageError('other', 'That chapter is no longer in the book.')
@@ -153,7 +189,7 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
         (x) => x.meta.chapter === p.chapterId && x.meta.title === p.title && x.body === p.text,
       )
     )
-      throw new StorageError('other', 'This scene is already in the book. Reject the suggestion.')
+      throw new StorageError('other', 'This scene is already in the book. Dismiss the suggestion.')
     const id = await s.createScene(p.chapterId)
     try {
       await renameItem(s, id, p.title)
@@ -166,7 +202,10 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
     }
     return { id, cleared: await clear(s, p.id) }
   }
-  if (p.kind === 'base') return { ...(await acceptBase(s, p)), cleared: await clear(s, p.id) }
+  if (p.kind === 'base') {
+    if (needsNewerVersion(p)) throw new StorageError('other', NEEDS_NEWER)
+    return { ...(await acceptBase(s, p)), cleared: await clear(s, p.id) }
+  }
   if (p.kind === 'delete-record') {
     // Checked inside the delete's own turn, so an edit queued before it is seen.
     await deleteItem(s, p.recordId, () => {
@@ -181,7 +220,7 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
     if (hasCharacter(s, universeId, p.name))
       throw new StorageError(
         'other',
-        `A character named “${p.name.trim()}” is already in this world. Reject the suggestion.`,
+        `A character named “${p.name.trim()}” is already in this world. Dismiss the suggestion.`,
       )
     const id = await addRecord(s, { type: 'character', title: p.name, universeId })
     try {
@@ -197,6 +236,8 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
     }
     return { id, cleared: await clear(s, p.id) }
   }
+  const changes = edited ? authorChanges(p.changes, edited) : p.changes
+  if (!changes) throw new StorageError('other', EDIT_REFUSED)
   const snapshot = await s.exclusive(async () => {
     const path = s.pathOf(p.sceneId)
     if (!path || bodyNow(s, p.sceneId) === undefined)
@@ -204,7 +245,7 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
     const why = await blocker(s, p.sceneId, path)
     if (why) throw new StorageError('other', `This scene was left as it is: ${why}.`)
     const was = bodyNow(s, p.sceneId)!
-    const merged = mergeChanges(was, p.changes)
+    const merged = mergeChanges(was, changes)
     if (!merged.ok) throw new StorageError('other', OUT_OF_DATE)
     const before = await writeSnapshot(
       s,
