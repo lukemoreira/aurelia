@@ -5,7 +5,7 @@ import { defineComponent, h, nextTick, ref } from 'vue'
 import Dialog from './Dialog.vue'
 
 const Host = defineComponent({
-  props: { locked: Boolean },
+  props: { locked: Boolean, fallbackFocus: { type: Function, default: undefined } },
   setup(props) {
     const open = ref(false)
     return () =>
@@ -17,6 +17,7 @@ const Host = defineComponent({
             open: open.value,
             title: 'Delete scene?',
             locked: props.locked,
+            fallbackFocus: props.fallbackFocus as (() => void) | undefined,
             'onUpdate:open': (v: boolean) => (open.value = v),
           },
           () => h('p', 'Body'),
@@ -50,6 +51,24 @@ describe('Dialog', () => {
     await settle()
     expect(document.body.querySelector('[role="dialog"]')).toBeNull()
     expect(document.activeElement).toBe(opener)
+    wrapper.unmount()
+  })
+
+  it('when the opener is gone on close (its own action removed it), focus goes where the dialog says', async () => {
+    const elsewhere = document.createElement('button')
+    document.body.append(elsewhere)
+    const wrapper = mount(Host, {
+      props: { fallbackFocus: () => elsewhere.focus() },
+      attachTo: document.body,
+    })
+    const opener = document.getElementById('opener') as HTMLButtonElement
+    opener.focus()
+    opener.click()
+    await settle()
+    opener.remove()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle()
+    expect(document.activeElement).toBe(elsewhere)
     wrapper.unmount()
   })
 

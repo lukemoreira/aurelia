@@ -37,9 +37,16 @@ describe('WordDiff', () => {
     expect(w.text()).toBe('Same.')
   })
 
-  it('a change in spaces alone shows as the new spacing, unmarked', () => {
-    const w = mount(WordDiff, { props: { parts: diffWords('a\nb', 'a b') } })
-    expect(w.find('del, ins').exists()).toBe(false)
-    expect(w.element.textContent).toBe('a b')
+  it('a change in spacing alone is marked, never invisible: a line break, a paragraph split, a hard break', () => {
+    const joined = mount(WordDiff, { props: { parts: diffWords('a\nb', 'a b') } })
+    expect(joined.find('del').text()).toBe('↵[Removed: line break]')
+    expect(joined.find('ins').text()).toBe('·[Added: space]')
+    expect(seen(joined)).toBe('a↵· b')
+    const split = mount(WordDiff, { props: { parts: diffWords('A B', 'A\n\nB') } })
+    expect(split.find('ins').text()).toBe('↵↵[Added: line break]')
+    expect(seen(split)).toBe('A·↵↵\n\nB') // the new break itself follows its mark
+    const hard = mount(WordDiff, { props: { parts: diffWords('a  \nb', 'a\nb') } })
+    expect(hard.find('del').text()).toBe('··↵[Removed: line break]')
+    expect(hard.find('ins').text()).toBe('↵[Added: line break]')
   })
 })

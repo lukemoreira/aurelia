@@ -26,6 +26,7 @@ const b = useStoryBase()
       <Input
         v-if="s.short"
         v-model="b.draft[s.key]"
+        :inputmode="s.key === 'volumes' ? 'numeric' : undefined"
         :disabled="b.readOnly.value"
         @change="b.save(s.key)"
       />

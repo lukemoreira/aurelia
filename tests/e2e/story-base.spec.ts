@@ -54,6 +54,12 @@ test('the story base: written by hand, then a section and a main character sugge
   // Not synced with the server: the assistant cannot read the book, so the guided start is not offered.
   await expect(base.getByRole('button', { name: /Set up the story base/ })).toHaveCount(0)
   const genre = base.getByRole('textbox', { name: 'Genre' }) // a one-line field
+  // A number pad on a phone for the planned volumes only (text all the same: "3, maybe 4").
+  await expect(base.getByRole('textbox', { name: 'Planned volumes' })).toHaveAttribute(
+    'inputmode',
+    'numeric',
+  )
+  await expect(genre).not.toHaveAttribute('inputmode')
   await genre.fill('Military history')
   await genre.blur()
   const subject = base.getByRole('textbox', { name: 'Subject area' })

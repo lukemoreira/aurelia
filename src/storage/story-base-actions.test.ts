@@ -5,7 +5,15 @@ import { outlineRig } from '../../tests/helpers/outline-rig'
 import { newId } from '@/domain/ids'
 import { proposalPath, type Proposal } from '@/domain/proposals'
 import { baseOf, type BaseSection } from '@/domain/story-base'
-import { OUT_OF_DATE, acceptProposal, stillApplies } from './proposal-actions'
+import {
+  ALREADY_ACCEPTED,
+  NEEDS_NEWER,
+  OUT_OF_DATE,
+  acceptProposal,
+  listProposals,
+  rejectProposal,
+  stillApplies,
+} from './proposal-actions'
 import { restoreBook } from './snapshot-restore'
 import { listSnapshots, readSnapshot } from './snapshots'
 import { CHANGED_ELSEWHERE, setBaseSection, storedBase } from './story-base-actions'
@@ -270,7 +278,7 @@ describe('Accept of a story-base suggestion', () => {
       if (path.includes('/proposals/')) throw new Error('disk said no')
     }
     expect((await acceptProposal(s, q)).cleared).toBe(false)
-    await expect(acceptProposal(s, q)).rejects.toThrow(OUT_OF_DATE)
+    await expect(acceptProposal(s, q)).rejects.toThrow(ALREADY_ACCEPTED)
     expect(base(s).narrative).toBe('An ending.')
   })
 })
@@ -310,10 +318,29 @@ describe('Accept of a character suggestion', () => {
     }
     expect((await acceptProposal(s, p)).cleared).toBe(false)
     const count = s.data.records.length
-    await expect(acceptProposal(s, p)).rejects.toThrow('already in this world')
+    await expect(acceptProposal(s, p)).rejects.toThrow(ALREADY_ACCEPTED)
     await expect(acceptProposal(s, await characterProposal(s, ' tomas  BRANDT '))).rejects.toThrow(
       'already in this world',
     )
     expect(s.data.records).toHaveLength(count)
+  })
+})
+
+describe('a story-base suggestion from a newer Aurelia', () => {
+  it('names a section this version does not know: it is listed, never applied, and can be dismissed', async () => {
+    const s = rig.session
+    const path = s.pathOf(bookOf(s).id)!
+    const was = (await rig.adapter.read(path))!.text
+    const p = await baseProposal(s, {
+      world: { before: '', after: 'A port.' },
+      mood: { before: '', after: 'Grim' },
+    })
+    const [listed] = (await listProposals(s.adapter)).proposals
+    expect(listed!.kind === 'base' && Object.keys(listed!.sections)).toEqual(['world', 'mood'])
+    expect(stillApplies(s, listed!)).toBe(false)
+    await expect(acceptProposal(s, listed!)).rejects.toThrow(NEEDS_NEWER)
+    expect((await rig.adapter.read(path))!.text).toBe(was) // nothing written, nothing deleted
+    await rejectProposal(s, p.id)
+    expect(await rig.adapter.read(proposalPath(p.id))).toBeNull()
   })
 })

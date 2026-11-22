@@ -150,8 +150,8 @@ describe('the propose tools', () => {
     const none = await run(ctx, 'propose_edit', {
       sceneId: scene.meta.id,
       why: 'x',
-      // Same words, only the spacing differs: not a change.
-      changes: [{ block: blocks[0], text: `  ${same[0]!.text.replace(' ', '  ')} ` }],
+      // The block as it reads (only the spaces around it, which are trimmed): not a change.
+      changes: [{ block: blocks[0], text: `  ${same[0]!.text} ` }],
     })
     expect(none.error).toBe(true)
     const dir = join(rig!.root, FOLDER, 'current/.aurelia/proposals')
@@ -169,6 +169,13 @@ describe('the propose tools', () => {
       JSON.parse(await readFile(join(dir, (await readdir(dir))[0]!), 'utf8')),
     )
     expect(proposal.kind === 'edit' && proposal.changes.map((c) => c.block)).toEqual(['end'])
+    // A paragraph split (spacing alone) is a change Accept writes: kept, so the author sees it.
+    const split = await run(ctx, 'propose_edit', {
+      sceneId: scene.meta.id,
+      why: 'x',
+      changes: [{ block: blocks[0], text: same[0]!.text.replace(' ', '\n\n') }],
+    })
+    expect(split.error).toBeUndefined()
   })
 
   it('a second proposal under a taken name is refused by the store, never written over', async () => {

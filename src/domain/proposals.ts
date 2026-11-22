@@ -7,7 +7,6 @@ import { RECORD_INFO } from './record-types'
 import { RECORD_TYPES } from './schema/record'
 import { BASE_SECTIONS, CHARACTER_FIELDS, type BaseSection, type StoryBase } from './story-base'
 import type { RecordDoc } from './workspace-data'
-import { sameWords } from './word-diff'
 
 export const PROPOSALS_DIR = '.aurelia/proposals'
 export const proposalPath = (id: string) => `${PROPOSALS_DIR}/${id}.json`
@@ -74,9 +73,12 @@ const change = z.object({
 })
 export type ProposalChange = z.input<typeof change>
 
-/** A change that changes nothing: the block would read, word for word, as it does (never `end`, which adds). */
+/**
+ * A change that changes nothing: the block would read exactly as it does (never `end`, which adds). A
+ * change of spacing alone (a paragraph split, a line break, a hard break) is a change: Accept writes it.
+ */
 export const isNoOp = (c: Pick<ProposalChange, 'block' | 'before' | 'after'>) =>
-  c.block !== 'end' && sameWords(c.before, c.after)
+  c.block !== 'end' && c.before === c.after
 
 /** Where a block stands among the blocks that read exactly as it does, for `occurrence` and `copies`. */
 export function anchorOf(blocks: readonly Block[], block: Block) {
@@ -126,7 +128,8 @@ export const proposalSchema = z.discriminatedUnion('kind', [
     /** Sections of a book's story base (ADR-0016), each with the text it had when proposed. */
     bookId: z.string(),
     bookTitle: z.string(),
-    sections: z.object(
+    // Loose: a section a newer Aurelia knows is kept, so the suggestion is refused rather than read as empty.
+    sections: z.looseObject(
       Object.fromEntries(BASE_SECTIONS.map((s) => [s.key, section.optional()])) as Record<
         BaseSection,
         z.ZodOptional<typeof section>
@@ -163,6 +166,12 @@ export type EditProposal = Extract<Proposal, { kind: 'edit' }>
 export type BaseProposal = Extract<Proposal, { kind: 'base' }>
 export type DeleteRecordProposal = Extract<Proposal, { kind: 'delete-record' }>
 
+const BASE_KEYS = new Set<string>(BASE_SECTIONS.map((s) => s.key))
+
+/** A story-base suggestion naming a section this version does not know: a newer Aurelia must apply it. */
+export const needsNewerVersion = (p: Proposal) =>
+  p.kind === 'base' && Object.keys(p.sections).some((k) => !BASE_KEYS.has(k))
+
 /**
  * Accept of a story-base proposal: every section it changes must still read as it did (`before`), else
  * nothing changes. A section accepted already reads as `after` and no longer as `before`, so a second
@@ -180,7 +189,8 @@ export function mergeBase(
     { before: string; after: string },
   ][]) {
     if (!c) continue
-    if (now[key] !== c.before) return { ok: false }
+    // A section this version does not know: applying the others alone would half-apply it.
+    if (!BASE_KEYS.has(key) || now[key] !== c.before) return { ok: false }
     if (c.before.trim()) replaced = true
     base[key] = c.after
   }
@@ -217,8 +227,9 @@ export function authorChanges(
   if (texts.length !== changes.length) return null
   const out: ProposalChange[] = []
   for (const [i, c] of changes.entries()) {
-    const after = (texts[i] ?? '').trim()
-    if (!after && c.after !== '') return null
+    // The author's indentation stays; only the blank lines before and the spaces after go.
+    const after = (texts[i] ?? '').replace(/^(?:[ \t]*\r?\n)+/, '').replace(/\s+$/, '')
+    if (!after.trim() && c.after !== '') return null
     out.push({ ...c, after })
   }
   return out

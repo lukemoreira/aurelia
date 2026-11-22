@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, useId } from 'vue'
+import { computed, nextTick, onMounted, ref, useId, watch } from 'vue'
 import WordDiff from '@/components/history/WordDiff.vue'
 import Button from '@/components/ui/Button.vue'
 import Field from '@/components/ui/Field.vue'
@@ -11,9 +11,11 @@ import { diffsOf, outOfDateWords, targetOf } from './proposal-view'
 
 /**
  * One suggestion: what it changes (removed words crossed out, added words underlined), why, and the
- * author's answers. It never changes anything itself: Accept, Reject and Ask for changes are emitted
- * (for an edit to a scene: Approve, Dismiss, and Edit, which lets the author change the suggested text
- * first), and the Review inbox's code does the work, the same wherever the card is shown.
+ * author's answers. It never changes anything itself: Accept, Dismiss and Ask for changes are emitted
+ * (for an edit to a scene also Edit, which lets the author change the suggested text first), and the
+ * Review inbox's code does the work, the same wherever the card is shown. While the author has edited
+ * text not yet accepted it says so (`dirty`); a suggestion that went meanwhile (`gone`) keeps their text
+ * on screen, to copy, until they let it go.
  */
 const props = defineProps<{
   proposal: Proposal
@@ -26,9 +28,17 @@ const props = defineProps<{
   focusChange?: number
   /** What else the author should know before deciding (a delete: where it goes, what links to it). */
   notice?: string
+  /** It went (a revision replaced it, it was cleared elsewhere) while the author was editing it. */
+  gone?: boolean
 }>()
 /** `accept` carries the author's own text, one per change, when they edited it first. */
-const emit = defineEmits<{ accept: [edited?: string[]]; reject: []; ask: [note: string] }>()
+const emit = defineEmits<{
+  accept: [edited?: string[]]
+  reject: []
+  ask: [note: string]
+  dirty: [on: boolean]
+  discard: []
+}>()
 const id = useId()
 const asking = ref(false)
 const note = ref('')
@@ -46,6 +56,11 @@ const isEdit = computed(() => props.proposal.kind === 'edit')
 const canEdit = computed(() => isEdit.value && !props.outOfDate)
 const changes = computed(() => (props.proposal.kind === 'edit' ? props.proposal.changes : []))
 const empty = computed(() => editing.value && authorChanges(changes.value, drafts.value) === null)
+/** The author changed the suggested text and has not accepted it: closing would lose it. */
+const dirty = computed(
+  () => editing.value && drafts.value.some((d, i) => d !== changes.value[i]?.after),
+)
+watch(dirty, (on) => emit('dirty', on))
 
 async function openEdit() {
   drafts.value = changes.value.map((c) => c.after)
@@ -112,29 +127,46 @@ function sendAsk() {
           <p v-if="changes[d.change]?.before" class="m-0 text-[12.5px] text-ink-2">
             <span class="font-semibold text-ink-3">Now: </span>{{ changes[d.change]?.before }}
           </p>
-          <Field label="Your text">
-            <Textarea :ref="(el) => (firstDraft[i] = el as never)" v-model="drafts[d.change]" />
+          <Field :label="`Your text, paragraph ${i + 1}`">
+            <Textarea
+              :ref="(el) => (firstDraft[i] = el as never)"
+              v-model="drafts[d.change]"
+              :readonly="gone"
+            />
           </Field>
         </template>
         <WordDiff v-else :parts="d.parts" />
       </div>
     </div>
-    <p v-if="empty" class="m-0 text-[12.5px] font-medium text-warn" role="note">
-      A paragraph can only be left empty when the suggestion removes it.
+    <p
+      v-if="empty && !gone"
+      :id="`${id}-empty`"
+      class="m-0 text-[12.5px] font-medium text-warn"
+      role="note"
+    >
+      This can't be empty unless the suggestion deletes the paragraph.
     </p>
-    <p v-if="outOfDate" class="m-0 text-[12.5px] font-medium text-warn" role="note">
+    <p v-if="gone" class="m-0 text-[12.5px] font-medium text-warn" role="note">
+      This suggestion changed while you were editing it, so it can no longer be accepted. Your text
+      is kept above: copy what you need.
+    </p>
+    <p v-else-if="outOfDate" class="m-0 text-[12.5px] font-medium text-warn" role="note">
       {{ outOfDateWords(proposal) }}
     </p>
-    <div role="toolbar" :aria-label="`Suggestion: ${target}`" class="flex flex-wrap gap-1.5">
+    <div v-if="gone" class="flex flex-wrap gap-1.5">
+      <Button size="sm" @click="emit('discard')"
+        ><Icon name="close" :size="14" />Discard my text</Button
+      >
+    </div>
+    <div v-else role="toolbar" :aria-label="`Suggestion: ${target}`" class="flex flex-wrap gap-1.5">
       <Button
         v-if="!outOfDate"
         size="sm"
         variant="primary"
         :disabled="busy || empty"
+        :aria-describedby="empty ? `${id}-empty` : undefined"
         @click="approve"
-        ><Icon name="check" :size="14" />{{
-          isEdit ? (editing ? 'Approve my text' : 'Approve') : 'Accept'
-        }}</Button
+        ><Icon name="check" :size="14" />{{ editing ? 'Accept my text' : 'Accept' }}</Button
       >
       <template v-if="editing">
         <Button size="sm" variant="quiet" :disabled="busy" @click="editing = false">Cancel</Button>
@@ -144,7 +176,7 @@ function sendAsk() {
           ><Icon name="write" :size="14" />Edit</Button
         >
         <Button size="sm" :disabled="busy" @click="emit('reject')"
-          ><Icon name="close" :size="14" />{{ isEdit ? 'Dismiss' : 'Reject' }}</Button
+          ><Icon name="close" :size="14" />Dismiss</Button
         >
         <Button size="sm" variant="quiet" :disabled="busy" :aria-expanded="asking" @click="openAsk"
           ><Icon name="callout" :size="14" />{{
@@ -153,7 +185,7 @@ function sendAsk() {
         >
       </template>
     </div>
-    <form v-if="asking && !editing" class="flex flex-col gap-2" @submit.prevent="sendAsk">
+    <form v-if="asking && !editing && !gone" class="flex flex-col gap-2" @submit.prevent="sendAsk">
       <Field label="What should change?">
         <Textarea ref="noteBox" v-model="note" rows="2" @keydown.esc="asking = false" />
       </Field>

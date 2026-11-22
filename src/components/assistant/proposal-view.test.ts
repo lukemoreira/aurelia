@@ -91,10 +91,11 @@ describe('an edit’s diffs', () => {
       sceneTitle: 'S',
       baseHash: 'x',
       changes: [
-        { block: 'b0-1', before: 'Same words.', after: 'Same  words.', occurrence: 0, copies: 1 },
+        { block: 'b0-1', before: 'Same words.', after: 'Same words.', occurrence: 0, copies: 1 },
+        { block: 'b2-3', before: 'One line.', after: 'One\nline.', occurrence: 0, copies: 1 },
         { block: 'b1-2', before: 'Old words.', after: 'New words.', occurrence: 0, copies: 1 },
       ],
     } satisfies Proposal
-    expect(diffsOf(p).map((d) => d.change)).toEqual([1])
+    expect(diffsOf(p).map((d) => d.change)).toEqual([1, 2]) // a line break alone is a change
   })
 })

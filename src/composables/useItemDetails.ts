@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { arcsFor } from '@/domain/plan'
 import { STATUS_LABELS } from '@/domain/ui-names'
 import { checkTitle } from '@/domain/titles'
+import { bookImage, bookWebsite, type Book } from '@/domain/schema/book'
 import { websiteLink } from '@/domain/website'
 import { parseCount } from '@/domain/writing-log'
 import { wordsFor } from '@/storage/errors'
@@ -78,7 +79,17 @@ export function useItemDetails(kind: DetailsKind, idOf: () => string | undefined
     if (kind === 'scene') return scene && { arcs: [], ...scene }
     const list = { chapter: data.chapters, part: data.parts, book: data.books }[kind]
     const found = list.find((x) => x.id === id) as Omit<Bag, 'arcs'> & { arcs?: string[] }
-    return found && { ...found, arcs: found.arcs ?? [] }
+    if (!found) return undefined
+    const bag = { ...found, arcs: found.arcs ?? [] }
+    if (kind !== 'book') return bag
+    // A value of the wrong kind in book.json reads as none here, and stays in the file.
+    const book = found as unknown as Book
+    return {
+      ...bag,
+      website: bookWebsite(book),
+      logo: bookImage(book, 'logo'),
+      cover: bookImage(book, 'cover'),
+    }
   })
 
   const FIELDS = ['title', ...TEXT_KEYS, 'target', 'goal', 'website'] as const

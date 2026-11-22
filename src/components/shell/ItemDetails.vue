@@ -113,8 +113,9 @@ const text = [
         :href="d.websiteHref.value"
         target="_blank"
         rel="noopener noreferrer"
-        class="w-fit rounded-sm text-xs text-ink-2 underline underline-offset-2 hover:text-ink"
-        >Open {{ d.item.value.website?.trim() }}</a
+        class="w-fit max-w-full break-all rounded-sm text-[12.5px] text-ink-2 underline underline-offset-2 hover:text-ink"
+        >Open {{ d.item.value.website?.trim()
+        }}<span class="sr-only"> (opens in a new tab)</span></a
       >
     </Field>
     <div v-if="has('art')" class="flex flex-wrap items-start gap-6">

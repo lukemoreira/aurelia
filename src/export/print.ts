@@ -39,20 +39,20 @@ const FONT = {
 export function printCss(p: ExportProfile, hasCover = false): string {
   const size = p.pageSize === 'a4' ? 'A4' : 'letter'
   const b = '.print-book'
-  // The cover fills the page's text area; the title page that follows starts a new page. Neither the cover nor
-  // the title page shows a number, and the page counter restarts at 1 where the book's own pages begin (the
-  // title page, else the first chapter), so every page after it is numbered as it is without a cover.
-  const first = p.titlePage ? `${b} .title-page` : `${b} .cover-page + .chapter`
+  // The cover fills the page's text area and starts the next page. Neither it nor the page after it (the
+  // title page, else the first chapter's) shows a number, and the cover does not count: every other page is
+  // numbered as it is without a cover. Chrome honours a page counter only in `@page` rules, and `:first`
+  // only on the document's first page, so the cover adds 0 to the counter and page 1 is drawn as nothing.
   const cover = hasCover
     ? `${b} .cover-page { break-after: page; text-align: center; page: cover; }
 ${b} .cover-page img { display: block; margin: 0 auto; max-width: 100%; max-height: 22cm; object-fit: contain; }
-${b} .chapter { page: body; }
-${first} { counter-set: page 1; page: front; }
-@page cover { @bottom-center { content: none; } }
-${p.titlePage ? '@page front { @bottom-center { content: none; } }' : '@page front:first { @bottom-center { content: none; } }'}
+@counter-style print-from-two { system: extends decimal; range: 2 infinite; fallback: print-unnumbered; }
+@counter-style print-unnumbered { system: cyclic; symbols: ""; }
+@page cover { counter-increment: page 0; @bottom-center { content: none; } }
 `
     : ''
-  return `${cover}@page { size: ${size}; margin: 2.2cm 2.4cm 2.6cm; @bottom-center { content: counter(page); font-size: 10pt; } }
+  const number = hasCover ? 'counter(page, print-from-two)' : 'counter(page)'
+  return `${cover}@page { size: ${size}; margin: 2.2cm 2.4cm 2.6cm; @bottom-center { content: ${number}; font-size: 10pt; } }
 @page :first { @bottom-center { content: none; } }
 ${b} { font-family: ${FONT[p.font]}; font-size: ${p.fontSize}pt; line-height: ${p.spacing}; color: #000; background: #fff; }
 ${b} h1, ${b} h2, ${b} h3, ${b} h4, ${b} h5, ${b} h6 { line-height: 1.25; margin: 1.3em 0 .5em; break-after: avoid; }

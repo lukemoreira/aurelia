@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // The assistant's reply as formatted Markdown. The reply is untrusted (it can quote story text), so
 // nothing here is HTML: `marked` only tokenises, and every element below is built by hand. Raw HTML
-// shows as text, images never load, and a link is live only for http, https and mailto.
+// shows as text, images never load, and a link is live only for http, https and mailto. A table or code
+// block wider than the panel scrolls in a region the keyboard can reach and a screen reader names.
 import { Lexer } from 'marked'
 import { defineComponent, h, type PropType, type VNodeChild } from 'vue'
 
@@ -23,6 +24,8 @@ interface Tok {
 const SAFE_LINK = /^(https?:|mailto:)/i
 const CELL = 'border border-line px-1.5 py-0.5 text-left align-top'
 const ALIGN: Record<string, string> = { center: 'text-center', right: 'text-right' }
+/** A box that scrolls sideways: a Tab stop, named, so it can be read and scrolled from the keyboard. */
+const SCROLLS = (label: string) => ({ tabindex: 0, role: 'region', 'aria-label': label })
 
 function inline(toks: Tok[] | undefined): VNodeChild[] {
   return (toks ?? []).map((t): VNodeChild => {
@@ -67,13 +70,14 @@ function blocks(toks: Tok[] | undefined): VNodeChild[] {
         return [h('p', { class: 'm-0' }, inline(t.tokens))]
       case 'text': // a list item's own text
         return [h('p', { class: 'm-0' }, t.tokens ? inline(t.tokens) : (t.text ?? t.raw))]
-      case 'heading':
-        return [h('p', { class: 'm-0 font-semibold text-ink' }, inline(t.tokens))]
+      case 'heading': // small, under the panel's own headings
+        return [h('h4', { class: 'm-0 text-[13px] font-semibold text-ink' }, inline(t.tokens))]
       case 'code':
         return [
           h(
             'pre',
             {
+              ...SCROLLS('Code'),
               class:
                 'relative m-0 overflow-x-auto rounded bg-raised p-2 font-mono text-[12px] leading-snug',
             },
@@ -113,7 +117,7 @@ function blocks(toks: Tok[] | undefined): VNodeChild[] {
             inline(c.tokens),
           )
         return [
-          h('div', { class: 'relative overflow-x-auto' }, [
+          h('div', { ...SCROLLS('Table'), class: 'relative overflow-x-auto' }, [
             h('table', { class: 'border-collapse text-[12.5px]' }, [
               h(
                 'thead',
@@ -148,7 +152,7 @@ export default defineComponent({
     return () =>
       h(
         'div',
-        { class: 'flex flex-col gap-2 text-[13px] leading-relaxed' },
+        { class: 'flex flex-col gap-2 text-[13px] leading-relaxed [overflow-wrap:anywhere]' },
         blocks(new Lexer({ gfm: true, breaks: true }).lex(props.text) as Tok[]),
       )
   },

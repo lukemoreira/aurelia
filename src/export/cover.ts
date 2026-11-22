@@ -2,6 +2,7 @@
 // A book's cover art as an export reads it (ADR-0014): the image file and its kind, read once before the
 // export runs (the writers are plain functions of their input). A cover that cannot be read is no cover.
 import { imageExtension, imageType } from '@/domain/media'
+import { bookImage } from '@/domain/schema/book'
 import type { WorkspaceData } from '@/domain/workspace-data'
 
 export interface ExportCover {
@@ -22,7 +23,8 @@ export async function readCover(
   readBytes: (path: string) => Promise<Uint8Array<ArrayBuffer> | null>,
 ): Promise<ExportCover | undefined> {
   try {
-    const id = data.books.find((b) => b.id === bookId)?.cover
+    const book = data.books.find((b) => b.id === bookId)
+    const id = book && bookImage(book, 'cover')
     const doc = id ? data.media?.find((m) => m.meta.id === id) : undefined
     const ext = doc && imageExtension(doc.meta.file)
     if (!doc || !ext) return undefined

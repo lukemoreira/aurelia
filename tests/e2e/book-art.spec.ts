@@ -30,10 +30,13 @@ test('the website links only to a web address, and the logo and cover art are ch
   await expect(details.getByRole('link')).toHaveCount(0)
   await website.fill('example.com/book')
   await website.blur()
-  const link = details.getByRole('link', { name: 'Open example.com/book' })
+  const link = details.getByRole('link', { name: 'Open example.com/book (opens in a new tab)' })
   await expect(link).toHaveAttribute('href', 'https://example.com/book')
   await expect(link).toHaveAttribute('target', '_blank')
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  await expect(link).toHaveClass(/break-all/) // a long address wraps instead of widening the panel
+  await expect(details.getByRole('group', { name: 'Cover art' })).toBeVisible()
+  await expect(details.getByRole('group', { name: 'Logo' })).toBeVisible()
 
   for (const [noun, label] of [
     ['cover art', 'Cover art'],

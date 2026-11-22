@@ -1,12 +1,19 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
+import { computed } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import { useAppUpdate } from '@/composables/useAppUpdate'
+import { useHeldDrafts } from '@/composables/useHeldDrafts'
 import { useProposals } from '@/composables/useProposals'
 import ProposalCard from './ProposalCard.vue'
 
-/** Every suggestion waiting for the author, newest first. No "accept all": each is decided alone. */
+/**
+ * Every suggestion waiting for the author, newest first. No "accept all": each is decided alone. One the
+ * author was editing when it went (a revision, another device) stays, with their text, until let go.
+ */
 const p = useProposals()
+const drafts = useHeldDrafts(p.all)
+const shown = computed(() => [...p.all.value, ...drafts.held.value])
 const { updateReady, reload } = useAppUpdate()
 const unreadableWords = (n: number) =>
   n === 1
@@ -28,14 +35,17 @@ const unreadableWords = (n: number) =>
       snapshot first, so you can go back.
     </p>
     <ProposalCard
-      v-for="item in p.all.value"
+      v-for="item in shown"
       :key="item.id"
       :proposal="item"
       :out-of-date="p.outOfDate.value.has(item.id)"
       :notice="p.noticeFor(item)"
       :busy="!!p.working.value"
-      @accept="(edited) => p.accept(item, edited)"
-      @reject="p.reject(item)"
+      :gone="drafts.isGone(item.id)"
+      @dirty="(on) => drafts.setDirty(item.id, on)"
+      @discard="drafts.setDirty(item.id, false)"
+      @accept="(edited) => drafts.decide(item.id, () => p.accept(item, edited))"
+      @reject="drafts.decide(item.id, () => p.reject(item))"
       @ask="(note) => p.askChanges(item, note)"
     />
     <!-- Files that do not read (a newer Aurelia's, damaged ones) are left alone; say they are there. -->

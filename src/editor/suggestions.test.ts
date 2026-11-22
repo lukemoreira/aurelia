@@ -27,7 +27,7 @@ const anchor = (change: number, before: string, occurrence = 0, copies = 1) => (
 })
 
 describe('suggestions in the text', () => {
-  it('frames each changed paragraph and puts one labelled button after each, not a card', () => {
+  it('frames each changed paragraph and puts one labelled button on each frame, not a card', () => {
     const { dom, open } = start([
       {
         id: 'prp_aaaaaaaaaa',
@@ -46,11 +46,12 @@ describe('suggestions in the text', () => {
       'Show the suggestion for this paragraph: “Tomas came down to the quay…”',
     )
     expect(chips[0]!.textContent).toBe('Suggestion')
-    // Right after the framed paragraph.
+    // Inside the framed paragraph, out of the text's way: nothing is put between the paragraphs.
     expect(dom.children[0]!.classList.contains('suggestion-target')).toBe(true)
-    expect(dom.children[1]!.classList.contains('suggestion-chip-row')).toBe(true)
+    expect(dom.children[0]!.querySelector('.suggestion-chip-anchor button')).toBe(chips[0])
+    expect([...dom.children].map((c) => c.tagName)).toEqual(['P', 'P', 'P'])
     chips[0]!.click()
-    expect(open).toHaveBeenCalledWith('prp_aaaaaaaaaa', 0)
+    expect(open).toHaveBeenCalledWith('prp_aaaaaaaaaa', 0, 0)
   })
 
   it('gives every framed paragraph its own button, all naming the same suggestion and their own change', () => {
@@ -69,7 +70,11 @@ describe('suggestions in the text', () => {
     const chips = [...dom.querySelectorAll<HTMLButtonElement>('button.suggestion-chip')]
     expect(chips).toHaveLength(3)
     chips[2]!.click()
-    expect(open).toHaveBeenLastCalledWith('prp_aaaaaaaaaa', 2)
+    expect(open).toHaveBeenLastCalledWith('prp_aaaaaaaaaa', 2, expect.any(Number))
+    // One Tab stop per suggestion: its first button; the others are still buttons, clickable.
+    expect(chips.map((c) => c.tabIndex)).toEqual([0, -1, -1])
+    // Every paragraph is still a paragraph next to a paragraph (`p + p`: the indent and the spacing).
+    expect([...dom.children].map((c) => c.tagName)).toEqual(['P', 'P', 'P'])
   })
 
   it('does not frame a paragraph that no longer reads as the suggestion saw it (or whose twins changed in number)', () => {
@@ -103,8 +108,8 @@ describe('suggestions in the text', () => {
     expect(dom.querySelector('.suggestion-target')!.classList.contains('is-stale')).toBe(true)
     const chip = dom.querySelector<HTMLButtonElement>('button.suggestion-chip')!
     expect(chip.classList.contains('is-stale')).toBe(true)
-    expect(chip.textContent).toBe('Out of date')
-    expect(chip.getAttribute('aria-label')).toContain('out-of-date suggestion')
+    expect(chip.textContent).toBe('Suggestion · out of date')
+    expect(chip.getAttribute('aria-label')).toMatch(/^Suggestion · out of date/)
   })
 
   it('never touches the text', () => {
@@ -117,5 +122,30 @@ describe('suggestions in the text', () => {
     ])
     expect(dom.querySelectorAll('p')).toHaveLength(3)
     expect(dom.textContent).toContain('Tomas came down to the quay at dusk.')
+    expect(editor!.getText()).not.toContain('Suggestion')
+  })
+
+  it('leaves typing and the caret as they are: text typed at either end of a framed paragraph goes into it', () => {
+    start([
+      {
+        id: 'prp_aaaaaaaaaa',
+        outOfDate: false,
+        anchors: [anchor(0, 'Tomas came down to the quay at dusk.')],
+      },
+    ])
+    const first = editor!.state.doc.firstChild!
+    editor!.chain().setTextSelection(1).insertContent('Then ').run()
+    editor!
+      .chain()
+      .setTextSelection(first.nodeSize + 4)
+      .insertContent(' Late.')
+      .run()
+    expect(editor!.state.doc.firstChild!.textContent).toBe(
+      'Then Tomas came down to the quay at dusk. Late.',
+    )
+    // The typed words are text of the paragraph; the button stays drawn before them, not in them.
+    const p = editor!.view.dom.firstElementChild!
+    expect(p.firstElementChild!.classList.contains('suggestion-chip-anchor')).toBe(true)
+    expect(p.textContent).toBe('SuggestionThen Tomas came down to the quay at dusk. Late.')
   })
 })

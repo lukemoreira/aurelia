@@ -61,7 +61,7 @@ link.onCardFocus(() => card.value?.focus() ?? false)
 
 // The assistant's suggestions for this scene: a frame and a button on each paragraph they change, opening
 // the suggestion in a popup (a scene only, not a record's notes).
-const suggestion = ref<{ id: string; change: number } | null>(null)
+const suggestion = ref<{ id: string; change: number; pos: number | null } | null>(null)
 const inScene = props.docId && props.variant === 'scene'
 
 // Named "Scene text" and by the scene's own title (it points at itself for the first part).
@@ -73,7 +73,9 @@ const { editor, tick, pending } = useManuscriptEditor({
   onEdit: (body) => emit('edit', body),
   extensions: [
     ...(props.docId ? [createLinks(link.env)] : []),
-    ...(inScene ? [createSuggestions((id, change) => (suggestion.value = { id, change }))] : []),
+    ...(inScene
+      ? [createSuggestions((id, change, pos) => (suggestion.value = { id, change, pos }))]
+      : []),
   ],
   attributes: () => ({
     id: props.inputId,
@@ -117,6 +119,19 @@ if (inScene) {
     (items) => setSuggestions(editor.view, JSON.parse(items)),
     { immediate: true },
   )
+}
+
+/**
+ * The popup closed and the button that opened it is gone (accepted, dismissed): its paragraph's button
+ * again when it was only drawn anew, else the text, at the paragraph that was changed.
+ */
+function refocus(at: { id: string; change: number; pos: number | null }) {
+  const again = editor.view.dom.querySelector<HTMLElement>(
+    `button.suggestion-chip[data-suggestion="${at.id}"][data-change="${at.change}"]`,
+  )
+  if (again) return again.focus()
+  const end = editor.state.doc.content.size
+  editor.commands.focus(at.pos === null ? end : Math.min(at.pos + 1, end))
 }
 
 // A name, a title or an answer changed outside the editor: draw the text again.
@@ -188,6 +203,11 @@ const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.t
     @close="link.closeCard()"
   />
   <LinkPicker v-if="link.picker.value" :picker="link.picker.value" />
-  <SuggestionDialog v-if="inScene" :target="suggestion" @close="suggestion = null" />
+  <SuggestionDialog
+    v-if="inScene"
+    :target="suggestion"
+    @close="suggestion = null"
+    @refocus="refocus"
+  />
   <span role="status" class="sr-only">{{ link.announcement.value }}</span>
 </template>

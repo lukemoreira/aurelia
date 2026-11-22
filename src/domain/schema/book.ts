@@ -16,11 +16,12 @@ export const bookSchema = z.looseObject({
   mode: z.enum(['linear', 'branching']),
   status: z.string().optional(),
   summary: z.string().optional(),
-  // The book's web address, as typed (a bare `example.com` is allowed: see website.ts).
-  website: z.string().optional(),
-  // Images of the media gallery, chosen like a record's `image`: the book's logo and its cover art.
-  logo: idOf('med').optional(),
-  cover: idOf('med').optional(),
+  // The book's web address, as typed (a bare `example.com` is allowed: see website.ts), and images of the
+  // media gallery, chosen like a record's `image`: its logo and cover art. Unchecked here, so a value of the
+  // wrong kind never refuses the book: `bookWebsite`/`bookImage` read it as none, and it stays in the file.
+  website: z.unknown().optional(),
+  logo: z.unknown().optional(),
+  cover: z.unknown().optional(),
   start: idOf('scn').optional(),
   outline: z.array(outlineEntry).optional(),
   dismissedFindings: z.array(z.string()).optional(),
@@ -34,6 +35,16 @@ export const bookSchema = z.looseObject({
 })
 
 export type Book = z.infer<typeof bookSchema>
+
+/** The book's web address as typed, or none when `book.json` holds something that is not text. */
+export const bookWebsite = (b: Pick<Book, 'website'>) =>
+  typeof b.website === 'string' ? b.website : undefined
+
+/** The gallery image a book names as its logo or cover, or none when the value is not an image ID. */
+export const bookImage = (b: Pick<Book, 'logo' | 'cover'>, key: 'logo' | 'cover') => {
+  const v = b[key]
+  return idOf('med').safeParse(v).success ? (v as string) : undefined
+}
 
 // parts/prt_….md frontmatter
 export const partSchema = z.looseObject({

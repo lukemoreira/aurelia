@@ -99,13 +99,6 @@ function merge(parts: DiffPart[]): DiffPart[] {
   return out
 }
 
-/** Whether two texts read as the same words: the diff's own view, where spacing between words is no change. */
-export function sameWords(a: string, b: string): boolean {
-  const x = split(a).words
-  const y = split(b).words
-  return x.length === y.length && x.every((w, i) => w === y[i])
-}
-
 /**
  * What changed from `before` to `after`, in order: the `same` and `removed` pieces read back as
  * `before`, the `same` and `added` pieces as `after`. Words common to both are kept as long as

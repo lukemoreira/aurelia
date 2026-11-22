@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { bookSchema, chapterSchema, partSchema } from './book'
+import { bookImage, bookSchema, bookWebsite, chapterSchema, partSchema } from './book'
 import { recordSchema } from './record'
 import { sceneSchema } from './scene'
 import { universeSchema } from './universe'
@@ -111,11 +111,25 @@ describe('workspace, universe, book, part, chapter', () => {
     expect(bookSchema.parse(bok).targets).toMatchObject({ deadline: '2027-01-01' })
     expect(bookSchema.safeParse({ ...bok, mode: 'tree' }).success).toBe(false)
 
-    // The website, logo and cover art are kept as written; a logo that is not a media ID is refused like a record's image.
+    // The website, logo and cover art are kept as written. A value of the wrong kind never refuses the
+    // book: it is kept in the file, and reads as none.
     const art = { website: 'example.com', logo: 'med_a1b2c3d4e5', cover: 'med_f6g7h8j9k2' }
-    expect(bookSchema.parse({ ...bok, ...art })).toMatchObject(art)
+    const read = bookSchema.parse({ ...bok, ...art })
+    expect(read).toMatchObject(art)
+    expect([bookWebsite(read), bookImage(read, 'logo'), bookImage(read, 'cover')]).toEqual([
+      'example.com',
+      'med_a1b2c3d4e5',
+      'med_f6g7h8j9k2',
+    ])
     expect(bookSchema.parse(bok)).not.toHaveProperty('cover')
-    expect(bookSchema.safeParse({ ...bok, cover: 'chr_8f3k2m9q1x' }).success).toBe(false)
+    const bad = { website: 42, logo: { id: 'x' }, cover: 'chr_8f3k2m9q1x' }
+    const kept = bookSchema.parse({ ...bok, ...bad })
+    expect(kept).toMatchObject(bad)
+    expect([bookWebsite(kept), bookImage(kept, 'logo'), bookImage(kept, 'cover')]).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ])
 
     const prt = { title: 'P', schemaVersion: 1, id: 'prt_a1b2c3d4e5', book: bok.id, order: 'a0' }
     expect(partSchema.safeParse(prt).success).toBe(true)

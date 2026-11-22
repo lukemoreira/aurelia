@@ -922,3 +922,4 @@ backup — ADR-0009.)
   cover page; print view: the cover as the first page; no cover, or a cover that cannot be read, leaves both exactly as
   before. DOCX and the Markdown bundle do not carry it. The assistant is unchanged (it does not propose these).
   ADR-0003 and ADR-0014 each amended with one dated line.
+- 2026-11-21 — Review fixes: Accept / Edit / Dismiss everywhere, spacing-only changes shown, edits never lost, button on the frame (no layout), cover page numbers via `@page`.

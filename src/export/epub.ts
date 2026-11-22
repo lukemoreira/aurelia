@@ -6,6 +6,7 @@
 import { encode } from '@/storage/hash'
 import { FIXED_ZIP_STAMP, zipFiles, type ZipFile } from '@/storage/zip'
 import type { ExportBook } from './book'
+import type { ExportCover } from './cover'
 import { EPUB_CSS, chapterHtml, esc, titlePageHtml } from './html'
 import type { ExportProfile } from './profile'
 
@@ -71,8 +72,10 @@ function epubFiles(book: ExportBook, profile: ExportProfile): ZipFile[] {
       html: titlePageHtml(book, { ...profile, titlePage: true }),
     })
 
-  // The cover: a page first in the spine, and the image itself (an AVIF is no EPUB core image type, so it is left out).
-  const cover = book.cover && book.cover.ext !== 'avif' ? book.cover : undefined
+  // The cover: a page first in the spine, and the image itself (an AVIF is no EPUB core image type, and an SVG
+  // that loads anything from outside the book is no valid EPUB resource, so both are left out).
+  const cover =
+    book.cover && book.cover.ext !== 'avif' && !reachesOut(book.cover) ? book.cover : undefined
   const coverFile = cover && `cover.${cover.ext}`
   if (cover)
     docs.unshift({
@@ -131,6 +134,13 @@ ${docs.map((d) => `<itemref idref="${d.id}"/>`).join('\n')}
     ...(cover ? [{ path: `OEBPS/${coverFile}`, data: cover.bytes }] : []),
   ]
 }
+
+/** An SVG that names a resource outside itself (`href`, `xlink:href` or `url(…)` to http(s) or `//`). */
+const reachesOut = (cover: ExportCover) =>
+  cover.ext === 'svg' &&
+  /(?:href\s*=\s*["']?|url\(\s*["']?)\s*(?:https?:)?\/\//i.test(
+    new TextDecoder().decode(cover.bytes),
+  )
 
 export const epubBlob = (book: ExportBook, profile: ExportProfile): Blob =>
   zipFiles(epubFiles(book, profile), FIXED_ZIP_STAMP, true)

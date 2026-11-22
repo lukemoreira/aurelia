@@ -27,13 +27,15 @@ const props = withDefaults(
     size?: DialogSize
     /** Work is under way: Escape, a click outside and the close button leave the dialog as it is. */
     locked?: boolean
+    /** Where focus goes on close when what had it is gone (the dialog's own action removed it). */
+    fallbackFocus?: () => void
   }>(),
-  { description: undefined, size: 'sm', locked: false },
+  { description: undefined, size: 'sm', locked: false, fallbackFocus: undefined },
 )
 const open = defineModel<boolean>('open', { default: false })
 /** Focus moved into the dialog: `preventDefault()` to choose the control yourself. */
 defineEmits<{ openAutoFocus: [event: Event] }>()
-const returnFocus = useReturnFocus(open)
+const returnFocus = useReturnFocus(open, () => props.fallbackFocus?.())
 /** Work is under way: what would close the dialog does not. */
 const hold = (event: Event) => props.locked && event.preventDefault()
 </script>

@@ -42,15 +42,27 @@ describe('a book’s logo and cover art', () => {
     expect(w.emitted('clear')).toHaveLength(1)
   })
 
-  it('reads an image that was deleted as none: the initials, an Add button and nothing to remove', () => {
+  it('reads an image that was deleted as none: the initials and an Add button, and it can still be removed', async () => {
     const w = setup('cover', false)
     expect(w.find('[data-test=image]').exists()).toBe(false)
     expect(w.find('button[aria-label="Add cover art"]').exists()).toBe(true)
-    expect(w.text()).not.toContain('Remove')
+    await w.get('button:not([aria-label])').trigger('click')
+    expect(w.emitted('clear')).toHaveLength(1)
   })
 
-  it('is only a picture when the book is read only', () => {
+  it('is a named group: “Cover art” or “Logo”', () => {
+    const w = setup('logo', true)
+    const group = w.get('[role="group"]')
+    expect(document.getElementById(group.attributes('aria-labelledby')!)!.textContent).toBe('Logo')
+  })
+
+  it('is only a picture when the book is read only, and nothing at all when there is no image', () => {
     const w = setup('cover', true, { editable: false })
     expect(w.find('button').exists()).toBe(false)
+    expect(w.find('[data-test=image]').exists()).toBe(true)
+    expect(setup('cover', false, { editable: false }).html()).not.toContain('Cover art')
+    expect(setup('cover', true, { editable: false, image: undefined }).html()).not.toContain(
+      'Cover art',
+    )
   })
 })

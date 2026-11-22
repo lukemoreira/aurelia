@@ -85,6 +85,27 @@ describe('the cover in an EPUB', () => {
     const avif = await zipOf({ ext: 'avif', type: 'image/avif', bytes: PNG })
     expect(avif.map((f) => f.path)).not.toContain('OEBPS/cover.avif')
     expect(part(avif, 'OEBPS/content.opf')).not.toContain('cover')
+    const webp = await zipOf({ ext: 'webp', type: 'image/webp', bytes: PNG })
+    expect(webp.map((f) => f.path)).toContain('OEBPS/cover.webp')
+  })
+
+  it('leaves out an SVG cover that loads anything from outside the book', async () => {
+    const svg = (text: string) => ({
+      ext: 'svg',
+      type: 'image/svg+xml',
+      bytes: new TextEncoder().encode(text) as Uint8Array<ArrayBuffer>,
+    })
+    for (const outside of [
+      '<svg><image href="https://example.com/a.png"/></svg>',
+      "<svg><image xlink:href='//example.com/a.png'/></svg>",
+      '<svg><style>rect { fill: url( "http://example.com/p.svg#g" ) }</style></svg>',
+    ]) {
+      const zip = await zipOf(svg(outside))
+      expect(zip.map((f) => f.path)).not.toContain('OEBPS/cover.svg')
+      expect(part(zip, 'OEBPS/content.opf')).not.toContain('cover')
+    }
+    const inside = await zipOf(svg('<svg><use href="#a"/><rect fill="url(#g)"/></svg>'))
+    expect(inside.map((f) => f.path)).toContain('OEBPS/cover.svg')
   })
 
   it('without a cover is byte for byte the EPUB there was', async () => {
@@ -150,25 +171,22 @@ describe('the cover in the print view', () => {
       },
     )
 
-    it('with a cover and a title page: neither shows a number, and the title page is page 1 again so the first chapter is page 2', () => {
-      const sheet = css({ titlePage: true }, cover)
-      expect(sheet).toContain(NUMBERING) // the cover is the first page: still unnumbered
-      expect(sheet).toContain(
-        '.print-book .cover-page { break-after: page; text-align: center; page: cover; }',
-      )
-      expect(sheet).toContain('@page cover { @bottom-center { content: none; } }')
-      expect(sheet).toContain('.print-book .title-page { counter-set: page 1; page: front; }')
-      expect(sheet).toContain('@page front { @bottom-center { content: none; } }')
-      expect(sheet).not.toContain('front:first')
-    })
-
-    it('with a cover and no title page: the first chapter opens the numbering at 1, unnumbered like a first page', () => {
-      const sheet = css({ titlePage: false }, cover)
-      expect(sheet).toContain(
-        '.print-book .cover-page + .chapter { counter-set: page 1; page: front; }',
-      )
-      expect(sheet).toContain('@page front:first { @bottom-center { content: none; } }')
-      expect(sheet).not.toContain('.title-page { counter-set')
+    it('with a cover: the cover does not count, and page 1 after it (title page or first chapter) shows no number', () => {
+      for (const titlePage of [true, false]) {
+        const sheet = css({ titlePage }, cover)
+        expect(sheet).toContain(
+          '.print-book .cover-page { break-after: page; text-align: center; page: cover; }',
+        )
+        // Page rules only: Chrome ignores a page counter set on an element, and `:first` on a later page.
+        expect(sheet).toContain(
+          '@page cover { counter-increment: page 0; @bottom-center { content: none; } }',
+        )
+        expect(sheet).toContain(
+          '@counter-style print-from-two { system: extends decimal; range: 2 infinite; fallback: print-unnumbered; }',
+        )
+        expect(sheet).toContain('@bottom-center { content: counter(page, print-from-two);')
+        expect(sheet).not.toMatch(/counter-set|front:first|page: (front|body)/)
+      }
     })
   })
 })

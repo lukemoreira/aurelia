@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { mergeBase, proposalSchema } from './proposals'
+import { mergeBase, needsNewerVersion, proposalSchema } from './proposals'
 import { bookSchema } from './schema/book'
 import { BASE_SECTIONS, baseOf, sameName } from './story-base'
 
@@ -142,6 +142,24 @@ describe('the proposal kinds', () => {
       base: { genre: 'Fantasy', notes: 'N' },
       replaced: false,
     })
+  })
+
+  it('a story-base proposal with a section this version does not know keeps it, and is never applied', () => {
+    const sections = { world: { before: '', after: 'W' }, mood: { before: '', after: 'Grim' } }
+    const p = proposalSchema.parse({
+      schemaVersion: 1,
+      id: 'prp_abcdefghjk',
+      createdAt: '2026-11-18T00:00:00Z',
+      by: 'Claude',
+      why: 'w',
+      kind: 'base',
+      bookId: 'bok_abcdefghjk',
+      bookTitle: 'B',
+      sections,
+    })
+    expect(p.kind === 'base' && p.sections).toEqual(sections) // not stripped to what this version knows
+    expect(needsNewerVersion(p)).toBe(true)
+    expect(mergeBase(EMPTY, sections as never)).toEqual({ ok: false })
   })
 
   const common = {

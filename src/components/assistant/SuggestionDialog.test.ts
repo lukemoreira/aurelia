@@ -61,7 +61,7 @@ async function open(p: Proposal, change = 0, outOfDate = false) {
   state.outOfDate.value = new Set(outOfDate ? [p.id] : [])
   const closed = vi.fn()
   const w = mount(SuggestionDialog, {
-    props: { target: { id: p.id, change }, onClose: closed },
+    props: { target: { id: p.id, change, pos: 0 }, onClose: closed },
     attachTo: document.body,
   })
   mounted.push(w)
@@ -86,22 +86,21 @@ afterEach(() => {
 })
 
 describe('the suggestion popup', () => {
-  it('shows what changes, with Approve, Edit, Dismiss and Ask for changes, and marks the paragraph clicked', async () => {
+  it('shows what changes, with Accept, Edit, Dismiss and Ask for changes, and marks the paragraph clicked', async () => {
     await open(EDIT, 1)
     const dialog = body().querySelector('[role="dialog"]')!
     expect(dialog.textContent).toContain('Suggestion for “The quay”')
     expect(dialog.textContent).toContain('Dusk clashes with chapter 7.')
     expect(dialog.querySelectorAll('del, ins').length).toBeGreaterThan(0)
-    for (const n of ['Approve', 'Edit', 'Dismiss', 'Ask for changes'])
-      expect(button(n)).toBeTruthy()
+    for (const n of ['Accept', 'Edit', 'Dismiss', 'Ask for changes']) expect(button(n)).toBeTruthy()
     const marked = dialog.querySelectorAll('[data-focused]')
     expect(marked).toHaveLength(1)
     expect(marked[0]!.textContent).toContain('counted')
   })
 
-  it('Approve accepts the suggestion as it is; Dismiss rejects it', async () => {
+  it('Accept accepts the suggestion as it is; Dismiss dismisses it', async () => {
     await open(EDIT)
-    button('Approve')!.click()
+    button('Accept')!.click()
     await settle()
     expect(state.accept).toHaveBeenCalledWith(EDIT, undefined)
     button('Dismiss')!.click()
@@ -109,7 +108,7 @@ describe('the suggestion popup', () => {
     expect(state.reject).toHaveBeenCalledWith(EDIT)
   })
 
-  it('Edit shows one text box per changed paragraph, and Approve hands over the author’s text', async () => {
+  it('Edit shows one text box per changed paragraph, and Accept my text hands over the author’s text', async () => {
     await open(EDIT)
     button('Edit')!.click()
     await settle()
@@ -118,8 +117,12 @@ describe('the suggestion popup', () => {
       'The clerk counted twice.',
     ])
     expect(document.activeElement).toBe(boxes()[0])
+    // Each box is named by the paragraph it is for.
+    const label = (b: HTMLTextAreaElement) =>
+      body().querySelector(`label[for="${b.id}"]`)?.textContent
+    expect(boxes().map(label)).toEqual(['Your text, paragraph 1', 'Your text, paragraph 2'])
     await type(boxes()[0]!, 'Tomas came in the evening.')
-    button('Approve my text')!.click()
+    button('Accept my text')!.click()
     await settle()
     expect(state.accept).toHaveBeenCalledWith(EDIT, [
       'Tomas came in the evening.',
@@ -149,22 +152,27 @@ describe('the suggestion popup', () => {
     button('Edit')!.click()
     await settle()
     await type(boxes()[1]!, '  ')
-    expect(button('Approve my text')!.disabled).toBe(true)
-    expect(body().textContent).toContain('A paragraph can only be left empty')
+    const accept = button('Accept my text')!
+    expect(accept.disabled).toBe(true)
+    // Why it cannot be accepted is said, and tied to the button.
+    const why = document.getElementById(accept.getAttribute('aria-describedby')!)!
+    expect(why.textContent?.trim()).toBe(
+      "This can't be empty unless the suggestion deletes the paragraph.",
+    )
     await type(boxes()[1]!, 'Fine.')
-    expect(button('Approve my text')!.disabled).toBe(false)
+    expect(button('Accept my text')!.disabled).toBe(false)
     for (const w of mounted.splice(0)) w.unmount()
     await open(REMOVAL)
     button('Edit')!.click()
     await settle()
     await type(boxes()[0]!, '')
-    expect(button('Approve my text')!.disabled).toBe(false)
+    expect(button('Accept my text')!.disabled).toBe(false)
   })
 
   it('an out-of-date suggestion says so and offers only Dismiss and Ask again', async () => {
     await open(EDIT, 0, true)
     expect(body().textContent).toContain('Out of date')
-    expect(button('Approve')).toBeUndefined()
+    expect(button('Accept')).toBeUndefined()
     expect(button('Edit')).toBeUndefined()
     expect(button('Dismiss')).toBeTruthy()
     expect(button('Ask again')).toBeTruthy()
@@ -179,6 +187,63 @@ describe('the suggestion popup', () => {
     expect(closed).toHaveBeenCalled()
     expect(state.accept).not.toHaveBeenCalled()
     expect(state.reject).not.toHaveBeenCalled()
+  })
+
+  it('with edited text, Escape asks first: Keep editing keeps it, Discard closes', async () => {
+    const { closed } = await open(EDIT)
+    button('Edit')!.click()
+    await settle()
+    await type(boxes()[0]!, 'Tomas came in the evening.')
+    const esc = () =>
+      body()
+        .querySelector('[role="dialog"]')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    esc()
+    await settle()
+    expect(closed).not.toHaveBeenCalled()
+    expect(body().querySelector('[role="alert"]')!.textContent).toContain(
+      'Discard your edited text?',
+    )
+    expect(document.activeElement).toBe(button('Keep editing'))
+    button('Keep editing')!.click()
+    await settle()
+    expect(boxes()[0]!.value).toBe('Tomas came in the evening.')
+    esc()
+    await settle()
+    button('Discard')!.click()
+    await settle()
+    expect(closed).toHaveBeenCalled()
+    expect(state.accept).not.toHaveBeenCalled()
+  })
+
+  it('a suggestion that goes while the author edits it stays open with their text, to copy', async () => {
+    const { closed } = await open(EDIT)
+    button('Edit')!.click()
+    await settle()
+    await type(boxes()[0]!, 'Tomas came in the evening.')
+    state.all.value = [] // replaced by a revision, or cleared on another device
+    await settle()
+    expect(closed).not.toHaveBeenCalled()
+    expect(boxes()[0]!.value).toBe('Tomas came in the evening.')
+    expect(boxes()[0]!.readOnly).toBe(true)
+    expect(body().textContent).toContain('This suggestion changed while you were editing it')
+    expect(button('Accept my text')).toBeUndefined()
+    button('Discard my text')!.click()
+    await settle()
+    expect(closed).toHaveBeenCalled()
+  })
+
+  it('an edited suggestion the author accepts closes as usual: nothing is held', async () => {
+    const { closed } = await open(EDIT)
+    button('Edit')!.click()
+    await settle()
+    await type(boxes()[0]!, 'Tomas came in the evening.')
+    state.accept.mockImplementationOnce(async () => {
+      state.all.value = []
+    })
+    button('Accept my text')!.click()
+    await settle()
+    expect(closed).toHaveBeenCalled()
   })
 
   it('closes itself once the suggestion is gone', async () => {

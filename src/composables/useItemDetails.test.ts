@@ -171,4 +171,25 @@ describe('the details of a scene, a chapter and a book', () => {
     expect((r.session.data.books[0] as Record<string, unknown>).website).toBe('javascript:alert(1)')
     expect(d.websiteHref.value).toBeUndefined()
   })
+
+  it('a website, logo or cover of the wrong kind in book.json reads as none, and a save keeps it', async () => {
+    const r = await storyRig()
+    await r.session.setFields(r.book, { website: 42, logo: { id: 'x' }, cover: 'chr_8f3k2m9q1x' })
+    const d = inComponent(() => useItemDetails('book', () => r.book))
+    expect([d.item.value!.website, d.item.value!.logo, d.item.value!.cover]).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ])
+    expect(d.draft.website).toBe('')
+    d.draft.title = 'Renamed'
+    await d.saveTitle()
+    await r.session.flush()
+    expect(r.session.data.books[0]).toMatchObject({
+      title: 'Renamed',
+      website: 42,
+      logo: { id: 'x' },
+      cover: 'chr_8f3k2m9q1x',
+    })
+  })
 })

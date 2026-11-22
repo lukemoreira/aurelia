@@ -35,6 +35,29 @@ describe('ChatMarkdown', () => {
     expect(w.text()).not.toContain('###')
   })
 
+  it('draws a heading small, as a heading under the panel’s own, and wraps a long word', () => {
+    const w = render('## Plan\n\nhttps://example.com/a-very-long-address-with-no-spaces-at-all')
+    expect(w.find('h4').text()).toBe('Plan')
+    expect(w.find('h4').classes()).toContain('text-[13px]')
+    expect(w.classes()).toContain('[overflow-wrap:anywhere]')
+  })
+
+  it('a wide table or code block scrolls in a named region the keyboard can reach', () => {
+    const w = render('```\ncode\n```\n\n| h1 | h2 |\n|---|---|\n| 1 | 2 |')
+    const regions = w.findAll('[role="region"]')
+    expect(
+      regions.map((r) => [r.element.tagName, r.attributes('aria-label'), r.attributes('tabindex')]),
+    ).toEqual([
+      ['PRE', 'Code', '0'],
+      ['DIV', 'Table', '0'],
+    ])
+  })
+
+  it('a code block still open while the reply streams is code up to the end, nothing after it is lost', () => {
+    const w = render('Try this:\n\n```js\nlet a = 1\n\nlet b')
+    expect(w.find('pre code').text()).toBe('let a = 1\n\nlet b')
+  })
+
   it('keeps single line breaks', () => {
     expect(render('a\nb').findAll('br')).toHaveLength(1)
   })

@@ -246,9 +246,12 @@ describe('a suggested record delete', () => {
 
 describe('a change that changes nothing', () => {
   const c = (before: string, after: string, block = 'b0-1') => ({ block, before, after })
-  it('reads the same words as before: spacing alone is no change; an addition at the end always is one', () => {
+  it('reads exactly as before; a change of spacing alone is a change; an addition at the end always is one', () => {
     expect(isNoOp(c('One two.', 'One two.'))).toBe(true)
-    expect(isNoOp(c('One two.', ' One  two.\n'))).toBe(true)
+    // A paragraph split, verse line breaks, a Markdown hard break: Accept writes them, so they are shown.
+    expect(isNoOp(c('One two.', 'One\n\ntwo.'))).toBe(false)
+    expect(isNoOp(c('One two.', 'One\ntwo.'))).toBe(false)
+    expect(isNoOp(c('One  \ntwo.', 'One\ntwo.'))).toBe(false)
     expect(isNoOp(c('One two.', 'One too.'))).toBe(false)
     expect(isNoOp(c('One two.', ''))).toBe(false)
     expect(isNoOp(c('', 'One two.', 'end'))).toBe(false)
@@ -262,10 +265,15 @@ describe('the author’s own text for a suggestion', () => {
     { block: 'b1-2', before: 'Two.', after: '', occurrence: 0, copies: 1 },
   ]
   it('replaces only the after text and keeps the anchors', () => {
-    expect(authorChanges(changes, [' Eins.\n', ''])).toEqual([
+    expect(authorChanges(changes, ['Eins.\n', ''])).toEqual([
       { ...changes[0], after: 'Eins.' },
       changes[1],
     ])
+  })
+  it('keeps the author’s indentation: only blank lines before and spaces after go', () => {
+    expect(authorChanges(changes, ['\n  Eins,\n    zwei.  \n', ''])![0]!.after).toBe(
+      '  Eins,\n    zwei.',
+    )
   })
   it('refuses a missing text, and an empty one where the suggestion did not remove the block', () => {
     expect(authorChanges(changes, ['x'])).toBeNull()
