@@ -62,41 +62,11 @@ const words = (text: string) => {
   return w.slice(0, 6).join(' ') + (w.length > 6 ? '…' : '')
 }
 
-/** What a suggestion's button says: the same words lead its accessible name. */
-const chipWords = (item: InTextSuggestion) =>
-  item.outOfDate ? 'Suggestion · out of date' : 'Suggestion'
-
-/**
- * One suggestion's button. Plain DOM: it needs nothing but the click. Only a suggestion's first button is a
- * Tab stop.
- */
-function button(
-  item: InTextSuggestion,
-  change: number | null,
-  text: string,
-  first: boolean,
-  open: (id: string, change: number, pos: number | null) => void,
-  pos: number | null,
-) {
-  const b = document.createElement('button')
-  b.type = 'button'
-  b.className = `suggestion-chip${item.outOfDate ? ' is-stale' : ''}`
-  b.dataset.suggestion = item.id
-  if (change !== null) b.dataset.change = String(change)
-  if (!first) b.tabIndex = -1
-  const what = item.outOfDate ? 'Suggestion · out of date — show it' : 'Show the suggestion'
-  b.setAttribute(
-    'aria-label',
-    change === null ? `${what} for this scene` : `${what} for this paragraph: “${words(text)}”`,
-  )
-  b.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons.spark}"/></svg>`
-  b.append(chipWords(item))
-  b.addEventListener('click', () => {
-    b.focus() // some browsers do not focus a button on click: the popup gives focus back to it
-    open(item.id, change ?? 0, pos)
-  })
-  return b
-}
+/** One suggestion that a button stands for, and the change whose paragraph it is (0 for the scene's own button). */
+export type SuggestionHit = { id: string; change: number }
+type Open = (hits: SuggestionHit[], pos: number | null) => void
+/** What the popup shows: the suggestions of the button used, and where its paragraph starts (null: the scene's end). */
+export type SuggestionTarget = { hits: SuggestionHit[]; pos: number | null }
 
 interface Chip {
   item: InTextSuggestion
@@ -105,28 +75,62 @@ interface Chip {
   first: boolean
 }
 
+/** What a button says: "Suggestion", or the count when several suggestions change the paragraph. */
+const chipWords = (list: Chip[]) => {
+  const stale = list.every((c) => c.item.outOfDate)
+  const n = list.length
+  return `${n > 1 ? `${n} suggestions` : 'Suggestion'}${stale ? ' · out of date' : ''}`
+}
+
 /**
- * A paragraph's anchor (a span drawn on its frame) holding the buttons of every suggestion that frames it,
- * side by side; or the scene's row at its end (one suggestion's button).
+ * ONE button for a framed paragraph (or for the scene's end): it stands for every suggestion that changes
+ * it. Plain DOM: it needs nothing but the click. It is a Tab stop when it is some suggestion's first
+ * button, so every suggestion is reached by Tab exactly once.
  */
-function chips(
-  list: Chip[],
-  open: (id: string, change: number, pos: number | null) => void,
-  pos: number | null,
-) {
+function button(list: Chip[], open: Open, pos: number | null) {
+  const n = list.length
+  const stale = list.every((c) => c.item.outOfDate)
+  const b = document.createElement('button')
+  b.type = 'button'
+  b.className = `suggestion-chip${stale ? ' is-stale' : ''}`
+  b.dataset.hits = list.map((c) => `${c.item.id}:${c.change ?? 0}`).join(' ')
+  if (!list.some((c) => c.first)) b.tabIndex = -1
+  const what = stale
+    ? `${chipWords(list)} — show ${n > 1 ? 'them' : 'it'}`
+    : `Show ${n > 1 ? `${n} suggestions` : 'the suggestion'}`
+  b.setAttribute(
+    'aria-label',
+    pos === null
+      ? `${what} for this scene`
+      : `${what} for this paragraph: “${words(list[0]!.text)}”`,
+  )
+  b.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${icons.spark}"/></svg>`
+  b.append(chipWords(list))
+  b.addEventListener('click', () => {
+    b.focus() // some browsers do not focus a button on click: the popup gives focus back to it
+    open(
+      list.map((c) => ({ id: c.item.id, change: c.change ?? 0 })),
+      pos,
+    )
+  })
+  return b
+}
+
+/** A paragraph's anchor (a span drawn on its frame) holding its button; or the scene's row at its end. */
+function chips(list: Chip[], open: Open, pos: number | null) {
   const end = pos === null
   const row = document.createElement(end ? 'div' : 'span')
   row.className = end ? 'suggestion-chip-row' : 'suggestion-chip-anchor'
   row.contentEditable = 'false'
-  row.append(...list.map((c) => button(c.item, c.change, c.text, c.first, open, pos)))
+  row.append(button(list, open, pos))
   return row
 }
 
 /**
- * `open` is called with the suggestion's id, the number of the change whose paragraph's button was used,
- * and where that paragraph starts in the document (null for the scene's own button).
+ * `open` is called with the suggestions the used button stands for (each with the number of the change on
+ * its paragraph) and where that paragraph starts in the document (null for the scene's own button).
  */
-export function createSuggestions(open: (id: string, change: number, pos: number | null) => void) {
+export function createSuggestions(open: Open) {
   // A paragraph's buttons go inside it, before its first character (`side: -1`: typed text lands after
   // them); a block with no text of its own (a scene break, a table, a list) has them just before it, outside
   // anything that clips. Only events on a button are its own.
@@ -147,11 +151,11 @@ export function createSuggestions(open: (id: string, change: number, pos: number
           decorations(state) {
             const placed = placeSuggestions(state.doc, key.getState(state) ?? [])
             const byBlock = new Map<number, { inside: boolean; chips: Chip[] }>()
-            const ends: Decoration[] = []
+            const end: Chip[] = []
             const nodes: Decoration[] = []
-            for (const { item, marks, end } of placed) {
+            for (const { item, marks } of placed) {
               if (!marks.length) {
-                ends.push(widget([{ item, change: null, text: '', first: true }], end, null, 1))
+                end.push({ item, change: null, text: '', first: true })
                 continue
               }
               marks.forEach((m, i) => {
@@ -168,6 +172,7 @@ export function createSuggestions(open: (id: string, change: number, pos: number
             const anchors = [...byBlock].map(([from, b]) =>
               widget(b.chips, b.inside ? from + 1 : from, from, -1),
             )
+            const ends = end.length ? [widget(end, state.doc.content.size, null, 1)] : []
             return DecorationSet.create(state.doc, [...nodes, ...anchors, ...ends])
           },
         },

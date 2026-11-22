@@ -9,7 +9,12 @@ import { useProposals } from '@/composables/useProposals'
 import { useReadAloud } from '@/composables/useReadAloud'
 import { isNoOp } from '@/domain/proposals'
 import { createLinks, focusFound, focusName, refreshLinks } from '@/editor/links'
-import { caretNear, createSuggestions, setSuggestions } from '@/editor/suggestions'
+import {
+  caretNear,
+  createSuggestions,
+  setSuggestions,
+  type SuggestionTarget,
+} from '@/editor/suggestions'
 import { useEditorStore } from '@/stores/editor'
 import { useLayoutStore } from '@/stores/layout'
 import { useReviewStore } from '@/stores/review'
@@ -61,7 +66,7 @@ link.onCardFocus(() => card.value?.focus() ?? false)
 
 // The assistant's suggestions for this scene: a frame and a button on each paragraph they change, opening
 // the suggestion in a popup (a scene only, not a record's notes).
-const suggestion = ref<{ id: string; change: number; pos: number | null } | null>(null)
+const suggestion = ref<SuggestionTarget | null>(null)
 const inScene = props.docId && props.variant === 'scene'
 
 // Named "Scene text" and by the scene's own title (it points at itself for the first part).
@@ -73,9 +78,7 @@ const { editor, tick, pending } = useManuscriptEditor({
   onEdit: (body) => emit('edit', body),
   extensions: [
     ...(props.docId ? [createLinks(link.env)] : []),
-    ...(inScene
-      ? [createSuggestions((id, change, pos) => (suggestion.value = { id, change, pos }))]
-      : []),
+    ...(inScene ? [createSuggestions((hits, pos) => (suggestion.value = { hits, pos }))] : []),
   ],
   attributes: () => ({
     id: props.inputId,
@@ -123,11 +126,12 @@ if (inScene) {
 
 /**
  * The popup closed and the button that opened it is gone (accepted, dismissed): its paragraph's button
- * again when it was only drawn anew, else the text, at the paragraph that was changed.
+ * again when it was only drawn anew (or still stands for another suggestion), else the text, at the
+ * paragraph that was changed.
  */
-function refocus(at: { id: string; change: number; pos: number | null }) {
-  const again = editor.view.dom.querySelector<HTMLElement>(
-    `button.suggestion-chip[data-suggestion="${at.id}"][data-change="${at.change}"]`,
+function refocus(at: SuggestionTarget) {
+  const again = [...editor.view.dom.querySelectorAll<HTMLElement>('button.suggestion-chip')].find(
+    (b) => at.hits.some((h) => b.dataset.hits?.split(' ').includes(`${h.id}:${h.change}`)),
   )
   if (again) return again.focus()
   const sel = caretNear(editor.state.doc, at.pos)
