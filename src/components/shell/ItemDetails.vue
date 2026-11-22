@@ -3,6 +3,7 @@
 import { computed } from 'vue'
 import ArcPicker from '@/components/plan/ArcPicker.vue'
 import ChoiceEditor from '@/components/story/ChoiceEditor.vue'
+import BookArt from './BookArt.vue'
 import Field from '@/components/ui/Field.vue'
 import Input from '@/components/ui/Input.vue'
 import Select from '@/components/ui/Select.vue'
@@ -98,6 +99,42 @@ const text = [
         @change="d.saveGoal()"
       />
     </Field>
+    <Field v-if="has('website')" label="Website">
+      <Input
+        v-model="d.draft.website"
+        inputmode="url"
+        placeholder="example.com"
+        :disabled="d.readOnly.value"
+        autocomplete="off"
+        @change="d.saveWebsite()"
+      />
+      <a
+        v-if="d.websiteHref.value"
+        :href="d.websiteHref.value"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="w-fit rounded-sm text-xs text-ink-2 underline underline-offset-2 hover:text-ink"
+        >Open {{ d.item.value.website?.trim() }}</a
+      >
+    </Field>
+    <div v-if="has('art')" class="flex flex-wrap items-start gap-6">
+      <BookArt
+        kind="cover"
+        :title="d.item.value.title"
+        :image="d.item.value.cover"
+        :editable="!d.readOnly.value"
+        @choose="d.setArt('cover', $event)"
+        @clear="d.setArt('cover', undefined)"
+      />
+      <BookArt
+        kind="logo"
+        :title="d.item.value.title"
+        :image="d.item.value.logo"
+        :editable="!d.readOnly.value"
+        @choose="d.setArt('logo', $event)"
+        @clear="d.setArt('logo', undefined)"
+      />
+    </div>
     <Field v-if="has('arcs')" :label="kind === 'scene' ? 'Arcs advanced' : 'Arcs'">
       <ArcPicker
         v-model="d.arcs.value"

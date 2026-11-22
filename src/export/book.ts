@@ -3,6 +3,7 @@
 // and, wherever a scene has choices, the "Choices" list at its end (ADR-0004 point 10, ADR-0014).
 import { bookOutline } from '@/domain/outline'
 import type { WorkspaceData } from '@/domain/workspace-data'
+import type { ExportCover } from './cover'
 import { plainMarkdown, sceneBlocks, xmlSafe, type Block, type NameOf, type Note } from './blocks'
 import { validLanguage, type ExportProfile } from './profile'
 
@@ -40,6 +41,8 @@ export interface ExportBook {
   author: string
   language: string
   chapters: ExportChapter[]
+  /** The book's cover art, when it has one that could be read. */
+  cover?: ExportCover
   /** The book has parts: part, chapter and scene headings are one level deeper. */
   hasParts: boolean
 }

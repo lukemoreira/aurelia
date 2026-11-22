@@ -189,6 +189,7 @@ Every feature has a golden round-trip test.
 - Backup, restore and sync carry an image as bytes (`isMediaBinary` in `storage/paths.ts`, also for its
   copy in the trash); any other file that is not text is still left alone by sync.
 - `book.json` may carry `notNames` (ADR-0010).
+- `book.json` may carry `website` (text), `logo` and `cover` (media IDs, like a record's `image`) (2026-11-21); ADR-0014 says how the cover is exported.
 
 ## As built (M7a): snapshots
 

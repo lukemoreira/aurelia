@@ -158,3 +158,8 @@ writing in (from another tool, an old folder, a Twine story). Both must be safe 
 - The golden files in `tests/golden/export/` are the contract for the DOCX and EPUB writers. `UPDATE_GOLDEN=1
   npx vitest run src/export` writes them again after a deliberate change.
 - A new part of the dialect gets a block in `blocks.ts` and a case in each writer, or it is kept as text.
+- 2026-11-21: a book's **cover art** (`book.json` `cover`, an image of the media gallery) is the EPUB's cover
+  (manifest item `cover-image`, the EPUB 2 `<meta name="cover">`, a cover page first in the spine; an AVIF is left out,
+  it is no EPUB image type) and the first page of the print view. DOCX and the Markdown bundle do not carry it. It is read
+  once before the export (`readCover`); an image that is deleted, missing or unreadable means an export with no cover,
+  byte for byte the export there was.
