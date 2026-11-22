@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import type { OutlineChapter } from '@/domain/outline'
 import { bookOutline, bookUnfiled, bookWords, formatWords, outlineScenes } from '@/domain/outline'
+import { baseOf } from '@/domain/story-base'
 import { LIBRARY_GROUPS } from '@/domain/record-types'
 import type { SceneDoc, WorkspaceData } from '@/domain/workspace-data'
 import { fold } from '@/index/palette-search'
@@ -111,13 +112,13 @@ export function useNavigatorTree() {
       .flatMap((id): TreeNode[] => {
         const book = data.books.find((b) => b.id === id)
         if (!book) return []
-        const genre = (book as { genre?: unknown }).genre
+        const genre = baseOf(book).genre.trim() || (book as { genre?: unknown }).genre
         return [
           {
             id,
             label: book.title,
             icon: 'book',
-            ...(typeof genre === 'string' ? { meta: genre } : {}),
+            ...(typeof genre === 'string' && genre ? { meta: genre } : {}),
           },
         ]
       })

@@ -201,6 +201,8 @@ describe('asking', () => {
     )
     expect(SYSTEM_PROMPT).toMatch(/First, on every question, read the story base/)
     expect(SYSTEM_PROMPT).toMatch(/ONE short question per reply/)
+    expect(SYSTEM_PROMPT).toMatch(/genre, subject area, audience, planned volumes, intentions/)
+    expect(SYSTEM_PROMPT).toMatch(/propose Notes only when the author asks/)
   })
 
   it('takes one question at a time per person, and refuses a folder that is not a workspace', async () => {

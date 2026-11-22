@@ -51,8 +51,9 @@ async function send() {
         </h3>
         <div v-if="ws.bookId && !a.turns.value.length" class="flex flex-col gap-1.5">
           <p v-if="base.empty.value" class="m-0 text-[12.5px] text-ink-2">
-            This book has no story base yet: its objectives, world and history, main narrative and
-            main characters. The assistant can set it up with you, one short question at a time.
+            This book has no story base yet: its genre, subject area, audience, intentions,
+            objectives, world and history, main narrative and main characters. The assistant can set
+            it up with you, one short question at a time.
           </p>
           <Button size="sm" :disabled="a.busy.value" @click="a.guidedStart()"
             ><Icon name="spark" :size="14" />Set up the story base with the assistant</Button

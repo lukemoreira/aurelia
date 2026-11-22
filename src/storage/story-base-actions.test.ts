@@ -18,10 +18,14 @@ beforeEach(async () => {
 })
 
 const bookOf = (s: WorkspaceSession) => s.data.books[0]!
-const base = (s: WorkspaceSession) => baseOf(bookOf(s))
+/** The three original sections (the new ones read '' unless a test writes them). */
+const base = (s: WorkspaceSession) => {
+  const { objectives, world, narrative } = baseOf(bookOf(s))
+  return { objectives, world, narrative }
+}
 /** The author types a section, starting from what it reads now. */
 const type = (s: WorkspaceSession, key: BaseSection, text: string) =>
-  setBaseSection(s, bookOf(s).id, key, text, base(s)[key])
+  setBaseSection(s, bookOf(s).id, key, text, baseOf(bookOf(s))[key])
 
 async function write<P extends Proposal>(s: WorkspaceSession, p: P): Promise<P> {
   await s.adapter.write(proposalPath(p.id), JSON.stringify(p))
@@ -80,6 +84,22 @@ describe('the story base by hand', () => {
     await type(s, 'narrative', 'Tomas finds the ledger.')
     const again = await rig.open()
     expect(baseOf(again.data.books[0]).narrative).toBe('Tomas finds the ledger.')
+  })
+})
+
+describe('the book details sections', () => {
+  it('are saved as text in the story base beside the other sections, and read again from the files', async () => {
+    const s = rig.session
+    const path = s.pathOf(bookOf(s).id)!
+    await type(s, 'genre', 'Military history')
+    await type(s, 'volumes', '3, maybe 4')
+    await type(s, 'world', 'A port.')
+    expect(JSON.parse((await rig.adapter.read(path))!.text).storyBase).toEqual({
+      genre: 'Military history',
+      volumes: '3, maybe 4',
+      world: 'A port.',
+    })
+    expect(baseOf((await rig.open()).data.books[0]).volumes).toBe('3, maybe 4')
   })
 })
 

@@ -221,6 +221,8 @@ describe('the story base (ADR-0016)', () => {
     expect(read.data.match(/<\/story-data>/g)).toHaveLength(1) // the injection cannot close the fence
     expect(read.data).toContain('## World and history (world)\nA port city.')
     expect(read.data).toContain('## Objectives (objectives)\n(not written yet)')
+    for (const key of ['genre', 'subject', 'audience', 'volumes', 'intentions', 'notes'])
+      expect(read.data).toContain(`(${key})\n(not written yet)`)
     expect(read.data).toContain('- chr_abcdefghjk: Tomas Brandt — role: Protagonist')
     expect((await run(ctx, 'get_story_base', { bookId: 'bok_nope' })).error).toBe(true)
   })
@@ -238,6 +240,8 @@ describe('the story base (ADR-0016)', () => {
       why: 'From your answers.',
       objectives: ' A mystery for adults. ',
       world: 'Two islands.',
+      volumes: '3',
+      notes: 'Check dates',
     })
     expect(r.label).toBe(`Suggested the story base of “${book.title}”`)
     const [p] = await proposalsIn()
@@ -247,6 +251,8 @@ describe('the story base (ADR-0016)', () => {
       sections: {
         objectives: { before: '', after: 'A mystery for adults.' },
         world: { before: 'An island.', after: 'Two islands.' },
+        volumes: { before: '', after: '3' },
+        notes: { before: '', after: 'Check dates' },
       },
     })
     expect(p!.kind === 'base' && p!.sections.narrative).toBeUndefined()

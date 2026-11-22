@@ -257,7 +257,7 @@ export const TOOLS = {
 
   get_story_base: {
     description:
-      'The story base of a book: its objectives (audience, genre, tone, length, themes), its world and history outline, its main narrative, and its main characters (the Character records of its world). It grounds the book’s lore: read it first, before answering anything about a book.',
+      'The story base of a book: its genre, subject area, audience, planned volumes, intentions, objectives, world and history outline, main narrative and the author’s notes, and its main characters (the Character records of its world). It grounds the book’s lore: read it first, before answering anything about a book.',
     input: { bookId: z.string() },
     run: (ctx: ToolContext, a: { bookId: string }): ToolResult => {
       const { data } = ctx.ws
@@ -292,16 +292,13 @@ export const TOOLS = {
   },
 
   propose_story_base: {
-    description:
-      'Suggest the text of one or more sections of a book’s story base (objectives, world, narrative): each is the whole new text of that section. It becomes a proposal the author reviews; nothing changes until they accept it.',
+    description: `Suggest the text of one or more sections of a book’s story base (${BASE_SECTIONS.map((s) => s.key).join(', ')}): each is the whole new text of that section. Notes are the author’s own: suggest them only when the author asks. It becomes a proposal the author reviews; nothing changes until they accept it.`,
     input: {
       bookId: z.string(),
       why: z.string().min(1).max(2000),
-      objectives: sectionText.optional().describe('Audience, genre, tone, length, themes.'),
-      world: sectionText.optional().describe('The world and its history, in outline.'),
-      narrative: sectionText
-        .optional()
-        .describe('The premise, the main arc, and where the ending goes.'),
+      ...Object.fromEntries(
+        BASE_SECTIONS.map((s) => [s.key, sectionText.optional().describe(s.hint)]),
+      ),
       replaces,
     },
     run: async (

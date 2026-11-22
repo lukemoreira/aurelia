@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Proposal } from '@/domain/proposals'
 import type { Backlink } from '@/index/types'
-import { deleteWords, outOfDateWords, targetOf } from './proposal-view'
+import { deleteWords, diffsOf, outOfDateWords, targetOf } from './proposal-view'
 
 const common = {
   schemaVersion: 1 as const,
@@ -32,6 +32,22 @@ describe('why a suggestion is out of date', () => {
       sections: { world: { before: '', after: 'W' } },
     }
     expect(outOfDateWords(base)).toContain('the text changed after this was suggested')
+  })
+
+  it('shows a suggested new story-base section under its own label', () => {
+    expect(
+      diffsOf({
+        ...common,
+        kind: 'base',
+        bookId: 'bok_abcdefghjk',
+        bookTitle: 'B',
+        sections: {
+          subject: { before: '', after: 'Naval warfare' },
+          volumes: { before: '', after: '3' },
+          notes: { before: '', after: 'Check dates' },
+        },
+      }).map((d) => d.label),
+    ).toEqual(['Subject area', 'Planned volumes', 'Notes'])
   })
 })
 

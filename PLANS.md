@@ -890,3 +890,12 @@ backup — ADR-0009.)
   text; a record's own notes name it; a place whose new name is another record's name (a title, an alias, or a
   short form the new title does not give) is unticked with a warning, except a link's label; "1 place was left
   as it is" replaces "These 1 place were".
+- 2026-11-21 — Book details (branch `feat/book-details`; owner: "more details on each book: genre, audience, planned
+  volumes, intentions, notes", then subject area): added as sections of the story base (ADR-0016, amended), so
+  they reuse its save-on-leave and "changed on another device" check, snapshots, sync, `get_story_base` and
+  `propose_story_base` proposals. `BASE_SECTIONS` is now genre, subject area, audience, planned volumes (the
+  first four one-line, `short: true`), intentions, objectives, world and history, main narrative, notes;
+  `baseOf`, the proposal schema, the tool inputs and the Review card all read the list, so no key is spelled
+  twice. Old books with the three original keys read as before, unknown keys are kept. The book list shows
+  `storyBase.genre`, falling back to the old top-level `genre`. The guided start asks the basics first, then
+  objectives, world, narrative, characters; Notes are proposed only when the author asks.

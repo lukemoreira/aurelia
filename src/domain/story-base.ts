@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// The story base of a book (ADR-0016): its objectives, world and history, and main narrative, kept in
+// The story base of a book (ADR-0016): its genre, subject area, audience, planned volumes, intentions, objectives, world and history, main narrative and notes, kept in
 // `book.json` as `storyBase`; its main characters are the universe's Character records. The assistant
 // reads it first on every question. Plain TS: the app and the assistant server (Node) share it.
 import type { Book } from './schema/book'
@@ -8,16 +8,49 @@ import type { WorkspaceData } from './workspace-data'
 
 export const BASE_SECTIONS = [
   {
+    key: 'genre',
+    label: 'Genre',
+    hint: 'For example: military history, fantasy, romance',
+    short: true,
+  },
+  {
+    key: 'subject',
+    label: 'Subject area',
+    hint: 'The field the book covers, for example WWII naval warfare',
+    short: true,
+  },
+  { key: 'audience', label: 'Audience', hint: 'Who the book is for', short: true },
+  {
+    key: 'volumes',
+    label: 'Planned volumes',
+    hint: 'How many books the series should have, for example 3',
+    short: true,
+  },
+  {
+    key: 'intentions',
+    label: 'Intentions',
+    hint: 'Why you write this book: what you want to say or achieve',
+    short: false,
+  },
+  {
     key: 'objectives',
     label: 'Objectives',
-    hint: 'What the book should do: audience, genre, tone, length, themes',
+    hint: 'What the book should do: tone, length, themes',
+    short: false,
   },
-  { key: 'world', label: 'World and history', hint: 'The world and its history, in outline' },
+  {
+    key: 'world',
+    label: 'World and history',
+    hint: 'The world and its history, in outline',
+    short: false,
+  },
   {
     key: 'narrative',
     label: 'Main narrative',
     hint: 'The premise, the main arc, and where the ending goes',
+    short: false,
   },
+  { key: 'notes', label: 'Notes', hint: 'Anything else to keep in mind', short: false },
 ] as const
 export type BaseSection = (typeof BASE_SECTIONS)[number]['key']
 export type StoryBase = Partial<Record<BaseSection, string>>
@@ -40,12 +73,12 @@ export type CharacterField = (typeof CHARACTER_FIELDS)[number]
 /** A section that is not text (written elsewhere) reads as its JSON, so replacing it counts as replacing. */
 const textOf = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : JSON.stringify(v))
 
-/** The base as it stands: only the three sections, each a string ('' when not written). */
-export const baseOf = (book: Pick<Book, 'storyBase'> | undefined): Record<BaseSection, string> => ({
-  objectives: textOf(book?.storyBase?.objectives),
-  world: textOf(book?.storyBase?.world),
-  narrative: textOf(book?.storyBase?.narrative),
-})
+/** The base as it stands: only the known sections, each a string ('' when not written). */
+export const baseOf = (book: Pick<Book, 'storyBase'> | undefined) =>
+  Object.fromEntries(BASE_SECTIONS.map((s) => [s.key, textOf(book?.storyBase?.[s.key])])) as Record<
+    BaseSection,
+    string
+  >
 
 /** The universe a book is in (a universe lists its books). */
 export const universeOfBook = (data: WorkspaceData, bookId: string) =>

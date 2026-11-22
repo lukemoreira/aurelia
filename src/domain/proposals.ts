@@ -5,7 +5,7 @@
 import { z } from 'zod'
 import { RECORD_INFO } from './record-types'
 import { RECORD_TYPES } from './schema/record'
-import { CHARACTER_FIELDS, type BaseSection, type StoryBase } from './story-base'
+import { BASE_SECTIONS, CHARACTER_FIELDS, type BaseSection, type StoryBase } from './story-base'
 import type { RecordDoc } from './workspace-data'
 
 export const PROPOSALS_DIR = '.aurelia/proposals'
@@ -121,11 +121,12 @@ export const proposalSchema = z.discriminatedUnion('kind', [
     /** Sections of a book's story base (ADR-0016), each with the text it had when proposed. */
     bookId: z.string(),
     bookTitle: z.string(),
-    sections: z.object({
-      objectives: section.optional(),
-      world: section.optional(),
-      narrative: section.optional(),
-    }),
+    sections: z.object(
+      Object.fromEntries(BASE_SECTIONS.map((s) => [s.key, section.optional()])) as Record<
+        BaseSection,
+        z.ZodOptional<typeof section>
+      >,
+    ),
   }),
   z.object({
     ...common,
