@@ -9,6 +9,7 @@ import { useAssistant } from '@/composables/useAssistant'
 import { useStoryBase } from '@/composables/useStoryBase'
 import { useLayoutStore } from '@/stores/layout'
 import { useWorkspaceStore } from '@/stores/workspace'
+import ChatMarkdown from './ChatMarkdown'
 import ConnectClaude from './ConnectClaude.vue'
 import ReviewInbox from './ReviewInbox.vue'
 
@@ -76,9 +77,7 @@ async function send() {
                   <Icon name="check" :size="12" />{{ tool }}
                 </li>
               </ul>
-              <p v-if="t.text" class="m-0 whitespace-pre-wrap text-[13px] leading-relaxed">
-                {{ t.text }}
-              </p>
+              <ChatMarkdown v-if="t.text" :text="t.text" />
               <p v-if="t.error" role="alert" class="m-0 text-[12.5px] text-danger">{{ t.error }}</p>
               <p
                 v-if="a.busy.value && i === a.turns.value.length - 1 && !t.text"
