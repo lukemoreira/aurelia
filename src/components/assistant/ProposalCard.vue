@@ -47,6 +47,8 @@ const root = ref<HTMLElement>()
 const editing = ref(false)
 /** The author's text for each change of the proposal, in order (only the changed ones are shown). */
 const drafts = ref<string[]>([])
+/** Cancel was pressed on an out-of-date card whose edited text would be lost: asking first. */
+const discarding = ref(false)
 const firstDraft = ref<{ $el: HTMLTextAreaElement }[]>([])
 
 const target = computed(() => targetOf(props.proposal))
@@ -67,6 +69,11 @@ async function openEdit() {
   editing.value = true
   await nextTick()
   firstDraft.value[0]?.$el.focus()
+}
+/** An out-of-date card cannot be accepted, so Cancel would only throw the author's text away: ask first. */
+function cancelEdit() {
+  if (props.outOfDate && dirty.value) discarding.value = true
+  else editing.value = false
 }
 const approve = () => emit('accept', editing.value ? [...drafts.value] : undefined)
 
@@ -131,7 +138,7 @@ function sendAsk() {
             <Textarea
               :ref="(el) => (firstDraft[i] = el as never)"
               v-model="drafts[d.change]"
-              :readonly="gone"
+              :readonly="gone || outOfDate"
             />
           </Field>
         </template>
@@ -152,11 +159,17 @@ function sendAsk() {
     </p>
     <p v-else-if="outOfDate" class="m-0 text-[12.5px] font-medium text-warn" role="note">
       {{ outOfDateWords(proposal) }}
+      <template v-if="editing">Your text is kept above: copy what you need.</template>
     </p>
     <div v-if="gone" class="flex flex-wrap gap-1.5">
       <Button size="sm" @click="emit('discard')"
         ><Icon name="close" :size="14" />Discard my text</Button
       >
+    </div>
+    <div v-else-if="discarding" role="alert" class="flex flex-wrap items-center gap-2">
+      <p class="m-0 mr-auto text-[13px] font-medium text-ink">Discard your edited text?</p>
+      <Button size="sm" @click="((editing = false), (discarding = false))">Discard my text</Button>
+      <Button size="sm" variant="primary" @click="discarding = false">Keep editing</Button>
     </div>
     <div v-else role="toolbar" :aria-label="`Suggestion: ${target}`" class="flex flex-wrap gap-1.5">
       <Button
@@ -169,7 +182,7 @@ function sendAsk() {
         ><Icon name="check" :size="14" />{{ editing ? 'Accept my text' : 'Accept' }}</Button
       >
       <template v-if="editing">
-        <Button size="sm" variant="quiet" :disabled="busy" @click="editing = false">Cancel</Button>
+        <Button size="sm" variant="quiet" :disabled="busy" @click="cancelEdit">Cancel</Button>
       </template>
       <template v-else>
         <Button v-if="canEdit" size="sm" :disabled="busy" @click="openEdit"

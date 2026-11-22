@@ -12,6 +12,7 @@ import { createLinks, focusFound, focusName, refreshLinks } from '@/editor/links
 import {
   caretNear,
   createSuggestions,
+  findChip,
   setSuggestions,
   type SuggestionTarget,
 } from '@/editor/suggestions'
@@ -130,9 +131,7 @@ if (inScene) {
  * paragraph that was changed.
  */
 function refocus(at: SuggestionTarget) {
-  const again = [...editor.view.dom.querySelectorAll<HTMLElement>('button.suggestion-chip')].find(
-    (b) => at.hits.some((h) => b.dataset.hits?.split(' ').includes(`${h.id}:${h.change}`)),
-  )
+  const again = findChip(editor.view.dom, at)
   if (again) return again.focus()
   const sel = caretNear(editor.state.doc, at.pos)
   editor.chain().setTextSelection({ from: sel.from, to: sel.to }).focus().run()

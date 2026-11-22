@@ -25,10 +25,10 @@ const asked = reactive(new Set<string>())
 /** The cards that hold the author's unsaved text. */
 const dirty = reactive(new Set<string>())
 const cards = computed(() =>
-  (props.target?.hits ?? []).flatMap((hit, i) => {
+  (props.target?.hits ?? []).flatMap((hit) => {
     const proposal =
       p.all.value.find((x) => x.id === hit.id) ?? drafts.held.value.find((x) => x.id === hit.id)
-    return proposal && !asked.has(hit.id) ? [{ hit, proposal, n: i + 1 }] : []
+    return proposal && !asked.has(hit.id) ? [{ hit, proposal }] : []
   }),
 )
 /** Edited text on a card still shown (an accepted one's is no longer at risk). */
@@ -58,6 +58,24 @@ const open = computed({
     keep.value?.$el.focus()
   },
 })
+// A card that leaves while others stay: focus goes to the next one's first button (the previous, if it was last).
+watch(
+  () => cards.value.map((c) => c.proposal.id),
+  async (now, before) => {
+    if (!now.length || now.length >= before.length) return
+    const next =
+      now[
+        Math.min(
+          before.findIndex((id) => !now.includes(id)),
+          now.length - 1,
+        )
+      ]
+    await nextTick()
+    document.querySelector<HTMLElement>(`[data-proposal="${next}"] button:not(:disabled)`)?.focus()
+  },
+)
+// Nothing unsaved any more (discarded, accepted, gone): the question has no point.
+watch(unsaved, (u) => !u && (confirming.value = false))
 // Accepted, dismissed or replaced meanwhile, with no edited text to keep: nothing left to show.
 watch(
   () => cards.value.length,
@@ -78,7 +96,6 @@ function ask(proposal: Parameters<typeof p.askChanges>[0], note: string) {
   asked.add(proposal.id)
   setDirty(proposal.id, false)
 }
-const heading = (n: number) => `Suggestion ${n} of ${props.target?.hits.length}`
 </script>
 
 <template>
@@ -86,8 +103,8 @@ const heading = (n: number) => `Suggestion ${n} of ${props.target?.hits.length}`
     v-model:open="open"
     size="lg"
     :title="
-      props.target && props.target.hits.length > 1
-        ? `Suggestions for this ${props.target.pos === null ? 'scene' : 'paragraph'}`
+      cards.length > 1
+        ? `Suggestions for this ${props.target?.pos === null ? 'scene' : 'paragraph'}`
         : cards[0]
           ? `Suggestion for “${targetOf(cards[0].proposal)}”`
           : 'Suggestion'
@@ -100,11 +117,8 @@ const heading = (n: number) => `Suggestion ${n} of ${props.target?.hits.length}`
       :key="c.proposal.id"
       :class="['pb-2 font-sans', i ? 'border-t border-line pt-3' : '']"
     >
-      <h3
-        v-if="(target?.hits.length ?? 0) > 1"
-        class="m-0 mb-1 text-[12px] font-semibold text-ink-3"
-      >
-        {{ heading(c.n) }}
+      <h3 v-if="cards.length > 1" class="m-0 mb-1 text-[12px] font-semibold text-ink-3">
+        Suggestion {{ i + 1 }} of {{ cards.length }}
       </h3>
       <ProposalCard
         plain
@@ -121,7 +135,7 @@ const heading = (n: number) => `Suggestion ${n} of ${props.target?.hits.length}`
       />
     </section>
     <div
-      v-if="confirming"
+      v-if="confirming && unsaved"
       role="alert"
       class="flex flex-wrap items-center gap-2 border-t border-line pb-2 pt-3 font-sans"
     >

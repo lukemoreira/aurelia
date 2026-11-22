@@ -367,4 +367,83 @@ describe('the suggestion popup', () => {
     expect(cardOf(EDIT.id)).toBeTruthy()
     expect(closed).not.toHaveBeenCalled()
   })
+
+  it('numbers and counts the cards still shown, and the title is singular with one', async () => {
+    await openBoth()
+    state.all.value = [SECOND] // the first one went
+    await settle()
+    const dialog = body().querySelector('[role="dialog"]')!
+    expect(dialog.textContent).not.toContain('Suggestion 1 of')
+    expect(dialog.textContent).not.toContain('Suggestion 2 of')
+    expect(dialog.textContent).not.toContain('Suggestions for this paragraph')
+    expect(dialog.textContent).toContain('Suggestion for “The quay”')
+  })
+
+  it('moves focus to the next card when a card leaves, or the previous when it was the last', async () => {
+    const THIRD = { ...SECOND, id: 'prp_dddddddddd' }
+    state.all.value = [EDIT, SECOND, THIRD]
+    state.outOfDate.value = new Set()
+    const w = mount(SuggestionDialog, {
+      props: {
+        target: {
+          hits: [EDIT, SECOND, THIRD].map((x) => ({ id: x.id, change: 0 })),
+          pos: 0,
+        },
+      },
+      attachTo: document.body,
+    })
+    mounted.push(w)
+    await settle()
+    state.all.value = [EDIT, THIRD] // the middle one went
+    await settle()
+    expect(cardOf(THIRD.id).contains(document.activeElement)).toBe(true)
+    state.all.value = [EDIT] // the last one went
+    await settle()
+    expect(cardOf(EDIT.id).contains(document.activeElement)).toBe(true)
+  })
+
+  it('does not keep asking to discard once nothing is unsaved', async () => {
+    await openBoth()
+    within(EDIT.id, 'Edit')!.click()
+    await settle()
+    await type(cardOf(EDIT.id).querySelector('textarea')!, 'Mine.')
+    body()
+      .querySelector('[role="dialog"]')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle()
+    expect(body().querySelector('[role="alert"]')).toBeTruthy()
+    state.accept.mockImplementationOnce(async () => {
+      state.all.value = [SECOND]
+    })
+    within(EDIT.id, 'Accept my text')!.click() // its text is accepted: no longer at risk
+    await settle()
+    expect(body().querySelector('[role="alert"]')).toBeNull()
+  })
+
+  it('a card that goes out of date while edited keeps the text read-only and asks before discarding it', async () => {
+    const { closed } = await open(EDIT)
+    button('Edit')!.click()
+    await settle()
+    await type(boxes()[0]!, 'Tomas came in the evening.')
+    state.outOfDate.value = new Set([EDIT.id])
+    await settle()
+    expect(boxes()[0]!.value).toBe('Tomas came in the evening.')
+    expect(boxes()[0]!.readOnly).toBe(true)
+    expect(body().textContent).toContain('Your text is kept above: copy what you need.')
+    button('Cancel')!.click()
+    await settle()
+    expect(body().querySelector('[role="alert"]')!.textContent).toContain(
+      'Discard your edited text?',
+    )
+    expect(boxes()[0]!.value).toBe('Tomas came in the evening.')
+    button('Keep editing')!.click()
+    await settle()
+    expect(boxes()[0]!.value).toBe('Tomas came in the evening.')
+    button('Cancel')!.click()
+    await settle()
+    button('Discard my text')!.click()
+    await settle()
+    expect(boxes()).toHaveLength(0)
+    expect(closed).not.toHaveBeenCalled()
+  })
 })

@@ -93,7 +93,7 @@ function button(list: Chip[], open: Open, pos: number | null) {
   const b = document.createElement('button')
   b.type = 'button'
   b.className = `suggestion-chip${stale ? ' is-stale' : ''}`
-  b.dataset.hits = list.map((c) => `${c.item.id}:${c.change ?? 0}`).join(' ')
+  b.dataset.hits = list.map((c) => `${c.item.id}:${c.change ?? 'end'}`).join(' ')
   if (!list.some((c) => c.first)) b.tabIndex = -1
   const what = stale
     ? `${chipWords(list)} — show ${n > 1 ? 'them' : 'it'}`
@@ -114,6 +114,15 @@ function button(list: Chip[], open: Open, pos: number | null) {
     )
   })
   return b
+}
+
+/** The button a closed popup came from, if it is still drawn: the scene's end has its own key ('end'), never a paragraph's change 0. */
+export function findChip(root: HTMLElement, at: SuggestionTarget) {
+  return [...root.querySelectorAll<HTMLElement>('button.suggestion-chip')].find((b) =>
+    at.hits.some((h) =>
+      b.dataset.hits?.split(' ').includes(`${h.id}:${at.pos === null ? 'end' : h.change}`),
+    ),
+  )
 }
 
 /** A paragraph's anchor (a span drawn on its frame) holding its button; or the scene's row at its end. */

@@ -3,7 +3,13 @@ import { Editor } from '@tiptap/core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { editorExtensions } from './extensions'
 import { bodyToDoc } from './markdown/body'
-import { caretNear, createSuggestions, setSuggestions, type InTextSuggestion } from './suggestions'
+import {
+  caretNear,
+  createSuggestions,
+  findChip,
+  setSuggestions,
+  type InTextSuggestion,
+} from './suggestions'
 
 let editor: Editor | undefined
 afterEach(() => editor?.destroy())
@@ -264,6 +270,24 @@ describe('suggestions in the text', () => {
       ],
       null,
     )
+  })
+
+  it("the scene-end button is told apart from a paragraph's change 0, so the caret goes back to the right one", () => {
+    const { dom } = start([
+      { id: 'prp_aaaaaaaaaa', outOfDate: false, anchors: [anchor(0, 'Gone one')] },
+      {
+        id: 'prp_bbbbbbbbbb',
+        outOfDate: false,
+        anchors: [anchor(0, 'Tomas came down to the quay at dusk.')],
+      },
+    ])
+    const end = dom.querySelector<HTMLElement>('.suggestion-chip-row button')!
+    expect(end.dataset.hits).toBe('prp_aaaaaaaaaa:end')
+    // The scene's own target finds the scene's button; a paragraph's target for the same id does not.
+    expect(findChip(dom, { hits: [{ id: 'prp_aaaaaaaaaa', change: 0 }], pos: null })).toBe(end)
+    expect(findChip(dom, { hits: [{ id: 'prp_aaaaaaaaaa', change: 0 }], pos: 0 })).toBeUndefined()
+    const para = dom.querySelector<HTMLElement>('.suggestion-chip-anchor button')!
+    expect(findChip(dom, { hits: [{ id: 'prp_bbbbbbbbbb', change: 0 }], pos: 0 })).toBe(para)
   })
 
   it('puts the button of a table or a list just before the block, outside anything that clips', () => {
