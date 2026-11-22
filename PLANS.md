@@ -923,3 +923,4 @@ backup — ADR-0009.)
   before. DOCX and the Markdown bundle do not carry it. The assistant is unchanged (it does not propose these).
   ADR-0003 and ADR-0014 each amended with one dated line.
 - 2026-11-21 — Review fixes: Accept / Edit / Dismiss everywhere, spacing-only changes shown, edits never lost, button on the frame (no layout), cover page numbers via `@page`.
+- 2026-11-22 — One suggestion button per framed paragraph (branch `fix/suggestion-buttons`): two suggestions changing the same paragraph looked like a duplicated button. Now one button reads "Suggestion" or "2 suggestions" (· out of date only when all are), the popup lists each suggestion as its own card ("Suggestion 1 of 2"), accepting or dismissing one leaves the rest, and the scene-end row is one button too. Frames, `placeSuggestions` and the edited-text rules are unchanged.

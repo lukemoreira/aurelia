@@ -61,13 +61,51 @@ async function open(p: Proposal, change = 0, outOfDate = false) {
   state.outOfDate.value = new Set(outOfDate ? [p.id] : [])
   const closed = vi.fn()
   const w = mount(SuggestionDialog, {
-    props: { target: { id: p.id, change, pos: 0 }, onClose: closed },
+    props: { target: { hits: [{ id: p.id, change }], pos: 0 }, onClose: closed },
     attachTo: document.body,
   })
   mounted.push(w)
   await settle()
   return { w, closed }
 }
+const SECOND: Proposal = {
+  ...EDIT,
+  id: 'prp_cccccccccc',
+  why: 'A second thought.',
+  changes: [
+    {
+      block: 'b0-1',
+      before: 'Tomas came at dusk.',
+      after: 'Tomas came at noon.',
+      occurrence: 0,
+      copies: 1,
+    },
+  ],
+}
+async function openBoth() {
+  state.all.value = [EDIT, SECOND]
+  state.outOfDate.value = new Set()
+  const closed = vi.fn()
+  const w = mount(SuggestionDialog, {
+    props: {
+      target: {
+        hits: [
+          { id: EDIT.id, change: 0 },
+          { id: SECOND.id, change: 0 },
+        ],
+        pos: 0,
+      },
+      onClose: closed,
+    },
+    attachTo: document.body,
+  })
+  mounted.push(w)
+  await settle()
+  return { w, closed }
+}
+const cardOf = (id: string) => body().querySelector(`[data-proposal="${id}"]`)!
+const within = (id: string, name: string) =>
+  [...cardOf(id).querySelectorAll('button')].find((b) => b.textContent?.trim() === name)
 async function type(box: HTMLTextAreaElement, text: string) {
   box.value = text
   box.dispatchEvent(new Event('input'))
@@ -251,5 +289,161 @@ describe('the suggestion popup', () => {
     state.all.value = []
     await settle()
     expect(closed).toHaveBeenCalled()
+  })
+
+  it('with several suggestions on one paragraph lists them one above the other, each with its own actions', async () => {
+    await openBoth()
+    const dialog = body().querySelector('[role="dialog"]')!
+    expect(dialog.textContent).toContain('Suggestions for this paragraph')
+    expect(dialog.textContent).toContain('Suggestion 1 of 2')
+    expect(dialog.textContent).toContain('Suggestion 2 of 2')
+    expect(dialog.querySelectorAll('[data-proposal]')).toHaveLength(2)
+    expect(cardOf(EDIT.id).textContent).toContain('Dusk clashes')
+    expect(cardOf(SECOND.id).textContent).toContain('A second thought.')
+    for (const id of [EDIT.id, SECOND.id])
+      for (const n of ['Accept', 'Edit', 'Dismiss', 'Ask for changes'])
+        expect(within(id, n)).toBeTruthy()
+  })
+
+  it('accepting or dismissing one keeps the other, and the popup closes when none is left', async () => {
+    const { closed } = await openBoth()
+    within(EDIT.id, 'Accept')!.click()
+    await settle()
+    expect(state.accept).toHaveBeenCalledWith(EDIT, undefined)
+    state.all.value = [SECOND] // the accepted one is gone
+    await settle()
+    expect(closed).not.toHaveBeenCalled()
+    expect(body().querySelectorAll('[data-proposal]')).toHaveLength(1)
+    expect(cardOf(SECOND.id)).toBeTruthy()
+    within(SECOND.id, 'Dismiss')!.click()
+    await settle()
+    expect(state.reject).toHaveBeenCalledWith(SECOND)
+    state.all.value = []
+    await settle()
+    expect(closed).toHaveBeenCalled()
+  })
+
+  it('shows the other suggestion as out of date once accepting one made it so', async () => {
+    await openBoth()
+    expect(within(SECOND.id, 'Accept')).toBeTruthy()
+    state.outOfDate.value = new Set([SECOND.id])
+    await settle()
+    expect(cardOf(SECOND.id).textContent).toContain('Out of date')
+    expect(within(SECOND.id, 'Accept')).toBeUndefined()
+    expect(within(SECOND.id, 'Dismiss')).toBeTruthy()
+    expect(within(SECOND.id, 'Ask again')).toBeTruthy()
+  })
+
+  it('closing asks first when either card has unsaved edits', async () => {
+    for (const id of [EDIT.id, SECOND.id]) {
+      const { closed, w } = await openBoth()
+      within(id, 'Edit')!.click()
+      await settle()
+      await type(cardOf(id).querySelector('textarea')!, 'Something of mine.')
+      body()
+        .querySelector('[role="dialog"]')!
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await settle()
+      expect(closed).not.toHaveBeenCalled()
+      expect(body().querySelector('[role="alert"]')!.textContent).toContain(
+        'Discard your edited text?',
+      )
+      button('Discard')!.click()
+      await settle()
+      expect(closed).toHaveBeenCalled()
+      w.unmount()
+      document.body.innerHTML = ''
+    }
+  })
+
+  it('a card whose suggestion went keeps the author’s text while the other stays', async () => {
+    const { closed } = await openBoth()
+    within(SECOND.id, 'Edit')!.click()
+    await settle()
+    await type(cardOf(SECOND.id).querySelector('textarea')!, 'Mine.')
+    state.all.value = [EDIT]
+    await settle()
+    expect(cardOf(SECOND.id).querySelector<HTMLTextAreaElement>('textarea')!.value).toBe('Mine.')
+    expect(cardOf(EDIT.id)).toBeTruthy()
+    expect(closed).not.toHaveBeenCalled()
+  })
+
+  it('numbers and counts the cards still shown, and the title is singular with one', async () => {
+    await openBoth()
+    state.all.value = [SECOND] // the first one went
+    await settle()
+    const dialog = body().querySelector('[role="dialog"]')!
+    expect(dialog.textContent).not.toContain('Suggestion 1 of')
+    expect(dialog.textContent).not.toContain('Suggestion 2 of')
+    expect(dialog.textContent).not.toContain('Suggestions for this paragraph')
+    expect(dialog.textContent).toContain('Suggestion for “The quay”')
+  })
+
+  it('moves focus to the next card when a card leaves, or the previous when it was the last', async () => {
+    const THIRD = { ...SECOND, id: 'prp_dddddddddd' }
+    state.all.value = [EDIT, SECOND, THIRD]
+    state.outOfDate.value = new Set()
+    const w = mount(SuggestionDialog, {
+      props: {
+        target: {
+          hits: [EDIT, SECOND, THIRD].map((x) => ({ id: x.id, change: 0 })),
+          pos: 0,
+        },
+      },
+      attachTo: document.body,
+    })
+    mounted.push(w)
+    await settle()
+    state.all.value = [EDIT, THIRD] // the middle one went
+    await settle()
+    expect(cardOf(THIRD.id).contains(document.activeElement)).toBe(true)
+    state.all.value = [EDIT] // the last one went
+    await settle()
+    expect(cardOf(EDIT.id).contains(document.activeElement)).toBe(true)
+  })
+
+  it('does not keep asking to discard once nothing is unsaved', async () => {
+    await openBoth()
+    within(EDIT.id, 'Edit')!.click()
+    await settle()
+    await type(cardOf(EDIT.id).querySelector('textarea')!, 'Mine.')
+    body()
+      .querySelector('[role="dialog"]')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await settle()
+    expect(body().querySelector('[role="alert"]')).toBeTruthy()
+    state.accept.mockImplementationOnce(async () => {
+      state.all.value = [SECOND]
+    })
+    within(EDIT.id, 'Accept my text')!.click() // its text is accepted: no longer at risk
+    await settle()
+    expect(body().querySelector('[role="alert"]')).toBeNull()
+  })
+
+  it('a card that goes out of date while edited keeps the text read-only and asks before discarding it', async () => {
+    const { closed } = await open(EDIT)
+    button('Edit')!.click()
+    await settle()
+    await type(boxes()[0]!, 'Tomas came in the evening.')
+    state.outOfDate.value = new Set([EDIT.id])
+    await settle()
+    expect(boxes()[0]!.value).toBe('Tomas came in the evening.')
+    expect(boxes()[0]!.readOnly).toBe(true)
+    expect(body().textContent).toContain('Your text is kept above: copy what you need.')
+    button('Cancel')!.click()
+    await settle()
+    expect(body().querySelector('[role="alert"]')!.textContent).toContain(
+      'Discard your edited text?',
+    )
+    expect(boxes()[0]!.value).toBe('Tomas came in the evening.')
+    button('Keep editing')!.click()
+    await settle()
+    expect(boxes()[0]!.value).toBe('Tomas came in the evening.')
+    button('Cancel')!.click()
+    await settle()
+    button('Discard my text')!.click()
+    await settle()
+    expect(boxes()).toHaveLength(0)
+    expect(closed).not.toHaveBeenCalled()
   })
 })

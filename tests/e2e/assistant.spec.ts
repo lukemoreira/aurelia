@@ -275,6 +275,57 @@ test('a suggestion over several paragraphs: a button on each framed one, one pop
   await expect(sceneText(page)).toContainText('Nobody spoke.')
 })
 
+test('two suggestions on one paragraph: one button, one popup listing both, accepting one leaves the other', async ({
+  page,
+}) => {
+  await page.route('**/agent/**', (r) => r.fulfill({ status: 502, body: '' }))
+  await createBrowserWorkspace(page)
+  await sceneText(page).fill('Tomas came down to the quay at dusk.')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('The clerk counted the crates.')
+  await waitSaved(page)
+  await propose(
+    page,
+    'prp_aaaaaaaaaa',
+    'Tomas came down to the quay at dusk.',
+    'Tomas came down at noon.',
+  )
+  await propose(
+    page,
+    'prp_bbbbbbbbbb',
+    'Tomas came down to the quay at dusk.',
+    'Tomas came down at night.',
+  )
+  await page.reload()
+  await expect(page.locator('.suggestion-target')).toHaveCount(1)
+  const both = page.getByRole('button', { name: /^Show 2 suggestions for/ })
+  await expect(both).toHaveCount(1)
+  await expect(both).toHaveText('2 suggestions')
+  await expect(page.locator('button.suggestion-chip')).toHaveCount(1)
+  await both.click()
+  const dialog = page.getByRole('dialog', { name: 'Suggestions for this paragraph' })
+  await expect(dialog.locator('[data-proposal]')).toHaveCount(2)
+  await expect(dialog).toContainText('Suggestion 1 of 2')
+  await expect(dialog).toContainText('Suggestion 2 of 2')
+  expect(await serious(page, '[role="dialog"]')).toEqual([])
+  // Accept the first: the paragraph changes, the other no longer applies but stays, to dismiss.
+  await dialog
+    .locator('[data-proposal="prp_aaaaaaaaaa"]')
+    .getByRole('button', { name: 'Accept', exact: true })
+    .click()
+  // With one card left the popup is titled for one suggestion, so it is found by its role alone.
+  const left = page.getByRole('dialog')
+  await expect(left.locator('[data-proposal="prp_aaaaaaaaaa"]')).toHaveCount(0)
+  await expect(left).not.toContainText('Suggestion 2 of')
+  const other = left.locator('[data-proposal="prp_bbbbbbbbbb"]')
+  await expect(other).toContainText('Out of date')
+  await expect(other.getByRole('button', { name: 'Accept', exact: true })).toHaveCount(0)
+  await other.getByRole('button', { name: 'Dismiss' }).click()
+  await expect(left).toHaveCount(0)
+  await expect(sceneText(page)).toContainText('Tomas came down at noon.')
+  await expect(page.locator('button.suggestion-chip')).toHaveCount(0)
+})
+
 test('a suggestion whose paragraph changed is out of date and cannot be accepted', async ({
   page,
 }) => {
