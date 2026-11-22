@@ -16,13 +16,13 @@ import { noteSnapshot } from './useHistory'
 import { useAssistant } from './useAssistant'
 
 /** What the toast says once a suggestion is in. */
-function acceptedWords(p: Proposal, snapshot: boolean): string {
+function acceptedWords(p: Proposal, snapshot: boolean, edited = false): string {
   const saved = snapshot ? ' A snapshot was saved first, in History.' : ''
   if (p.kind === 'scene') return `“${p.title}” is in the book.`
   if (p.kind === 'character') return `“${p.name}” is in the world, with their sheet filled in.`
   if (p.kind === 'base') return `The story base of “${p.bookTitle}” is updated.${saved}`
   if (p.kind === 'delete-record') return `Moved “${p.title}” to Recently deleted.`
-  return `Accepted for “${p.sceneTitle}”.${saved}`
+  return `${edited ? 'Your text is in' : 'Accepted'} for “${p.sceneTitle}”.${saved}`
 }
 
 function createProposals() {
@@ -111,13 +111,14 @@ function createProposals() {
     }
   }
 
-  const accept = (p: Proposal) =>
+  /** `edited`: the author's own text for each change of an edit, in place of the assistant's. */
+  const accept = (p: Proposal, edited?: string[]) =>
     act(p, async () => {
-      const done = await acceptProposal(ws.session!, p)
+      const done = await acceptProposal(ws.session!, p, edited)
       if (done.snapshot) noteSnapshot()
       edits.toast = !done.cleared
         ? { text: NOT_CLEARED, error: true }
-        : { text: acceptedWords(p, !!done.snapshot) }
+        : { text: acceptedWords(p, !!done.snapshot, !!edited) }
     })
 
   const reject = (p: Proposal) => act(p, () => rejectProposal(ws.session!, p.id))

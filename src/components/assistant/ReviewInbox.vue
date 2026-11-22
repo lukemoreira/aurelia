@@ -34,7 +34,7 @@ const unreadableWords = (n: number) =>
       :out-of-date="p.outOfDate.value.has(item.id)"
       :notice="p.noticeFor(item)"
       :busy="!!p.working.value"
-      @accept="p.accept(item)"
+      @accept="(edited) => p.accept(item, edited)"
       @reject="p.reject(item)"
       @ask="(note) => p.askChanges(item, note)"
     />

@@ -7,10 +7,12 @@ import {
   proposalPath,
   recordFingerprint,
   sceneBlocks,
+  type EditProposal,
   type Proposal,
 } from '@/domain/proposals'
 import { hashText } from './hash'
 import {
+  EDIT_REFUSED,
   NOT_CLEARED,
   OUT_OF_DATE,
   RECORD_CHANGED,
@@ -129,6 +131,90 @@ describe('Accept', () => {
     expect(added.meta).toMatchObject({ title: 'The Gate', chapter })
     expect(added.body).toBe('Night fell over the gate.')
     expect(await s.adapter.read(proposalPath(p.id))).toBeNull()
+  })
+})
+
+describe('Accept with the author’s own text', () => {
+  beforeEach(async () => {
+    await rig.session.editScene(sceneOf(rig.session), TEXT)
+    await rig.session.flush()
+  })
+  const MINE = 'Tomas walked down to the quay at first light.'
+
+  it('puts the author’s text in place of the assistant’s, through the same snapshot and write', async () => {
+    const s = rig.session
+    const p = await editProposal(s)
+    const done = await acceptProposal(s, p, [`  ${MINE}\n`])
+    expect(body(s, sceneOf(s))).toBe(`${MINE}\n\nThe clerk counted the crates.`)
+    expect(body(s, sceneOf(s))).not.toContain('late afternoon')
+    const [snap] = await listSnapshots(s.adapter)
+    expect(snap).toMatchObject({ id: done.snapshot, reason: 'before-assistant', kind: 'scene' })
+    expect([...(await readSnapshot(s.adapter, snap!)).values()][0]).toContain('at dusk')
+    expect(await s.adapter.read(proposalPath(p.id))).toBeNull()
+  })
+
+  it('keeps the stored proposal as it was (the edit is passed in, never written to the file)', async () => {
+    const s = rig.session
+    const p = await editProposal(s)
+    const before = (await s.adapter.read(proposalPath(p.id)))!.text
+    await acceptProposal(s, p, [MINE]).catch(() => undefined)
+    await s.adapter.write(proposalPath(p.id), before)
+    expect(JSON.parse((await s.adapter.read(proposalPath(p.id)))!.text).changes[0].after).toContain(
+      'late afternoon',
+    )
+  })
+
+  it('is still refused when the anchored paragraph changed: the anchors are the proposal’s', async () => {
+    const s = rig.session
+    const p = await editProposal(s)
+    await s.editScene(sceneOf(s), TEXT.replace('at dusk', 'at night'))
+    await s.flush()
+    await expect(acceptProposal(s, p, [MINE])).rejects.toThrow(OUT_OF_DATE)
+    expect(body(s, sceneOf(s))).toContain('at night')
+    expect(body(s, sceneOf(s))).not.toContain('first light')
+    expect(await listSnapshots(s.adapter)).toEqual([])
+  })
+
+  it('refuses a block left empty unless the suggestion itself removes that block', async () => {
+    const s = rig.session
+    const p = (await editProposal(s)) as EditProposal
+    await expect(acceptProposal(s, p, ['  \n '])).rejects.toThrow(EDIT_REFUSED)
+    await expect(acceptProposal(s, p, [])).rejects.toThrow(EDIT_REFUSED)
+    expect(body(s, sceneOf(s))).toBe(TEXT)
+    expect(await listSnapshots(s.adapter)).toEqual([])
+    // A suggestion that removes the paragraph may be accepted with it still empty.
+    const blocks = sceneBlocks(TEXT)
+    const removal = await write(s, {
+      ...p,
+      id: newId('prp'),
+      changes: [
+        {
+          block: blocks[1]!.id,
+          before: blocks[1]!.text,
+          after: '',
+          ...anchorOf(blocks, blocks[1]!),
+        },
+      ],
+    })
+    await acceptProposal(s, removal, [''])
+    expect(body(s, sceneOf(s))!.trim()).toBe('Tomas came down to the quay at dusk.')
+  })
+
+  it('is only for an edit to a scene', async () => {
+    const s = rig.session
+    const p = await write(s, {
+      schemaVersion: 1,
+      id: newId('prp'),
+      createdAt: new Date().toISOString(),
+      by: 'Claude',
+      why: 'A bridge.',
+      kind: 'scene',
+      chapterId: s.data.chapters[0]!.id,
+      title: 'The Gate',
+      text: 'Night fell over the gate.',
+    })
+    await expect(acceptProposal(s, p, ['x'])).rejects.toThrow('Only a suggested edit')
+    expect(s.data.scenes.some((x) => x.meta.title === 'The Gate')).toBe(false)
   })
 })
 

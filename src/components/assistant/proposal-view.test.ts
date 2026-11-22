@@ -81,3 +81,20 @@ describe('a suggested record delete', () => {
     expect(deleteWords([], 3)).toContain('It is in the world of 3 books, so it leaves all of them.')
   })
 })
+
+describe('an edit’s diffs', () => {
+  it('list only the changes that change something, numbered as in the proposal', () => {
+    const p = {
+      ...common,
+      kind: 'edit' as const,
+      sceneId: 'scn_x',
+      sceneTitle: 'S',
+      baseHash: 'x',
+      changes: [
+        { block: 'b0-1', before: 'Same words.', after: 'Same  words.', occurrence: 0, copies: 1 },
+        { block: 'b1-2', before: 'Old words.', after: 'New words.', occurrence: 0, copies: 1 },
+      ],
+    } satisfies Proposal
+    expect(diffsOf(p).map((d) => d.change)).toEqual([1])
+  })
+})

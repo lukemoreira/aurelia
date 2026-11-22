@@ -4,6 +4,7 @@
 // ordinary compare-and-write edit through the session.
 import {
   PROPOSALS_DIR,
+  authorChanges,
   mergeBase,
   mergeChanges,
   proposalPath,
@@ -23,6 +24,8 @@ import { writeSnapshot } from './snapshots'
 import { storedBase, writeBase } from './story-base-actions'
 
 export const OUT_OF_DATE = 'The text changed after this was suggested — ask again.'
+export const EDIT_REFUSED =
+  'A paragraph can only be left empty when the suggestion removes it. Write the text, or dismiss the suggestion.'
 export const RECORD_CHANGED =
   'This record was changed or deleted after this was suggested, so it was left as it is.'
 
@@ -142,8 +145,18 @@ export const rejectProposal = (s: WorkspaceSession, id: string) =>
  * the author had; a new character is a new record, so nothing to snapshot. A record delete moves it to
  * Recently deleted (it can come back from there), and only while it is still the record that was read.
  * The proposal file goes once the change is in.
+ *
+ * `edited` (an edit only): the author's own text for each change, in order, in place of the assistant's.
+ * Everything else is the same path: the anchors stay the proposal's, so an out-of-date suggestion is
+ * refused just the same, and the snapshot and the compare-and-write are the same.
  */
-export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<Accepted> {
+export async function acceptProposal(
+  s: WorkspaceSession,
+  p: Proposal,
+  edited?: readonly string[],
+): Promise<Accepted> {
+  if (edited && p.kind !== 'edit')
+    throw new StorageError('other', 'Only a suggested edit to a scene can be changed first.')
   if (p.kind === 'scene') {
     if (!s.data.chapters.some((c) => c.id === p.chapterId))
       throw new StorageError('other', 'That chapter is no longer in the book.')
@@ -197,6 +210,8 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
     }
     return { id, cleared: await clear(s, p.id) }
   }
+  const changes = edited ? authorChanges(p.changes, edited) : p.changes
+  if (!changes) throw new StorageError('other', EDIT_REFUSED)
   const snapshot = await s.exclusive(async () => {
     const path = s.pathOf(p.sceneId)
     if (!path || bodyNow(s, p.sceneId) === undefined)
@@ -204,7 +219,7 @@ export async function acceptProposal(s: WorkspaceSession, p: Proposal): Promise<
     const why = await blocker(s, p.sceneId, path)
     if (why) throw new StorageError('other', `This scene was left as it is: ${why}.`)
     const was = bodyNow(s, p.sceneId)!
-    const merged = mergeChanges(was, p.changes)
+    const merged = mergeChanges(was, changes)
     if (!merged.ok) throw new StorageError('other', OUT_OF_DATE)
     const before = await writeSnapshot(
       s,

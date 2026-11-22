@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { describe, expect, it } from 'vitest'
-import { anchorOf, mergeChanges, proposalSchema, recordFingerprint, sceneBlocks } from './proposals'
+import {
+  anchorOf,
+  authorChanges,
+  isNoOp,
+  mergeChanges,
+  proposalSchema,
+  recordFingerprint,
+  sceneBlocks,
+} from './proposals'
 
 const body = 'First paragraph.\n\nSecond *one*,\non two lines.\n\n\nThird.\n'
 const ids = () => sceneBlocks(body).map((b) => b.id)
@@ -233,5 +241,34 @@ describe('a suggested record delete', () => {
       recordFingerprint({ meta: { ...meta, role: 'Pilot' }, body: 'Notes.' } as never),
     ).not.toBe(fp)
     expect(recordFingerprint({ meta, body: 'Other notes.' } as never)).not.toBe(fp)
+  })
+})
+
+describe('a change that changes nothing', () => {
+  const c = (before: string, after: string, block = 'b0-1') => ({ block, before, after })
+  it('reads the same words as before: spacing alone is no change; an addition at the end always is one', () => {
+    expect(isNoOp(c('One two.', 'One two.'))).toBe(true)
+    expect(isNoOp(c('One two.', ' One  two.\n'))).toBe(true)
+    expect(isNoOp(c('One two.', 'One too.'))).toBe(false)
+    expect(isNoOp(c('One two.', ''))).toBe(false)
+    expect(isNoOp(c('', 'One two.', 'end'))).toBe(false)
+    expect(isNoOp(c('', '', 'end'))).toBe(false)
+  })
+})
+
+describe('the author’s own text for a suggestion', () => {
+  const changes = [
+    { block: 'b0-1', before: 'One.', after: 'Uno.', occurrence: 0, copies: 1 },
+    { block: 'b1-2', before: 'Two.', after: '', occurrence: 0, copies: 1 },
+  ]
+  it('replaces only the after text and keeps the anchors', () => {
+    expect(authorChanges(changes, [' Eins.\n', ''])).toEqual([
+      { ...changes[0], after: 'Eins.' },
+      changes[1],
+    ])
+  })
+  it('refuses a missing text, and an empty one where the suggestion did not remove the block', () => {
+    expect(authorChanges(changes, ['x'])).toBeNull()
+    expect(authorChanges(changes, ['  ', ''])).toBeNull()
   })
 })

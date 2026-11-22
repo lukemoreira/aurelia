@@ -10,6 +10,7 @@ import { newId } from '@/domain/ids'
 import { bookOutline, bookUnfiled, sceneContext, sceneLabels } from '@/domain/outline'
 import {
   anchorOf,
+  isNoOp,
   proposalPath,
   recordFingerprint,
   sceneBlocks,
@@ -482,13 +483,20 @@ export const TOOLS = {
             `There is no block ${c.block} in this scene. Read the scene again.`,
           )
         // Which of the paragraphs that read the same it is: Accept needs that to pick the right one.
-        changes.push({
+        const change = {
           block: c.block,
           before: block.text,
           after: c.text.trim(),
           ...anchorOf(blocks, block),
-        })
+        }
+        // A block that already reads this way is no suggestion: the author would see a frame and no change.
+        if (!isNoOp(change)) changes.push(change)
       }
+      if (!changes.length)
+        return fail(
+          'Suggested a change',
+          'Nothing to change: every block already reads as you wrote it. Propose only the blocks that change.',
+        )
       const proposal: Proposal = {
         schemaVersion: 1,
         id: newId('prp'),

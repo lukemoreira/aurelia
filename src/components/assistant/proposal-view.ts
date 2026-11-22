@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // What a suggestion's card shows: its heading, and its changes as word diffs, each with a label when
 // the suggestion touches several named things (story-base sections, a character's details).
-import type { Proposal } from '@/domain/proposals'
+import { isNoOp, type Proposal } from '@/domain/proposals'
 import { RECORD_INFO } from '@/domain/record-types'
 import { BASE_SECTIONS } from '@/domain/story-base'
 import { diffWords, type DiffPart } from '@/domain/word-diff'
@@ -49,8 +49,12 @@ const FIELD_LABEL = new Map<string, string>(
   RECORD_INFO.character.fields.map((f) => [f.key, f.label]),
 )
 
-export function diffsOf(p: Proposal): { label?: string; parts: DiffPart[] }[] {
-  if (p.kind === 'edit') return p.changes.map((c) => ({ parts: diffWords(c.before, c.after) }))
+/** `change`: an edit's number of the change in the proposal (a change that changes nothing is not listed). */
+export function diffsOf(p: Proposal): { label?: string; change?: number; parts: DiffPart[] }[] {
+  if (p.kind === 'edit')
+    return p.changes.flatMap((c, change) =>
+      isNoOp(c) ? [] : [{ change, parts: diffWords(c.before, c.after) }],
+    )
   if (p.kind === 'scene') return [{ parts: diffWords('', p.text) }]
   if (p.kind === 'delete-record') return []
   if (p.kind === 'base')

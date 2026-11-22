@@ -1,21 +1,13 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { EditorContent } from '@tiptap/vue-3'
-import {
-  computed,
-  getCurrentInstance,
-  h,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  render,
-  watch,
-} from 'vue'
-import SuggestionInText from '@/components/assistant/SuggestionInText.vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import SuggestionDialog from '@/components/assistant/SuggestionDialog.vue'
 import { useLinkEnv } from '@/composables/useLinkEnv'
 import { useManuscriptEditor } from '@/composables/useManuscriptEditor'
 import { useProposals } from '@/composables/useProposals'
 import { useReadAloud } from '@/composables/useReadAloud'
+import { isNoOp } from '@/domain/proposals'
 import { createLinks, focusFound, focusName, refreshLinks } from '@/editor/links'
 import { createSuggestions, setSuggestions } from '@/editor/suggestions'
 import { useEditorStore } from '@/stores/editor'
@@ -67,14 +59,9 @@ const link = useLinkEnv(() => props.docId, { names: props.names })
 const card = ref<InstanceType<typeof LinkCard> | null>(null)
 link.onCardFocus(() => card.value?.focus() ?? false)
 
-// The assistant's suggestions for this scene, drawn in the text as cards (a scene only, not a record's notes).
-const app = getCurrentInstance()!.appContext
-const mountSuggestion = (el: HTMLElement, id: string) => {
-  const vnode = h(SuggestionInText, { id })
-  vnode.appContext = app
-  render(vnode, el)
-  return () => render(null, el)
-}
+// The assistant's suggestions for this scene: a frame and a button on each paragraph they change, opening
+// the suggestion in a popup (a scene only, not a record's notes).
+const suggestion = ref<{ id: string; change: number } | null>(null)
 const inScene = props.docId && props.variant === 'scene'
 
 // Named "Scene text" and by the scene's own title (it points at itself for the first part).
@@ -86,7 +73,7 @@ const { editor, tick, pending } = useManuscriptEditor({
   onEdit: (body) => emit('edit', body),
   extensions: [
     ...(props.docId ? [createLinks(link.env)] : []),
-    ...(inScene ? [createSuggestions(mountSuggestion)] : []),
+    ...(inScene ? [createSuggestions((id, change) => (suggestion.value = { id, change }))] : []),
   ],
   attributes: () => ({
     id: props.inputId,
@@ -115,9 +102,15 @@ if (inScene) {
       JSON.stringify(
         proposals.forScene(props.docId!).map((p) => ({
           id: p.id,
+          outOfDate: proposals.outOfDate.value.has(p.id),
+          // Only the paragraphs it really changes get a frame.
           anchors:
             p.kind === 'edit'
-              ? p.changes.filter((c) => c.block !== 'end').map((c) => c.before)
+              ? p.changes.flatMap((c, change) =>
+                  c.block === 'end' || isNoOp(c)
+                    ? []
+                    : [{ change, before: c.before, occurrence: c.occurrence, copies: c.copies }],
+                )
               : [],
         })),
       ),
@@ -195,5 +188,6 @@ const showToolbar = computed(() => !props.readonly && !layout.focus && !!props.t
     @close="link.closeCard()"
   />
   <LinkPicker v-if="link.picker.value" :picker="link.picker.value" />
+  <SuggestionDialog v-if="inScene" :target="suggestion" @close="suggestion = null" />
   <span role="status" class="sr-only">{{ link.announcement.value }}</span>
 </template>

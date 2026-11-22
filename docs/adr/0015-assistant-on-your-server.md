@@ -115,8 +115,16 @@ CI test runs the real MCP server in plain Node.
   app removes the old file once the new one is there, so the two show as one. `replaces` counts only for a
   proposal about the same thing (the same scene's text, or a new scene in the same chapter).
 - **No accept-all.** Each suggestion is a card with a word diff (removed words crossed out, added words
-  underlined, and said in words to a screen reader), in the Review inbox and inside the text on the writing
-  page (a frame on the paragraphs, the card after them; decorations only, the document is not touched).
+  underlined, and said in words to a screen reader), in the Review inbox and, on the writing page, in a
+  popup opened from a button on the framed text (decorations only, the document is not touched).
+- Amended 2026-11-21: in-text suggestions open in a popup from a button on the framed text; the author can
+  edit the suggested text before approving. Only the paragraphs a suggestion really changes are framed (a
+  change that reads the same word for word is dropped when it is proposed and not drawn), each with its own
+  button, all opening the same popup; an out-of-date one is framed in grey, only where the text still reads as
+  it saw it. **Approve with the author's text** goes through the same Accept path (snapshot, out-of-date
+  check, compare-and-write): only each change's new text is replaced, the anchors stay the proposal's, and a
+  paragraph can be left empty only where the suggestion itself removes it. The stored proposal file is never
+  rewritten.
 - Before each question the app saves and runs one sync round, so the assistant reads what the author sees;
   after the answer, another round brings the proposals in. `.aurelia/proposals/` syncs like any file (test).
 

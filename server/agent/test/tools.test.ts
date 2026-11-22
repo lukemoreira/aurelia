@@ -2,7 +2,7 @@
 import { readFile, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mergeChanges, proposalSchema, recordFingerprint } from '@/domain/proposals'
+import { mergeChanges, proposalSchema, recordFingerprint, sceneBlocks } from '@/domain/proposals'
 import { recordPath } from '@/storage/paths'
 import { storeAs } from '../src/mcp.ts'
 import { TOOLS, untrusted, type ToolContext } from '../src/tools.ts'
@@ -138,6 +138,37 @@ describe('the propose tools', () => {
     expect(merged.ok && merged.body).toContain('in the late afternoon.')
     // And nothing else was written: the scene file is as it was.
     expect(write.mock.calls.every((c) => c[0].includes('/.aurelia/proposals/'))).toBe(true)
+  })
+
+  it('propose_edit leaves out a block that already reads as proposed, and refuses a proposal with nothing left', async () => {
+    const ctx = await context()
+    const scene = ctx.ws.data.scenes[0]!
+    const blocks = (await run(ctx, 'get_scene', { sceneId: scene.meta.id })).data.match(
+      /b\d-[0-9a-f]{8}/g,
+    )!
+    const same = sceneBlocks(scene.body)
+    const none = await run(ctx, 'propose_edit', {
+      sceneId: scene.meta.id,
+      why: 'x',
+      // Same words, only the spacing differs: not a change.
+      changes: [{ block: blocks[0], text: `  ${same[0]!.text.replace(' ', '  ')} ` }],
+    })
+    expect(none.error).toBe(true)
+    const dir = join(rig!.root, FOLDER, 'current/.aurelia/proposals')
+    expect(await readdir(dir).catch(() => [])).toEqual([])
+    const mixed = await run(ctx, 'propose_edit', {
+      sceneId: scene.meta.id,
+      why: 'x',
+      changes: [
+        { block: blocks[0], text: same[0]!.text },
+        { block: 'end', text: 'A new last line.' },
+      ],
+    })
+    expect(mixed.error).toBeUndefined()
+    const proposal = proposalSchema.parse(
+      JSON.parse(await readFile(join(dir, (await readdir(dir))[0]!), 'utf8')),
+    )
+    expect(proposal.kind === 'edit' && proposal.changes.map((c) => c.block)).toEqual(['end'])
   })
 
   it('a second proposal under a taken name is refused by the store, never written over', async () => {

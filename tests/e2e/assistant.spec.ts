@@ -39,6 +39,14 @@ async function serious(page: Page, scope: string) {
 
 /** A proposal file, as the assistant server writes it, for the first paragraph of the first scene. */
 async function propose(page: Page, id: string, before: string, after: string) {
+  await proposeChanges(page, id, [{ before, after }])
+}
+
+async function proposeChanges(
+  page: Page,
+  id: string,
+  changes: { before: string; after: string }[],
+) {
   // The scene itself, not a snapshot's copy of it.
   const scene = (await opfs.list(page)).find((f) => /^[^.]*\/scenes\/scn_\w+\.md$/.test(f))!
   const home = scene.split('/universes/')[0]
@@ -56,7 +64,7 @@ async function propose(page: Page, id: string, before: string, after: string) {
       sceneId,
       sceneTitle: 'Untitled scene',
       baseHash: 'x',
-      changes: [{ block: 'b0-00000000', before, after }],
+      changes: changes.map((c, i) => ({ block: `b${i}-00000000`, ...c })),
     }),
   )
 }
@@ -100,8 +108,11 @@ test('Claude Code on this server: its own sign-in is shown, its web address as a
   ).toBeVisible()
 })
 
+const chip = (page: Page) => page.getByRole('button', { name: /^Show the suggestion for/ })
+const popup = (page: Page) => page.getByRole('dialog', { name: /^Suggestion for/ })
+
 for (const width of [1440, 390]) {
-  test(`a suggestion in the text: shown around its paragraph, accepted with a snapshot first, or rejected — ${width} px`, async ({
+  test(`a suggestion in the text: a frame and a button, opened in a popup, approved with a snapshot first, or dismissed — ${width} px`, async ({
     page,
   }) => {
     await page.setViewportSize({ width, height: 900 })
@@ -118,28 +129,55 @@ for (const width of [1440, 390]) {
       'Tomas came down to the quay in the late afternoon.',
     )
     await page.reload()
-    const card = page.locator('[data-proposal="prp_aaaaaaaaaa"]')
+    // Hidden until clicked: a frame and one button, no card in the text.
+    await expect(chip(page)).toHaveCount(1)
+    await expect(page.locator('.suggestion-target')).toHaveCount(1)
+    await expect(page.locator('[data-proposal]')).toHaveCount(0)
+    await expect(chip(page)).toHaveAccessibleName(
+      'Show the suggestion for this paragraph: “Tomas came down to the quay…”',
+    )
+    // Drawn only: the text itself is unchanged until Approve.
+    await expect(sceneText(page)).toContainText('at dusk.')
+    expect(await opfs.read(page, await firstScenePath(page))).toContain('at dusk.')
+    expect(await serious(page, '.suggestion-chip-row')).toEqual([])
+    await page.screenshot({ path: `test-results/m8-screenshots/suggestion-${width}-button.png` })
+
+    // Reachable by keyboard, and Escape closes it with nothing changed and focus back on the button.
+    await chip(page).focus()
+    await expect(chip(page)).toBeFocused()
+    await page.keyboard.press('Enter')
+    const card = popup(page).locator('[data-proposal="prp_aaaaaaaaaa"]')
     await expect(card).toContainText('Suggested by the assistant')
     await expect(card).toContainText('Dusk clashes with chapter 7.')
     await expect(card.locator('del')).toContainText('dusk')
     await expect(card.locator('ins')).toContainText('late afternoon')
-    // Drawn only: the text itself is unchanged until Accept.
-    await expect(sceneText(page)).toContainText('at dusk.')
-    expect(await opfs.read(page, await firstScenePath(page))).toContain('at dusk.')
-    expect(await serious(page, '[data-proposal]')).toEqual([])
+    expect(await serious(page, '[role="dialog"]')).toEqual([])
     await page.screenshot({ path: `test-results/m8-screenshots/suggestion-${width}.png` })
     await page.emulateMedia({ colorScheme: 'dark' })
-    expect(await serious(page, '[data-proposal]')).toEqual([])
+    expect(await serious(page, '[role="dialog"]')).toEqual([])
     await page.screenshot({ path: `test-results/m8-screenshots/suggestion-${width}-dark.png` })
     await page.emulateMedia({ colorScheme: 'light' })
+    await page.keyboard.press('Escape')
+    await expect(popup(page)).toHaveCount(0)
+    await expect(chip(page)).toBeFocused()
+    await expect(sceneText(page)).toContainText('at dusk.')
 
-    // Reachable by keyboard: the toolbar's buttons are ordinary, labelled buttons.
-    const accept = card.getByRole('button', { name: 'Accept' })
-    await accept.focus()
-    await expect(accept).toBeFocused()
-    await page.keyboard.press('Enter')
-    await expect(card).toHaveCount(0)
-    await expect(sceneText(page)).toContainText('in the late afternoon.')
+    // Edit: the author's words go in, not the assistant's. Cancel first changes nothing.
+    await chip(page).click()
+    await popup(page).getByRole('button', { name: 'Edit' }).click()
+    const box = popup(page).getByRole('textbox', { name: 'Your text' })
+    await expect(box).toHaveValue('Tomas came down to the quay in the late afternoon.')
+    await box.fill('Something else')
+    await popup(page).getByRole('button', { name: 'Cancel' }).click()
+    await expect(popup(page).getByRole('textbox')).toHaveCount(0)
+    await popup(page).getByRole('button', { name: 'Edit' }).click()
+    await expect(box).toHaveValue('Tomas came down to the quay in the late afternoon.')
+    await box.fill('Tomas came down to the quay at first light.')
+    await popup(page).getByRole('button', { name: 'Approve my text' }).click()
+    await expect(popup(page)).toHaveCount(0)
+    await expect(chip(page)).toHaveCount(0)
+    await expect(sceneText(page)).toContainText('at first light.')
+    await expect(sceneText(page)).not.toContainText('late afternoon')
     await expect(sceneText(page)).toContainText('The clerk counted the crates.')
     await waitSaved(page)
     const files = await opfs.list(page)
@@ -148,20 +186,71 @@ for (const width of [1440, 390]) {
     expect(manifests).toHaveLength(1)
     expect(await opfs.read(page, manifests[0]!)).toContain('"reason": "before-assistant"')
 
-    // Reject: the proposal goes, the text stays.
+    // Approve as suggested.
+    await propose(
+      page,
+      'prp_dddddddddd',
+      'The clerk counted the crates.',
+      'The clerk counted the barrels.',
+    )
+    await page.reload()
+    await chip(page).click()
+    await popup(page).getByRole('button', { name: 'Approve', exact: true }).click()
+    await expect(popup(page)).toHaveCount(0)
+    await expect(sceneText(page)).toContainText('counted the barrels.')
+
+    // Dismiss: the proposal goes, the text stays.
     await propose(
       page,
       'prp_bbbbbbbbbb',
-      'The clerk counted the crates.',
+      'The clerk counted the barrels.',
       'The clerk counted nothing.',
     )
     await page.reload()
-    const second = page.locator('[data-proposal="prp_bbbbbbbbbb"]')
-    await second.getByRole('button', { name: 'Reject' }).click()
-    await expect(second).toHaveCount(0)
-    await expect(sceneText(page)).toContainText('The clerk counted the crates.')
+    await chip(page).click()
+    await popup(page).getByRole('button', { name: 'Dismiss' }).click()
+    await expect(popup(page)).toHaveCount(0)
+    await expect(chip(page)).toHaveCount(0)
+    await expect(sceneText(page)).toContainText('The clerk counted the barrels.')
   })
 }
+
+test('a suggestion over several paragraphs: a button on each framed one, one popup, and nothing framed that does not change', async ({
+  page,
+}) => {
+  await page.route('**/agent/**', (r) => r.fulfill({ status: 502, body: '' }))
+  await createBrowserWorkspace(page)
+  await sceneText(page).fill('Tomas came down to the quay at dusk.')
+  for (const t of ['The clerk counted the crates.', 'Rain fell on the lanterns.', 'Nobody spoke.'])
+    await page.keyboard.press('Enter').then(() => page.keyboard.type(t))
+  await waitSaved(page)
+  await proposeChanges(page, 'prp_eeeeeeeeee', [
+    {
+      before: 'Tomas came down to the quay at dusk.',
+      after: 'Tomas came down to the quay at noon.',
+    },
+    // Only the spacing differs: no change, so no frame.
+    { before: 'The clerk counted the crates.', after: 'The clerk  counted the crates.' },
+    { before: 'Rain fell on the lanterns.', after: 'Rain fell on the lamps.' },
+  ])
+  await page.reload()
+  await expect(page.locator('.suggestion-target')).toHaveCount(2)
+  await expect(chip(page)).toHaveCount(2)
+  await chip(page).nth(1).click()
+  const card = popup(page).locator('[data-proposal="prp_eeeeeeeeee"]')
+  await expect(card.locator('[data-focused]')).toContainText('lamps')
+  await expect(card.locator('del')).toHaveCount(2)
+  // Edit and approve: only the changed paragraphs are offered.
+  await popup(page).getByRole('button', { name: 'Edit' }).click()
+  await expect(popup(page).getByRole('textbox')).toHaveCount(2)
+  await popup(page).getByRole('textbox').nth(1).fill('Rain fell on the roofs.')
+  await popup(page).getByRole('button', { name: 'Approve my text' }).click()
+  await expect(popup(page)).toHaveCount(0)
+  await expect(sceneText(page)).toContainText('quay at noon.')
+  await expect(sceneText(page)).toContainText('Rain fell on the roofs.')
+  await expect(sceneText(page)).toContainText('The clerk counted the crates.')
+  await expect(sceneText(page)).toContainText('Nobody spoke.')
+})
 
 test('a suggestion whose paragraph changed is out of date and cannot be accepted', async ({
   page,
@@ -172,10 +261,15 @@ test('a suggestion whose paragraph changed is out of date and cannot be accepted
   await waitSaved(page)
   await propose(page, 'prp_cccccccccc', 'Tomas came down to the quay at dusk.', 'Changed.')
   await page.reload()
-  const card = page.locator('[data-proposal="prp_cccccccccc"]')
+  // Nothing in the text still reads as the suggestion saw it: no frame, one button that says so.
+  await expect(page.locator('.suggestion-target')).toHaveCount(0)
+  await page.getByRole('button', { name: /^Show the out-of-date suggestion/ }).click()
+  const card = popup(page).locator('[data-proposal="prp_cccccccccc"]')
   await expect(card).toContainText('Out of date')
-  await expect(card.getByRole('button', { name: 'Accept' })).toHaveCount(0)
-  await expect(card.getByRole('button', { name: 'Ask again' })).toBeVisible()
+  await expect(popup(page).getByRole('button', { name: 'Approve' })).toHaveCount(0)
+  await expect(popup(page).getByRole('button', { name: 'Edit' })).toHaveCount(0)
+  await expect(popup(page).getByRole('button', { name: 'Dismiss' })).toBeVisible()
+  await expect(popup(page).getByRole('button', { name: 'Ask again' })).toBeVisible()
 })
 
 test('the chat stays after a reload, and Clear chat removes it from this device', async ({
