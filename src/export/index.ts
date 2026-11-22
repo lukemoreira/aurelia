@@ -2,6 +2,7 @@
 // Export a book: the entries the screens call (ADR-0014).
 import type { WorkspaceData } from '@/domain/workspace-data'
 import { buildExportBook, fileSafe } from './book'
+import type { ExportCover } from './cover'
 import { docxBlob } from './docx'
 import { epubBlob } from './epub'
 import { markdownBlob } from './markdown'
@@ -18,8 +19,9 @@ export function exportBook(
   data: WorkspaceData,
   bookId: string,
   profile: ExportProfile,
+  cover?: ExportCover,
 ): ExportedFile {
-  const book = buildExportBook(data, bookId, profile)
+  const book = { ...buildExportBook(data, bookId, profile), ...(cover && { cover }) }
   const name = fileSafe(book.title)
   switch (profile.format) {
     case 'docx':
@@ -34,7 +36,16 @@ export function exportBook(
 }
 
 /** The print view of a book: its page, the stylesheet that prints it, and the title it is saved under. */
-export function printBook(data: WorkspaceData, bookId: string, profile: ExportProfile) {
-  const book = buildExportBook(data, bookId, profile)
-  return { title: fileSafe(book.title), css: printCss(profile), html: printHtml(book, profile) }
+export function printBook(
+  data: WorkspaceData,
+  bookId: string,
+  profile: ExportProfile,
+  cover?: ExportCover,
+) {
+  const book = { ...buildExportBook(data, bookId, profile), ...(cover && { cover }) }
+  return {
+    title: fileSafe(book.title),
+    css: printCss(profile, !!cover),
+    html: printHtml(book, profile),
+  }
 }

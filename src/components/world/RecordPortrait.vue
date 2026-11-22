@@ -18,6 +18,8 @@ const props = defineProps<{
   colour?: string
   editable: boolean
   noun: string
+  /** The size of the frame (a book's cover is tall, its logo small); a record's portrait by default. */
+  size?: string
 }>()
 const emit = defineEmits<{ choose: [id: string] }>()
 const ws = useWorkspaceStore()
@@ -30,7 +32,10 @@ const pick = (id: string) => {
   emit('choose', id)
 }
 
-const frame = 'h-[108px] w-[88px] flex-none overflow-hidden rounded-card border border-line'
+const frame = computed(
+  () =>
+    `${props.size ?? 'h-[108px] w-[88px]'} flex-none overflow-hidden rounded-card border border-line`,
+)
 </script>
 
 <template>

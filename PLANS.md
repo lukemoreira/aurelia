@@ -890,3 +890,12 @@ backup — ADR-0009.)
   text; a record's own notes name it; a place whose new name is another record's name (a title, an alias, or a
   short form the new title does not give) is unticked with a warning, except a link's label; "1 place was left
   as it is" replaces "These 1 place were".
+- 2026-11-21 — Book website, logo and cover art; cover in EPUB and print (branch `feat/book-art`). Three optional keys of
+  `book.json` (no migration): `website` (text) and `logo`/`cover` (media IDs, like a record's `image`). The Book tab's
+  details have a Website field (a link only for an http/https address, a bare `example.com` is linked as https; never
+  `javascript:` or another scheme) and two pickers that reuse `RecordPortrait` (cover tall, logo small, Remove takes the
+  key away, a deleted image reads as none). EPUB: cover image, `cover-image` manifest item, EPUB 2 cover meta and a first
+  cover page; print view: the cover as the first page; no cover, or a cover that cannot be read, leaves both exactly as
+  before. DOCX and the Markdown bundle do not carry it. The assistant is unchanged (it does not propose these).
+  ADR-0003 and ADR-0014 each amended with one dated line.
+

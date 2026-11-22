@@ -16,6 +16,11 @@ export const bookSchema = z.looseObject({
   mode: z.enum(['linear', 'branching']),
   status: z.string().optional(),
   summary: z.string().optional(),
+  // The book's web address, as typed (a bare `example.com` is allowed: see website.ts).
+  website: z.string().optional(),
+  // Images of the media gallery, chosen like a record's `image`: the book's logo and its cover art.
+  logo: idOf('med').optional(),
+  cover: idOf('med').optional(),
   start: idOf('scn').optional(),
   outline: z.array(outlineEntry).optional(),
   dismissedFindings: z.array(z.string()).optional(),

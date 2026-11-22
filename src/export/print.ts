@@ -2,21 +2,28 @@
 // The print view of a PDF export (ADR-0014): the book as one page of HTML and a print stylesheet; the
 // browser's own "Save as PDF" makes the file. No PDF library: a page, `@page`, and `window.print()`.
 import type { ExportBook } from './book'
-import { chapterHtml, titlePageHtml } from './html'
+import { coverDataUri } from './cover'
+import { chapterHtml, esc, titlePageHtml } from './html'
 import { PRINT_CLASS } from './print-class'
 import type { ExportProfile } from './profile'
 
 /** Where the print view stands on the page, so its ids never meet the app's. */
 const PRINT_PREFIX = 'print-'
 
-/** The book as HTML: title page, then each chapter on a page of its own. */
+/** The cover art on a page of its own, before the title page. */
+const coverPageHtml = (book: ExportBook) =>
+  book.cover
+    ? `<section class="cover-page"><img src="${coverDataUri(book.cover)}" alt="${esc(`Cover of ${book.title}`)}"/></section>`
+    : ''
+
+/** The book as HTML: the cover (when it has one), the title page, then each chapter on a page of its own. */
 export function printHtml(book: ExportBook, profile: ExportProfile): string {
   const ctx = {
     epub: false,
     prefix: PRINT_PREFIX,
     sceneHref: (id: string) => `#${PRINT_PREFIX}${id}`,
   }
-  return `${titlePageHtml(book, profile)}${book.chapters.map((c) => chapterHtml(book, c, profile, ctx)).join('')}`
+  return `${coverPageHtml(book)}${titlePageHtml(book, profile)}${book.chapters.map((c) => chapterHtml(book, c, profile, ctx)).join('')}`
 }
 
 const FONT = {
@@ -29,10 +36,23 @@ const FONT = {
  * The stylesheet of the print view: how it looks on screen (a sheet of paper), and under `@media print`
  * the one thing printed (the app is hidden), on the page size, font, size and line spacing of the profile.
  */
-export function printCss(p: ExportProfile): string {
+export function printCss(p: ExportProfile, hasCover = false): string {
   const size = p.pageSize === 'a4' ? 'A4' : 'letter'
   const b = '.print-book'
-  return `@page { size: ${size}; margin: 2.2cm 2.4cm 2.6cm; @bottom-center { content: counter(page); font-size: 10pt; } }
+  // The cover fills the page's text area; the title page that follows starts a new page. Neither the cover nor
+  // the title page shows a number, and the page counter restarts at 1 where the book's own pages begin (the
+  // title page, else the first chapter), so every page after it is numbered as it is without a cover.
+  const first = p.titlePage ? `${b} .title-page` : `${b} .cover-page + .chapter`
+  const cover = hasCover
+    ? `${b} .cover-page { break-after: page; text-align: center; page: cover; }
+${b} .cover-page img { display: block; margin: 0 auto; max-width: 100%; max-height: 22cm; object-fit: contain; }
+${b} .chapter { page: body; }
+${first} { counter-set: page 1; page: front; }
+@page cover { @bottom-center { content: none; } }
+${p.titlePage ? '@page front { @bottom-center { content: none; } }' : '@page front:first { @bottom-center { content: none; } }'}
+`
+    : ''
+  return `${cover}@page { size: ${size}; margin: 2.2cm 2.4cm 2.6cm; @bottom-center { content: counter(page); font-size: 10pt; } }
 @page :first { @bottom-center { content: none; } }
 ${b} { font-family: ${FONT[p.font]}; font-size: ${p.fontSize}pt; line-height: ${p.spacing}; color: #000; background: #fff; }
 ${b} h1, ${b} h2, ${b} h3, ${b} h4, ${b} h5, ${b} h6 { line-height: 1.25; margin: 1.3em 0 .5em; break-after: avoid; }

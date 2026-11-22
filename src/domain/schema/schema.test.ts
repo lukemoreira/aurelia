@@ -111,6 +111,12 @@ describe('workspace, universe, book, part, chapter', () => {
     expect(bookSchema.parse(bok).targets).toMatchObject({ deadline: '2027-01-01' })
     expect(bookSchema.safeParse({ ...bok, mode: 'tree' }).success).toBe(false)
 
+    // The website, logo and cover art are kept as written; a logo that is not a media ID is refused like a record's image.
+    const art = { website: 'example.com', logo: 'med_a1b2c3d4e5', cover: 'med_f6g7h8j9k2' }
+    expect(bookSchema.parse({ ...bok, ...art })).toMatchObject(art)
+    expect(bookSchema.parse(bok)).not.toHaveProperty('cover')
+    expect(bookSchema.safeParse({ ...bok, cover: 'chr_8f3k2m9q1x' }).success).toBe(false)
+
     const prt = { title: 'P', schemaVersion: 1, id: 'prt_a1b2c3d4e5', book: bok.id, order: 'a0' }
     expect(partSchema.safeParse(prt).success).toBe(true)
     const chp = {
