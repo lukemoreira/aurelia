@@ -96,6 +96,11 @@ async function closePin(place: string) {
   await nextTick()
   await canvas.value?.focusPin(place)
 }
+/** A chip of the list: open that pin's card, with the pin brought into view when the map is zoomed in. */
+function openFromList(place: string) {
+  select(place)
+  canvas.value?.reveal(place)
+}
 const select = (place: string | undefined) => {
   m.flush()
   m.selected.value = place
@@ -210,7 +215,7 @@ const chip =
       <h2 id="pinned-title" class="m-0 text-[13px] font-medium text-ink">Pinned places</h2>
       <ul class="m-0 flex list-none flex-wrap gap-1.5 p-0">
         <li v-for="p in m.pins.value" :key="p.place">
-          <button type="button" :class="chip" @click="select(p.place)">
+          <button type="button" :class="chip" @click="openFromList(p.place)">
             {{ p.title }}<span v-if="p.kind" class="ml-1 text-ink-3">· {{ p.kind }}</span>
           </button>
         </li>

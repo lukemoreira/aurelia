@@ -90,3 +90,20 @@ export function revealShift(point: number, frame: number, margin: number, lead =
   if (point > frame - margin) return frame - margin - point
   return 0
 }
+
+/** The size an SVG says it has: its viewBox, else its width and height in pixels (nothing when it says neither). */
+export function svgSize(text: string): Size | undefined {
+  const tag = /<svg\b[^>]*>/i.exec(text)?.[0]
+  if (!tag) return undefined
+  const attr = (name: string) =>
+    new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, 'i').exec(tag)?.[1]
+  const box = attr('viewBox')
+    ?.trim()
+    .split(/[\s,]+/)
+    .map(Number)
+  const [w, h] =
+    box && box.length === 4
+      ? [box[2]!, box[3]!]
+      : [parseFloat(attr('width') ?? ''), parseFloat(attr('height') ?? '')]
+  return w > 0 && h > 0 ? { w, h } : undefined
+}

@@ -385,6 +385,99 @@ describe('a pin cancelled mid-drag and a pin with names off', () => {
   })
 })
 
+describe('final checks on cards, drags and keys', () => {
+  const setProps = (w: unknown, id: string) =>
+    (w as { setProps(p: object): Promise<void> }).setProps({ id })
+
+  it('a write that fails after another record opened shows its refusal nowhere', async () => {
+    const { france, paris, session, mount: mountIt } = await open()
+    const w = mountIt(PlaceMapTab, { id: france })
+    await flushPromises()
+    await button(w, 'Edit pins').trigger('click')
+    ;(session as unknown as { otherTab: boolean }).otherTab = true
+    await w.get('[data-pin]').trigger('keydown', { key: 'ArrowRight' })
+    await setProps(w, paris) // the waiting move is flushed now, and refused a moment later
+    await new Promise((r) => setTimeout(r, 300))
+    await flushPromises()
+    expect(w.find('[role=alert]').exists()).toBe(false)
+    ;(session as unknown as { otherTab: boolean }).otherTab = false
+    w.unmount()
+  })
+
+  it('a drag that ends with no click, then a press and click, opens the card (the press clears the drag)', async () => {
+    const { france, mount: mountIt } = await open()
+    const w = mountIt(PlaceMapTab, { id: france })
+    await flushPromises()
+    await button(w, 'Edit pins').trigger('click')
+    const pin = w.get('[data-pin]')
+    const at = { pointerId: 4, pointerType: 'mouse', button: 0 }
+    await pin.trigger('pointerdown', { ...at, clientX: 10, clientY: 10 })
+    await pin.trigger('pointermove', { ...at, clientX: 40, clientY: 40 })
+    await pin.trigger('pointerup', at) // a drag ends; the click that follows it never comes
+    expect(w.find('[role=dialog]').exists()).toBe(false)
+    await pin.trigger('pointerdown', { ...at, clientX: 10, clientY: 10 })
+    await pin.trigger('click')
+    expect(w.find('[role=dialog]').exists()).toBe(true)
+    w.unmount()
+  })
+
+  it('a card closes when its pin stops being shown, and does not come back with it', async () => {
+    const { france, paris, session, mount: mountIt } = await open()
+    const { deleteItem, restoreDeleted } = await import('@/storage/outline-actions')
+    const w = mountIt(PlaceMapTab, { id: france })
+    await flushPromises()
+    await w.get('[data-pin]').trigger('click')
+    expect(w.find('[role=dialog]').exists()).toBe(true)
+    const { stamp } = await deleteItem(session, paris)
+    await flushPromises()
+    expect(w.find('[role=dialog]').exists()).toBe(false)
+    await restoreDeleted(session, stamp)
+    await flushPromises()
+    expect(w.findAll('[data-pin]')).toHaveLength(1)
+    expect(w.find('[role=dialog]').exists()).toBe(false)
+    w.unmount()
+  })
+
+  it('says once that a pin moved after the arrow keys are saved', async () => {
+    const { france, mount: mountIt } = await open()
+    const w = mountIt(PlaceMapTab, { id: france })
+    await flushPromises()
+    await button(w, 'Edit pins').trigger('click')
+    await w.get('[data-pin]').trigger('keydown', { key: 'ArrowRight' })
+    await w.get('[data-pin]').trigger('keydown', { key: 'ArrowRight' })
+    expect(useEditsStore().announcement).toBe('')
+    await vi.waitFor(() => expect(useEditsStore().announcement).toBe('“Paris” moved.'), {
+      timeout: 3000,
+    })
+    w.unmount()
+  })
+
+  it('a second finger on another pin does not take over the drag', async () => {
+    const { france, paris, lyon, session, mount: mountIt } = await open()
+    await setDetails(session, france, {
+      pins: [
+        { place: paris, x: 0.25, y: 0.5 },
+        { place: lyon, x: 0.6, y: 0.6 },
+      ],
+    })
+    const w = mountIt(PlaceMapTab, { id: france })
+    await flushPromises()
+    await button(w, 'Edit pins').trigger('click')
+    const [a, b] = w.findAll('[data-pin]')
+    const style = (pin: typeof a) => pin!.element.parentElement!.getAttribute('style')
+    const touch = (pointerId: number) => ({ pointerId, pointerType: 'touch', button: 0 })
+    await a!.trigger('pointerdown', { ...touch(1), clientX: 0, clientY: 0 })
+    await b!.trigger('pointerdown', { ...touch(2), clientX: 0, clientY: 0 })
+    await b!.trigger('pointermove', { ...touch(2), clientX: 9, clientY: 9 }) // the second finger moves: nothing drags
+    expect(style(a)).toContain('left: 25%')
+    expect(style(b)).toContain('left: 60%')
+    await a!.trigger('pointermove', { ...touch(1), clientX: 9, clientY: 9 })
+    expect(style(a)).not.toContain('left: 25%')
+    expect(style(b)).toContain('left: 60%')
+    w.unmount()
+  })
+})
+
 describe('a refused write is not announced as done', () => {
   it('shows the reason, adds no pin, announces nothing and focuses nothing', async () => {
     const { france, lyon, session, mount: mountIt } = await open()

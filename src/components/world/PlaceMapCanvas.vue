@@ -5,6 +5,7 @@ import { modLabel } from '@/composables/useKeyboardShortcuts'
 import { useMediaImage } from '@/composables/useMedia'
 import { NUDGE, NUDGE_FAR } from '@/composables/usePlaceMap'
 import { usePlaceMapView } from '@/composables/usePlaceMapView'
+import { svgSize } from '@/domain/map-view'
 import type { ShownPin } from '@/domain/place-maps'
 
 /**
@@ -52,9 +53,18 @@ const stage = computed(() => ({
 }))
 // The frame is as tall as the picture is for this width, up to a cap; only then is there room beside it.
 const frameStyle = computed(() => ({ aspectRatio: `${size.value.w} / ${size.value.h}` }))
-const onLoad = (e: Event) => {
+const onLoad = async (e: Event) => {
   const img = e.target as HTMLImageElement
   natural.value = { w: img.naturalWidth, h: img.naturalHeight }
+  if (natural.value.w && natural.value.h) return
+  // An SVG with only a viewBox reports no size: read it from the file, so the pins and the margin check are
+  // against the picture itself. If it says nothing, the picture is stretched to fill the fallback box exactly.
+  try {
+    const text = await (await fetch(img.src)).text()
+    natural.value = svgSize(text) ?? natural.value
+  } catch {
+    /* the fallback box stands */
+  }
 }
 /** The zoom buttons sit on the picture's own corner, not out in the margin of the frame. */
 const controlsAt = computed(() => ({
@@ -79,15 +89,19 @@ const drawn = computed(() =>
 // Dragging a pin (edit mode): a press that does not move is a click, which opens the pin. The pin keeps the
 // distance it had from the pointer when it was grabbed, so it does not jump on the first move.
 let dragging:
-  { place: string; x: number; y: number; dx: number; dy: number; moved: boolean } | undefined
+  | { id: number; place: string; x: number; y: number; dx: number; dy: number; moved: boolean }
+  | undefined
 let afterDrag = false
 function pinDown(e: PointerEvent, p: ShownPin) {
   e.stopPropagation() // not the picture's pan
   afterDrag = false // a drag that ended without a click (cancelled) must not swallow this press
-  if (!props.editing || (e.pointerType === 'mouse' && (e.button !== 0 || e.ctrlKey))) return
+  // A second finger on another pin is not a second drag: the first one is the one being dragged.
+  if (dragging || !props.editing || (e.pointerType === 'mouse' && (e.button !== 0 || e.ctrlKey)))
+    return
   ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
   const grab = view.pointOn(e.clientX, e.clientY)
   dragging = {
+    id: e.pointerId,
     place: p.place,
     x: e.clientX,
     y: e.clientY,
@@ -97,13 +111,14 @@ function pinDown(e: PointerEvent, p: ShownPin) {
   }
 }
 function pinMove(e: PointerEvent) {
-  if (!dragging) return
+  if (dragging?.id !== e.pointerId) return
   if (!dragging.moved && Math.hypot(e.clientX - dragging.x, e.clientY - dragging.y) < 4) return
   dragging.moved = true
   const at = view.pointOn(e.clientX, e.clientY)
   emit('drag', dragging.place, at.x + dragging.dx, at.y + dragging.dy)
 }
-function pinUp() {
+function pinUp(e: PointerEvent) {
+  if (dragging?.id !== e.pointerId) return
   if (dragging?.moved) {
     afterDrag = true // the click that follows this release is the end of the drag, not a press
     emit('settle', dragging.place)
@@ -111,7 +126,8 @@ function pinUp() {
   dragging = undefined
 }
 /** A cancelled drag: the pin is settled where it got to, and no click follows. */
-function pinCancel() {
+function pinCancel(e: PointerEvent) {
+  if (dragging?.id !== e.pointerId) return
   if (dragging?.moved) emit('settle', dragging.place)
   dragging = undefined
 }
@@ -157,6 +173,11 @@ const anchor = computed(() => {
 })
 defineExpose({
   focusPin,
+  /** Pan so a pin can be seen (a card opened for a pin that is out of sight would point at nothing). */
+  reveal: (place: string) => {
+    const p = props.pins.find((x) => x.place === place)
+    if (p) view.reveal(p.x, p.y)
+  },
   visibleCentre: () => view.visibleCentre(),
 })
 const control =
@@ -203,7 +224,7 @@ const control =
           :src="url"
           alt=""
           draggable="false"
-          class="pointer-events-none size-full select-none object-contain"
+          class="pointer-events-none size-full select-none object-fill"
           @load="onLoad"
           @error="emit('broken')"
         />

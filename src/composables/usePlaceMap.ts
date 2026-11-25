@@ -77,12 +77,13 @@ export function usePlaceMap(idOf: () => string) {
   async function save(task: (s: NonNullable<typeof ws.session>) => Promise<void>, id = idOf()) {
     const session = ws.session
     if (!session || !id) return false
-    error.value = ''
+    // Only the record that is open shows its refusals: a write for one that was left behind says nothing here.
+    if (idOf() === id) error.value = ''
     try {
       await task(session)
       return true
     } catch (e) {
-      error.value = wordsFor(e)
+      if (idOf() === id) error.value = wordsFor(e)
       return false
     }
   }
@@ -94,6 +95,11 @@ export function usePlaceMap(idOf: () => string) {
     })),
   )
   const pinned = computed(() => new Set(pins.value.map((p) => p.place)))
+  // A card whose pin is no longer shown (the place was deleted, the pin was taken off elsewhere) goes with it,
+  // and does not come back by itself if the pin does.
+  watch(pins, (list) => {
+    if (selected.value && !list.some((p) => p.place === selected.value)) selected.value = undefined
+  })
 
   const choosePicture = (picture: string, id = idOf()) =>
     save((s) => setMapPicture(s, id, picture), id)
@@ -123,7 +129,7 @@ export function usePlaceMap(idOf: () => string) {
   const drag = (place: string, x: number, y: number) =>
     live.set(keyOf(idOf(), place), { x: clamp01(x), y: clamp01(y) })
   /** The end of a drag, or a run of arrow keys: one write, with where the pin ended up. */
-  async function settle(place: string, id = idOf()) {
+  async function settle(place: string, id = idOf(), announce = false) {
     const key = keyOf(id, place)
     const at = live.get(key)
     if (!at) return
@@ -131,6 +137,7 @@ export function usePlaceMap(idOf: () => string) {
     const now = live.get(key)
     // Saved, or refused (the pin goes back to where the file has it, and no flush tries it again).
     if (now && (!done || (now.x === at.x && now.y === at.y))) live.delete(key)
+    if (done && announce) await edits.announce(`“${titleOf(place)}” moved.`) // keys move a pin silently
   }
   /** An arrow key: the pin moves on screen at once, the write waits for the keys to stop. */
   function nudge(place: string, dx: number, dy: number) {
@@ -140,13 +147,17 @@ export function usePlaceMap(idOf: () => string) {
     if (!from) return
     drag(place, from.x + dx, from.y + dy)
     clearTimeout(timers.get(key)?.timer)
-    timers.set(key, { id, place, timer: setTimeout(() => void settle(place, id), KEY_SAVE_MS) })
+    timers.set(key, {
+      id,
+      place,
+      timer: setTimeout(() => void settle(place, id, true), KEY_SAVE_MS),
+    })
   }
   /** Save the nudges that are still waiting (the tab closes, another pin or record is chosen). */
   function flush() {
     for (const { id, place, timer } of timers.values()) {
       clearTimeout(timer)
-      void settle(place, id)
+      void settle(place, id, true)
     }
     timers.clear()
   }

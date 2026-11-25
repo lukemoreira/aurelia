@@ -411,4 +411,16 @@ test('pins at the edges stay whole, and tabbing to a pin that is out of sight sc
   expect(focused.x).toBeGreaterThanOrEqual(box.x - 1)
   expect(focused.x + focused.width).toBeLessThanOrEqual(box.x + box.width + 1)
   expect(focused.y).toBeGreaterThanOrEqual(box.y - 1)
+
+  // A chip of "Pinned places" opens its card and brings the pin into view, so the card points at something.
+  const lyonBefore = (await frame.getByRole('button', { name: 'Lyon' }).boundingBox())!
+  expect(lyonBefore.x).toBeGreaterThan(box.x + box.width) // Lyon is off to the right, out of sight
+  await sheet(page)
+    .getByRole('region', { name: 'Pinned places' })
+    .getByRole('button', { name: 'Lyon' })
+    .click()
+  await expect(sheet(page).getByRole('dialog', { name: 'Lyon' })).toBeVisible()
+  const lyon = (await frame.getByRole('button', { name: 'Lyon' }).boundingBox())!
+  expect(lyon.x).toBeGreaterThanOrEqual(box.x - 1)
+  expect(lyon.x + lyon.width).toBeLessThanOrEqual(box.x + box.width + 1)
 })

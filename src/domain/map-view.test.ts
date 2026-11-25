@@ -9,6 +9,7 @@ import {
   fractionAt,
   isOnPicture,
   revealShift,
+  svgSize,
   wheelPixels,
   panBy,
   wheelFactor,
@@ -83,5 +84,18 @@ describe('the zoom and pan of a map picture', () => {
     expect(wheelPixels(-3, 0, 400)).toBe(-3)
     expect(wheelPixels(-3, 1, 400)).toBe(-48)
     expect(wheelPixels(1, 2, 400)).toBe(400)
+  })
+
+  it('reads the size an SVG says it has, from its viewBox first', () => {
+    expect(
+      svgSize('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200"><g/></svg>'),
+    ).toEqual({ w: 300, h: 200 })
+    expect(svgSize("<svg viewBox='10, 20, 640, 480' width='5' height='5'>")).toEqual({
+      w: 640,
+      h: 480,
+    })
+    expect(svgSize('<svg width="120px" height="80px">')).toEqual({ w: 120, h: 80 })
+    expect(svgSize('<svg width="100%">')).toBeUndefined()
+    expect(svgSize('not an svg')).toBeUndefined()
   })
 })
