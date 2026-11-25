@@ -30,8 +30,12 @@ export function useNavigation() {
     const href = viewHref(view)
     if (href) return router.push(href)
   }
-  function openRecord(bookId: string, recordId: string) {
-    return router.push({ path: viewPath(bookId, 'world'), query: { record: recordId } })
+  /** A record's sheet, on one of its tabs when asked (`map`), else on the Overview. */
+  function openRecord(bookId: string, recordId: string, tab?: string) {
+    return router.push({
+      path: viewPath(bookId, 'world'),
+      query: { record: recordId, ...(tab ? { tab } : {}) },
+    })
   }
   function openChapter(chapterId: string) {
     const chapter = ws.data?.chapters.find((c) => c.id === chapterId)

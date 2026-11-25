@@ -5,7 +5,14 @@ import type { IconName } from './ui-names'
 
 /** The tabs of a record's sheet: each type shows the ones it has fields or lists for. */
 export type SheetTab =
-  'overview' | 'progression' | 'relationships' | 'appearances' | 'voice' | 'senses' | 'sources'
+  | 'overview'
+  | 'progression'
+  | 'relationships'
+  | 'appearances'
+  | 'voice'
+  | 'senses'
+  | 'map'
+  | 'sources'
 
 /** A basic field of a record: a key of the record's frontmatter, as plain text. */
 export interface BasicField {
@@ -131,7 +138,7 @@ export const RECORD_INFO: Record<RecordType, RecordTypeInfo> = {
     icon: 'place',
     prefix: 'plc',
     folder: 'places',
-    tabs: ['senses'],
+    tabs: ['senses', 'map'],
     fields: [
       kind('Kind of place', 'Planet, country, city, harbour, room… (you choose the levels)'),
       ...SENSES,
@@ -142,7 +149,7 @@ export const RECORD_INFO: Record<RecordType, RecordTypeInfo> = {
     icon: 'globe',
     prefix: 'wld',
     folder: 'worlds',
-    tabs: ['senses'],
+    tabs: ['senses', 'map'],
     fields: [kind('Kind of world', 'Planet, realm, ship…'), ...SENSES],
   },
   item: {

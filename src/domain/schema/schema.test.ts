@@ -245,3 +245,58 @@ describe('dates before the calendar starts, and the dates on a sheet', () => {
     expect(recordSchema.safeParse({ ...rec, aliases: 5 }).success).toBe(false)
   })
 })
+
+describe('a map and its pins on a place', () => {
+  const rec = {
+    title: 'France',
+    schemaVersion: 1,
+    id: 'plc_8f3k2m9q1x',
+    type: 'place',
+    scope: 'universe',
+  }
+  const pin = (extra: object = {}) => ({ place: 'plc_4n8w2c7d0p', x: 0.25, y: 0.75, ...extra })
+
+  it('reads a map picture and pins, and keeps the keys it does not know', () => {
+    const out = recordSchema.parse({
+      ...rec,
+      map: 'med_4k8m2x9t1q',
+      pins: [pin({ colour: 'red' })],
+      other: 1,
+    })
+    expect(out).toMatchObject({ map: 'med_4k8m2x9t1q', other: 1 })
+    expect(out.pins).toEqual([pin({ colour: 'red' })])
+  })
+
+  it('leaves out an entry that is wrong, and never refuses the file for it', () => {
+    const out = recordSchema.safeParse({
+      ...rec,
+      pins: [
+        pin(),
+        pin({ place: 'chr_4n8w2c7d0p' }), // not a place
+        pin({ place: 'nonsense' }),
+        pin({ x: Number.NaN }),
+        pin({ y: 'high' }),
+        pin({ x: undefined }),
+        'France',
+        null,
+      ],
+    })
+    expect(out.success).toBe(true)
+    expect(out.data?.pins).toEqual([pin()])
+  })
+
+  it('keeps a position inside the picture and the first pin of a place', () => {
+    const out = recordSchema.parse({
+      ...rec,
+      pins: [pin({ x: 3, y: -1 }), pin({ x: 0.5, y: 0.5 })],
+    })
+    expect(out.pins).toEqual([pin({ x: 1, y: 0 })])
+  })
+
+  it('reads pins that are not a list, and a map that is no image, as none', () => {
+    const out = recordSchema.safeParse({ ...rec, pins: 'here', map: 'chr_4n8w2c7d0p' })
+    expect(out.success).toBe(true)
+    expect(out.data?.pins).toBeUndefined()
+    expect(out.data?.map).toBeUndefined()
+  })
+})
