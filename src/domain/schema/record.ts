@@ -43,6 +43,22 @@ const source = z.looseObject({
   note: z.string().optional(),
 })
 
+// A pin on a place's map (ADR-0017): which place, and where on the picture, as fractions 0..1 of its width
+// and height. Keys a later version adds to a pin are kept.
+const fraction = z.number().transform((n) => Math.min(1, Math.max(0, n)))
+export const pinSchema = z.looseObject({ place: idOf('wld', 'plc'), x: fraction, y: fraction })
+// Written by hand, an entry may be wrong (an ID that is no place, a number that is not one): it is left out when
+// read, never a reason to refuse the file. One pin per place: the first one stays.
+const pins = z.array(z.unknown()).transform((list) => {
+  const seen = new Set<string>()
+  return list.flatMap((entry) => {
+    const got = pinSchema.safeParse(entry)
+    if (!got.success || seen.has(got.data.place)) return []
+    seen.add(got.data.place)
+    return [got.data]
+  })
+})
+
 /**
  * The plain-text fields of the sheets (record-types.ts says which type asks for which). All
  * optional; a record of any type may carry any of them, and keys this list does not know are kept.
@@ -105,6 +121,10 @@ export const recordSchema = z.looseObject({
   born: storyTime.optional().catch(undefined),
   // A picture of it: an imported image (`media/`), a portrait for a character.
   image: idOf('med').optional(),
+  // The picture used as the map of a place or world (another image than `image`, the picture of it), and the
+  // places pinned on it. A map that is not an image ID reads as none.
+  map: idOf('med').optional().catch(undefined),
+  pins: pins.optional().catch(undefined),
   // A place or world sits inside another one (planet → country → city → room).
   parent: idOf('wld', 'plc').optional(),
   relationships: z.array(relationship).optional(),
@@ -116,3 +136,4 @@ export type RecordType = RecordFrontmatter['type']
 export type Alias = z.infer<typeof alias>
 export type Relationship = z.infer<typeof relationship>
 export type Source = z.infer<typeof source>
+export type MapPin = z.infer<typeof pinSchema>

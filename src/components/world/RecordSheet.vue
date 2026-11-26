@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import Button from '@/components/ui/Button.vue'
 import Icon from '@/components/ui/Icon.vue'
 import Menu from '@/components/ui/Menu.vue'
@@ -17,6 +18,7 @@ import LinksList from '@/components/shell/LinksList.vue'
 import SceneEditor from '@/components/write/SceneEditor.vue'
 import AppearancesTab from './AppearancesTab.vue'
 import ProgressionTab from './ProgressionTab.vue'
+import PlaceMapTab from './PlaceMapTab.vue'
 import RecordTime from './RecordTime.vue'
 import FieldList from './FieldList.vue'
 import RecordPortrait from './RecordPortrait.vue'
@@ -42,13 +44,17 @@ const TAB_LABEL: Record<SheetTab | 'notes', string> = {
   appearances: 'Appearances',
   voice: 'Voice',
   senses: 'Senses',
+  map: 'Map',
   sources: 'Sources',
   notes: 'Notes',
 }
-const tab = ref('overview')
+const route = useRoute()
+// A link can ask for a tab (`?tab=map`, "Open its map"); a record opens on its Overview otherwise.
+const requested = () => (typeof route.query.tab === 'string' ? route.query.tab : 'overview')
+const picked = ref(requested())
 watch(
-  () => props.id,
-  () => (tab.value = 'overview'),
+  () => `${props.id}|${route.query.tab}`, // a string: an array is new on every run and would reset the tab on any navigation
+  () => (picked.value = requested()),
 )
 /** Overview first, the tabs this kind has, and the notes last (as the design's tab row has it). */
 const tabs = computed(() =>
@@ -57,6 +63,11 @@ const tabs = computed(() =>
     label: TAB_LABEL[t],
   })),
 )
+// A tab this kind of record does not have (a character asked for `map`) is the Overview.
+const tab = computed({
+  get: () => (tabs.value.some((t) => t.value === picked.value) ? picked.value : 'overview'),
+  set: (v) => (picked.value = v),
+})
 const fieldsOn = (t: SheetTab) =>
   (s.info.value?.fields ?? []).filter((f) => (f.tab ?? 'overview') === t)
 const type = computed(() => s.record.value?.meta.type)
@@ -219,6 +230,9 @@ const role = computed(() => s.record.value?.meta.role?.trim() || s.record.value?
             @add="s.addSource()"
             @remove="s.removeSource"
           />
+        </template>
+        <template #map>
+          <PlaceMapTab :id="id" />
         </template>
         <template #notes>
           <div class="flex flex-col gap-1.5">

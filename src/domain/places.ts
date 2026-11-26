@@ -90,6 +90,20 @@ export function placeAncestors(
   return chain
 }
 
+/** `id` and every place inside it, at any depth. */
+export function placeWithin(records: PlaceRecord[], id: string): Set<string> {
+  const up = parents(records)
+  const found = new Set([id])
+  // A place is inside `id` when walking up from it meets `id` (the walk ends: loops are cut in `parents`).
+  for (const start of up.keys())
+    for (let at: string | undefined = start; at; at = up.get(at))
+      if (at === id) {
+        found.add(start)
+        break
+      }
+  return found
+}
+
 /** The places directly inside `id`, by name. */
 export function placeChildren(records: PlaceRecord[], id: string): { id: string; title: string }[] {
   const up = parents(records)

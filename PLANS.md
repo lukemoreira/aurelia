@@ -500,6 +500,16 @@ timeline.
 - Later, not now: the gallery draws every image of the universe (two at a time); a window of tiles
   at a time (as the outline table does) when a universe holds hundreds.
 
+**M6c · Maps on places (built, 2026-11-25)** — the **Map** tab of a place or world (not the Story map).
+- [x] A gallery picture as the map (`map`) and pins on it (`pins`: place, x, y as fractions of the picture), two
+  optional keys of the record: no migration. Bad pins are left out on read but written back unchanged by a save; a pin to a deleted place is hidden and kept.
+- [x] View: click a pin for the place, its level, "Open place", "Open its map" and the scenes set there (the place or any
+  place inside it). Edit pins: add from a list of places (inside first), click or "Drop it in the middle", drag, arrow
+  keys, remove; one write per finished action.
+- [x] Zoom and pan with buttons, wheel, pinch and drag (pointer events, no dependency); a list of pinned places and of
+  those not on the map yet; "Inside <Parent> — open its map".
+- Decisions: ADR-0017.
+
 ### Release v0.4 "Protect and share"
 
 **M7 · History and export**
@@ -595,8 +605,8 @@ docs site, sample universe, signed desktop builds, first public release.
 - **M10 · More sync**: sync through Google Drive and OneDrive, an S3-compatible
   adapter, optional end-to-end encryption (libsodium: Argon2id + XChaCha20-Poly1305).
   WebDAV sync itself moved up to M4b.
-- **M11 · Sharing and views**: beta-reader mode, comments, revision mode; graph view,
-  maps.
+- **M11 · Sharing and views**: beta-reader mode, comments, revision mode; graph view.
+  (Maps were built early, as part of M6: see "M6c" and ADR-0017.)
 - Branching extras: variables and conditions, Ink / Twine export.
 
 ## 5. Risks and open items
@@ -924,3 +934,8 @@ backup — ADR-0009.)
   ADR-0003 and ADR-0014 each amended with one dated line.
 - 2026-11-21 — Review fixes: Accept / Edit / Dismiss everywhere, spacing-only changes shown, edits never lost, button on the frame (no layout), cover page numbers via `@page`.
 - 2026-11-22 — One suggestion button per framed paragraph (branch `fix/suggestion-buttons`): two suggestions changing the same paragraph looked like a duplicated button. Now one button reads "Suggestion" or "2 suggestions" (· out of date only when all are), the popup lists each suggestion as its own card ("Suggestion 1 of 2"), accepting or dismissing one leaves the rest, and the scene-end row is one button too. Frames, `placeSuggestions` and the edited-text rules are unchanged.
+- 2026-11-25 — Maps on places (branch `feat/place-maps`): a Map tab on places and worlds — a gallery picture and pins on
+  it, each pin a place; a pin opens the place, its own map and the scenes set there, including those in places inside it. Two
+  optional keys of the record (`map`, `pins`), no migration; bad pins left out on read but kept by a save, pins of deleted places hidden and
+  kept. Edit mode with drop, drag and arrow keys, one write per finished action; zoom and pan with pointer events (no
+  dependency). `?tab=map` opens a record on its Map tab. ADR-0017; not the Story map.
